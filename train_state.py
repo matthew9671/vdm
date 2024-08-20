@@ -103,7 +103,9 @@ class TrainState(struct.PyTreeNode):
   def create(_class, *, apply_fn, variables, optax_optimizer, **kwargs):
     """Creates a new instance with `step=0` and initialized `opt_state`."""
     # _class is the TrainState class
+    from flax.core.frozen_dict import FrozenDict
     params = variables["params"]
+    params = FrozenDict(params)
     opt_state = optax_optimizer(1.).init(params)
     ema_params = copy.deepcopy(params)
     return _class(
