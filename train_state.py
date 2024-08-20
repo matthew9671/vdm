@@ -85,7 +85,7 @@ class TrainState(struct.PyTreeNode):
     updates, new_opt_state = tx.update(
         grads, self.opt_state, self.params)
     new_params = optax.apply_updates(self.params, updates)
-    new_ema_params = jax.tree_multimap(
+    new_ema_params = jax.tree_util.tree_map(
         lambda x, y: x + (1. - ema_rate) * (y - x),
         self.ema_params,
         new_params,

@@ -127,7 +127,7 @@ def global_norm(pytree):
 
 
 def apply_ema(decay, avg, new):
-  return jax.tree_multimap(lambda a, b: decay * a + (1. - decay) * b, avg, new)
+  return jax.tree_util.tree_map(lambda a, b: decay * a + (1. - decay) * b, avg, new)
 
 
 """ Get metrics """
@@ -143,7 +143,7 @@ def get_metrics(device_metrics):
 
 def stack_forest(forest):
   stack_args = lambda *args: np.stack(args)
-  return jax.tree_multimap(stack_args, *forest)
+  return jax.tree_util.tree_map(stack_args, *forest)
 
 
 def average_appended_metrics(metrics):
