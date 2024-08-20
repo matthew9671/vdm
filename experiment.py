@@ -234,7 +234,7 @@ class Experiment(ABC):
 
           def avg_over_substeps(x):
             assert x.shape[0] == substeps
-            return float(x.mean(axis=0))
+            return float(jnp.squeeze(x.mean(axis=0)))
 
           metrics = jax.tree_map(avg_over_substeps, metrics)
           writer.write_scalars(step, metrics)
