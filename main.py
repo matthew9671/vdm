@@ -23,6 +23,7 @@ from absl import app
 from ml_collections import config_flags
 from vdm.utils import get_workdir
 import vdm.experiment_vdm
+import vdm.experiment_maskdiff
 
 FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
@@ -51,8 +52,10 @@ def main(argv):
                jax.process_index(), jax.process_count())
   #logging.info("JAX devices: %r", jax.devices())
 
-  if FLAGS.model == "vdm":
-    experiment = vdm.experiment_vdm.Experiment_VDM(FLAGS.config)
+  # if FLAGS.model == "vdm":
+  #   experiment = vdm.experiment_vdm.Experiment_VDM(FLAGS.config)
+
+  experiment = vdm.experiment_maskdiff.Experiment_MaskDiff(FLAGS.config)
 
   if FLAGS.mode == "train":
     workdir = os.path.join(FLAGS.workdir, get_workdir())

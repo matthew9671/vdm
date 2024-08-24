@@ -55,9 +55,6 @@ class Experiment(ABC):
     self.rng, data_rng = jax.random.split(self.rng)
     self.train_iter, self.eval_iter = dataset.create_dataset(config, data_rng)
 
-    # We're just testing loading the dataset at this point
-    return
-
     # initialize model
     logging.warning('=== Initializing model ===')
     self.rng, model_rng = jax.random.split(self.rng)
@@ -172,6 +169,9 @@ class Experiment(ABC):
   def train_and_evaluate(self, workdir: str):
     logging.warning('=== Experiment.train_and_evaluate() ===')
     logging.info('Workdir: '+workdir)
+
+    # We're just testing model initialization for now
+    return
 
     #if jax.process_index() == 0:
     #  if not tf.io.gfile.exists(workdir):

@@ -25,7 +25,7 @@ def get_config():
   """Get the hyperparameters for the model"""
   config = ml_collections.ConfigDict()
   config.exp_name = "exp_vdm"
-  config.model_type = "model_vdm"
+  config.model_type = "model_transformer"
   config.ckpt_restore_dir = 'None'
 
   config.data = d(
@@ -33,23 +33,38 @@ def get_config():
       ignore_cache=False,
   )
 
+#   config.model = d(
+#       vocab_size=256,
+#       sample_softmax=False,
+#       antithetic_time_sampling=True,
+#       with_fourier_features=True,
+#       with_attention=False, #True in paper version
+
+#       # configurations of the noise schedule
+#       gamma_type='learnable_nnet',  # learnable_scalar / learnable_nnet / fixed
+#       gamma_min=-13.3,
+#       gamma_max=5.,
+
+#       # configurations of the score model
+#       sm_n_timesteps=0,
+#       sm_n_embd=256,
+#       sm_n_layer=32,
+#       sm_pdrop=0.05,
+#   )
   config.model = d(
-      vocab_size=256,
-      sample_softmax=False,
-      antithetic_time_sampling=True,
-      with_fourier_features=True,
-      with_attention=False, #True in paper version
-
-      # configurations of the noise schedule
-      gamma_type='learnable_nnet',  # learnable_scalar / learnable_nnet / fixed
-      gamma_min=-13.3,
-      gamma_max=5.,
-
-      # configurations of the score model
-      sm_n_timesteps=0,
-      sm_n_embd=256,
-      sm_n_layer=32,
-      sm_pdrop=0.05,
+    # tpu-v3 has less memory, use smaller network?
+    vocab_size = 1024 + 1, # Caveat: conditional generation stuff
+    hidden_size = 768,
+    num_hidden_layers = 12, # 24
+    num_attention_heads = 16,
+    intermediate_size = 1024, #3072
+    hidden_dropout_prob = 0.1, 
+    attention_probs_dropout_prob = 0.1, # Same as hidden dropout prob
+    max_position_embeddings = 256 + 1, # seq length + 1?
+    # Transformer configs
+    # patch_size = 16,
+    # mask_token_id = -1,
+    # latent_size = 16,
   )
 
   config.training = d(
