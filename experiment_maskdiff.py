@@ -1,5 +1,6 @@
 import numpy as np
 import jax.numpy as jnp
+import jax.random as jr
 from jax._src.random import PRNGKey
 import jax
 from typing import Any, Tuple
@@ -10,6 +11,67 @@ import vdm.transformer as transformer
 
 class Experiment_MaskDiff(Experiment):
   """Train and evaluate a masked discrete diffusion model."""
+
+  # We override the base initialization
+  def __init__(self, config: ml_collections.ConfigDict):
+    self.config = config
+
+    print(config.data)
+
+    # Set seed before initializing model.
+    seed = config.training.seed
+    self.rng = utils.with_verbosity("ERROR", lambda: jax.random.PRNGKey(seed))
+
+    # initialize dataset
+    logging.warning('=== Initializing dataset ===')
+    self.rng, data_rng = jax.random.split(self.rng)
+    self.train_iter, self.eval_iter = dataset.create_dataset(config, data_rng)
+
+    # initialize model
+    logging.warning('=== Initializing model ===')
+    self.rng, model_rng = jax.random.split(self.rng)
+    self.model, params = self.get_model_and_params(model_rng)
+    parameter_overview.log_parameter_overview(params)
+
+    # initialize train state
+    logging.info('=== Initializing train state ===')
+    self.state = vdm.train_state.TrainState.create(
+        apply_fn=self.model.apply,
+        variables=params,
+        optax_optimizer=self.get_optimizer)
+    self.lr_schedule = self.get_lr_schedule()
+
+    # Restore from checkpoint
+    ckpt_restore_dir = self.config.get('ckpt_restore_dir', 'None')
+    if ckpt_restore_dir != 'None':
+      ckpt_restore = checkpoint.Checkpoint(ckpt_restore_dir)
+      checkpoint_to_restore = ckpt_restore.get_latest_checkpoint_to_restore_from()
+      assert checkpoint_to_restore
+      state_restore_dict = ckpt_restore.restore_dict(checkpoint_to_restore)
+      self.state = restore_partial(self.state, state_restore_dict)
+      del state_restore_dict, ckpt_restore, checkpoint_to_restore
+
+    # initialize train/eval step
+    logging.info('=== Initializing train/eval step ===')
+    self.rng, train_rng = jax.random.split(self.rng)
+    self.p_train_step = functools.partial(self.train_step, train_rng)
+    self.p_train_step = functools.partial(jax.lax.scan, self.p_train_step)
+    self.p_train_step = jax.pmap(self.p_train_step, "batch")
+
+    self.rng, eval_rng, sample_rng = jax.random.split(self.rng, 3)
+    self.p_eval_step = functools.partial(self.eval_step, eval_rng)
+    self.p_eval_step = jax.pmap(self.p_eval_step, "batch")
+    self.p_sample = functools.partial(
+        self.sample_fn,
+        # dummy_inputs=next(self.eval_iter)["images"][0],
+        dummy_inputs=None,
+        rng=sample_rng,
+    )
+    self.p_sample = utils.dist(
+        self.p_sample, accumulate='concat', axis_name='batch')
+
+    logging.info('=== Done with Experiment.__init__ ===')
+
 
   def get_model_and_params(self, rng: PRNGKey):
     config = self.config
@@ -57,6 +119,139 @@ class Experiment_MaskDiff(Experiment):
     metrics = {"scalars": scalar_dict, "images": img_dict}
 
     return bpd, metrics
+
+  def loss_fn(self, params, inputs, key, is_train) -> Tuple[float, Any]:
+    """
+    key: a jax PRNGKey.
+    data: (H, W, C) int array, each value should be in [0, S)
+    """
+
+    # TODO: replace model with self.state.apply_fn
+    config = self.config
+    data = inputs
+
+    x0 = data.flatten()
+    S = config.model.vocab_size # config["state_size"]
+    D = x0.shape[0]
+
+    # TODO: initialize the forward process
+    forward_process = self.forward_process #config["forward_process"]
+    min_t = config.training.min_t # config["min_t"]
+    max_t = config.training.max_t # config["max_t"]
+    eps = config.training.eps # config["eps"]
+    nll_weight = config.training.nll_weight # config["nll_weight"]
+
+    key_t, key_T, key_y = jr.split(key, 3)
+
+    rngs = {}
+
+    if is_train:
+      key_y, key_dropout = jr.split(key_y)
+      rngs["dropout"] = key_dropout
+
+    # sample time steps, with antithetic sampling
+    outputs = self.state.apply_fn(
+        variables={'params': params},
+        **inputs,
+        rngs=rngs,
+        deterministic=not is_train,
+    )
+
+    # --------------------------------------------------------------
+    # 1. Sample a random t
+    # --------------------------------------------------------------
+
+    # TODO: sampling uniformly might not be a good idea
+    # ofcourse, sampling non-uniformly is equivalent to changing the scalar rate parameter
+    t = jr.uniform(key_t, minval=min_t, maxval=max_t)
+
+    # q^d_{t|0}(*2|*1): (S, S) float array of finite-time transition probabilities
+    # for a single dimension
+    qt0 = forward_process.transition(t)
+    # R^d_t(*1,*2): (S, S) float array of instantenous transition rates
+    # for a single dimension
+    Rt = forward_process.rate(t)
+
+    # --------------------------------------------------------------
+    # 2. Sample y from q(x_t | x_0)
+    # --------------------------------------------------------------
+
+    # q^{*1}_{t|0}(*2|x0): (D, S) float array of probabilities
+    qt0_eval_x0 = qt0[x0, :]
+    log_qt0_eval_x0 = jnp.log(qt0_eval_x0 + eps)
+    # (D,) int array
+    y = jr.categorical(key_y, logits=log_qt0_eval_x0)
+
+    # --------------------------------------------------------------
+    # 3. Evaluate the likelihood ratio predicted by the model
+    # --------------------------------------------------------------
+
+    x0_logits = model.apply(params, y, t, rngs={"dropout": key_dropout})
+
+    # Assuming our model auto-adds a batch dimension, we want to remove it here:
+    x0_logits = x0_logits[0]
+    
+    # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
+    p0t_eval_y = softmax(x0_logits, axis=-1)
+    # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
+    qt0_eval_y = qt0[:,y].T + eps
+
+    # s_t^{\theta}^{*1}(y, *2): (D, S) float array of marginal likelihood ratios predicted by the model
+    # Also known as the "concrete score" in (Lou et al. 2023)
+#     st_eval_y = (p0t_eval_y / qt0_eval_y) @ qt0 
+    st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
+                           precision=jax.lax.Precision.HIGHEST)
+
+    # -------------------------------------------------------------
+    # 4. Evaluate the likelihood ratios at t conditioned on data
+    # -------------------------------------------------------------
+
+    # q_{t|0}^{*1}(y^d, x_0^d): (D,) float array of sample probabilities in the forward process
+    qt0_eval_y_x0 = qt0_eval_x0[jnp.arange(D), y] + eps
+    # The likelihood ratio
+    qt0_x_over_y = qt0_eval_x0 / qt0_eval_y_x0[:, None]
+
+    # -------------------------------------------------------------
+    # 5. Tying it all together
+    # -------------------------------------------------------------
+
+    # R^{*1}_t(*2,y^d): (D, S) float array of transition rates to y
+    # for each dimension
+    # Rt_eval_y = Rt.at[:,y].get().T
+    Rt_eval_y = Rt[:,y].T
+
+    # (D, S) float array that masks out y[d] for each d index
+    y_mask = jnp.ones((D, S))
+    y_mask = y_mask.at[jnp.arange(D), y].set(0.0)
+
+    # (D, S) float array, with each entry corresponding to a choice of (d, x^d)
+    # the cases where x^d = y^d are removed via masking
+    score_entropy = Rt_eval_y * y_mask * (st_eval_y - qt0_x_over_y * jnp.log(st_eval_y + eps))
+    
+    # Compute the cross entropy between prediction and data
+    x0_one_hot = jax.nn.one_hot(x0, S)
+    # TODO: these are log probabilities, and they can probably be computed better from the actual logits
+    logits = jnp.log(p0t_eval_y + eps)
+    x0_nll = - jnp.mean(x0_one_hot * logits)
+
+    loss = jnp.mean(score_entropy) + nll_weight * x0_nll
+    
+    # Sample from q_T to estimate the elbo
+    # (S,) float array of the logits of the stationary distribution
+    pi_logits = forward_process.target_logits()
+    xT = jr.categorical(key_T, logits=pi_logits, shape=(D,))
+    log_pi_eval_xT = jnp.sum(pi_logits[xT])
+    elbo = jnp.sum(- score_entropy + Rt_eval_y * y_mask) + log_pi_eval_xT
+
+    loss_dict = {
+        "loss": loss,
+        "elbo": elbo / D,
+        # "noisy_sample": y,
+        # "score_entropy_array": score_entropy,
+        "nll": x0_nll
+    }
+
+    return loss_dict
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
