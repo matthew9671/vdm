@@ -140,7 +140,7 @@ def create_custom_train_dataset(
   per_device_batch_size = batch_size // jax.device_count()
 
   # Load custom data
-  data = load_custom_data(file_paths)
+  data = load_custom_data(file_path)
   size = len(data)
 
   # Create TensorFlow dataset
