@@ -103,12 +103,11 @@ def create_dataset(config, data_rng):
 
       eval_ds = train_ds
 
-      # Debugging
-      host_data = list(train_ds.as_numpy_iterator())[0]
-
-      # Print the data this host has received
-      host_index = jax.process_index()
-      print(f"Host {host_index} received data: {host_data}")
+      # # Debugging
+      # host_data = list(train_ds.as_numpy_iterator())[0]
+      # # Print the data this host has received
+      # host_index = jax.process_index()
+      # print(f"Host {host_index} received data: {host_data}")
 
     else:
       raise Exception("Unrecognized config.data.dataset")

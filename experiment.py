@@ -46,6 +46,8 @@ class Experiment(ABC):
   def __init__(self, config: ml_collections.ConfigDict):
     self.config = config
 
+    print(config.data)
+
     # Set seed before initializing model.
     seed = config.training.seed
     self.rng = utils.with_verbosity("ERROR", lambda: jax.random.PRNGKey(seed))

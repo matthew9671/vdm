@@ -31,6 +31,7 @@ def get_config():
   config.data = d(
       dataset='tokenized_imagenet_256',  # cifar10/cifar10_aug/cifar10_aug_with_channel
       ignore_cache=False,
+      seq_length=256,
   )
 
 #   config.model = d(
