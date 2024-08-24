@@ -85,10 +85,84 @@ def create_dataset(config, data_rng):
           'validation',
           rng2,
           _preprocess_cifar10)
+    elif config.data.dataset == 'tokenized_imagenet_256':
+      _, train_ds = create_custom_train_dataset(
+          '~/tokenized_imagenet/256x256.npy',
+          config.training.batch_size_train,
+          config.training.substeps,
+          rng1,
+          None)
+
+      # _, eval_ds = create_custom_eval_dataset(
+      #     'tokenized_imagenet/256x256',
+      #     config.training.batch_size_eval,
+      #     'validation',
+      #     rng2,
+      #     None)
+
+      eval_ds = train_ds
+
+      # Debugging
+      host_data = list(split_dataset.as_numpy_iterator())[0]
+
+      # Print the data this host has received
+      host_index = jax.process_index()
+      print(f"Host {host_index} received data: {host_data}")
+
     else:
       raise Exception("Unrecognized config.data.dataset")
 
     return iter(train_ds), iter(eval_ds)
+
+def load_custom_data(file_path: str) -> np.ndarray:
+  #   """Load data from .npy files and concatenate into a single array."""
+  # data = []
+  # for path in file_paths:
+  #   data.append(np.load(path))
+  # return np.concatenate(data, axis=0)
+  return np.load(file_path, allow_pickle=True)
+
+def apply_split(dataset, size, split):
+  start, end = split.indices(size)
+  split_ds = dataset.skip(start).take(end - start)
+  return split_ds
+
+def create_custom_train_dataset(
+      file_path: str,
+      batch_size: int,
+      substeps: int,
+      data_rng,
+      preprocess_fn) -> tf.data.Dataset:
+  """Create custom dataset for training from .npy files."""
+
+  # Compute batch size per device from global batch size.
+  if batch_size % jax.device_count() != 0:
+      raise ValueError(f"Batch size ({batch_size}) must be divisible by "
+                       f"the number of devices ({jax.device_count()}).")
+  
+  per_device_batch_size = batch_size // jax.device_count()
+
+  # Load custom data
+  data = load_custom_data(file_paths)
+  size = len(data)
+
+  # Create TensorFlow dataset
+  train_ds = tf.data.Dataset.from_tensor_slices(data)
+
+  # We don't have preprocessing
+  # train_ds = train_ds.map(preprocess_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+  split = tfds.split_for_jax_process('train', drop_remainder=True)
+  # train_ds = tfds.load('my_dataset', split=split)
+  train_ds = apply_split(train_ds, split)
+
+  # Shuffle, batch, and prefetch
+  batch_dims = [jax.local_device_count(), substeps, per_device_batch_size]
+  train_ds = train_ds.shuffle(buffer_size=len(data))
+  train_ds = train_ds.batch(batch_dims[-1] * batch_dims[-2], drop_remainder=True)
+  train_ds = train_ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+  return None, train_ds
 
 def create_train_dataset(
         task: str,

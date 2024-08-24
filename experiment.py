@@ -55,6 +55,9 @@ class Experiment(ABC):
     self.rng, data_rng = jax.random.split(self.rng)
     self.train_iter, self.eval_iter = dataset.create_dataset(config, data_rng)
 
+    # We're just testing loading the dataset at this point
+    return
+
     # initialize model
     logging.warning('=== Initializing model ===')
     self.rng, model_rng = jax.random.split(self.rng)
