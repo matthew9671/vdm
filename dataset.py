@@ -104,7 +104,7 @@ def create_dataset(config, data_rng):
       eval_ds = train_ds
 
       # Debugging
-      host_data = list(split_dataset.as_numpy_iterator())[0]
+      host_data = list(train_ds.as_numpy_iterator())[0]
 
       # Print the data this host has received
       host_index = jax.process_index()
