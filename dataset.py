@@ -17,6 +17,7 @@ from typing import Tuple
 
 from clu import deterministic_data
 import jax
+from jax import numpy as jnp
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
@@ -114,13 +115,9 @@ def create_dataset(config, data_rng):
 
     return iter(train_ds), iter(eval_ds)
 
-def load_custom_data(file_path: str) -> np.ndarray:
+def load_custom_data(file_path: str) -> jnp.ndarray:
   #   """Load data from .npy files and concatenate into a single array."""
-  # data = []
-  # for path in file_paths:
-  #   data.append(np.load(path))
-  # return np.concatenate(data, axis=0)
-  return np.load(file_path, allow_pickle=True)
+  return jnp.load(file_path, allow_pickle=True)
 
 def apply_split(dataset, size, split):
   start, end = split.indices(size)
