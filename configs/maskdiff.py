@@ -69,6 +69,12 @@ def get_config():
   )
 
   config.training = d(
+
+      min_t=0.01,
+      max_t=1.,
+      eps=1e-6,
+      nll_weight=.01,
+
       seed=1,
       substeps=10,
       num_steps_lr_warmup=100,

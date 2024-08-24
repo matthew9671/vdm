@@ -125,8 +125,6 @@ class Experiment_MaskDiff(Experiment):
     key: a jax PRNGKey.
     data: (H, W, C) int array, each value should be in [0, S)
     """
-
-    # TODO: replace model with self.state.apply_fn
     config = self.config
     data = inputs
 
@@ -148,14 +146,6 @@ class Experiment_MaskDiff(Experiment):
     if is_train:
       key_y, key_dropout = jr.split(key_y)
       rngs["dropout"] = key_dropout
-
-    # sample time steps, with antithetic sampling
-    outputs = self.state.apply_fn(
-        variables={'params': params},
-        **inputs,
-        rngs=rngs,
-        deterministic=not is_train,
-    )
 
     # --------------------------------------------------------------
     # 1. Sample a random t
@@ -186,7 +176,12 @@ class Experiment_MaskDiff(Experiment):
     # 3. Evaluate the likelihood ratio predicted by the model
     # --------------------------------------------------------------
 
-    x0_logits = model.apply(params, y, t, rngs={"dropout": key_dropout})
+    # x0_logits = model.apply(params, y, t, rngs={"dropout": key_dropout})
+    x0_logits = self.state.apply_fn(
+        params, y, t,
+        rngs=rngs,
+        deterministic=not is_train,
+    )
 
     # Assuming our model auto-adds a batch dimension, we want to remove it here:
     x0_logits = x0_logits[0]
