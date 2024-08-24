@@ -17,7 +17,7 @@ class Experiment_MaskDiff(Experiment):
 
     # Do we need a batch dimension here?
     inputs = jnp.zeros((1, config.data.seq_length), dtype=int)
-    params = model.init(key_0, inputs, 0)
+    params = model.init(rng, inputs, 0)
 
     # inputs = {"images": jnp.zeros((2, 32, 32, 3), "uint8")}
     # inputs["conditioning"] = jnp.zeros((2,))
