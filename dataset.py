@@ -124,6 +124,11 @@ def apply_split(dataset, size, split):
   split_ds = dataset.skip(start).take(end - start)
   return split_ds
 
+def apply_split_with_sharding(dataset):
+    num_shards = jax.process_count()  # Total number of hosts
+    shard_index = jax.process_index()  # Index of the current host
+    return dataset.shard(num_shards=num_shards, index=shard_index)
+
 def create_custom_train_dataset(
       file_path: str,
       batch_size: int,
@@ -151,7 +156,8 @@ def create_custom_train_dataset(
 
   split = tfds.split_for_jax_process('train', drop_remainder=True)
   # train_ds = tfds.load('my_dataset', split=split)
-  train_ds = apply_split(train_ds, size, split)
+  # train_ds = apply_split(train_ds, size, split)
+  train_ds = apply_split_with_sharding(train_ds)
 
   # Shuffle, batch, and prefetch
   batch_dims = [jax.local_device_count(), substeps, per_device_batch_size]
