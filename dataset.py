@@ -151,7 +151,7 @@ def create_custom_train_dataset(
 
   split = tfds.split_for_jax_process('train', drop_remainder=True)
   # train_ds = tfds.load('my_dataset', split=split)
-  train_ds = apply_split(train_ds, split)
+  train_ds = apply_split(train_ds, size, split)
 
   # Shuffle, batch, and prefetch
   batch_dims = [jax.local_device_count(), substeps, per_device_batch_size]
