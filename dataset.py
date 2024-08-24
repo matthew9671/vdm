@@ -88,7 +88,7 @@ def create_dataset(config, data_rng):
           _preprocess_cifar10)
     elif config.data.dataset == 'tokenized_imagenet_256':
       _, train_ds = create_custom_train_dataset(
-          '~/tokenized_imagenet/256x256.npy',
+          '/home/yixiuz/tokenized_imagenet/256x256.npy',
           config.training.batch_size_train,
           config.training.substeps,
           rng1,
