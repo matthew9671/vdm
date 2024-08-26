@@ -9,14 +9,56 @@ from vdm.experiment import Experiment
 import vdm.transformer as transformer
 
 
+class AbsorbingRate():
+  def __init__(self, config):
+    self.state_size = S = config.state_size
+    self.scalar_rate = 1
+    self.eps = config.rate_eps
+    
+    mask = S-1
+
+    rate = np.zeros((S, S))
+    rate[:-1, -1] = self.scalar_rate
+    rate -= np.diag(jnp.sum(rate, axis=1))
+    self.eigvals, self.eigvecs = jnp.linalg.eigh(rate)
+    self.eigvals, self.eigvecs = np.linalg.eig(rate)
+    self.inv_eigvecs = np.linalg.inv(self.eigvecs)
+        
+    self.base_rate = jnp.array(rate, dtype=np.float32)
+#       self.rate_matrix = self.base_rate
+    self.eigvals = jnp.array(self.eigvals, dtype=np.float32)
+    self.eigvecs = jnp.array(self.eigvecs, dtype=np.float32)
+    self.inv_eigvecs = jnp.array(self.inv_eigvecs, dtype=np.float32)
+        
+  def target_logits(self):
+    S = self.state_size
+    logits = - jnp.ones((S,)) * 10000
+    return logits.at[-1].set(0)
+      
+  def _integral_rate_scalar(self, t):
+    return -jnp.log1p(-(1 - self.eps) * t)
+  
+  def _rate_scalar(self, t):
+    return (1 - self.eps) / (1 - (1 - self.eps) * t)
+      
+  def rate(self, t):
+    return self._rate_scalar(t) * self.base_rate
+
+  def transition(self, t, t0 = 0):
+    S = self.state_size
+    integral_rate_scalar = self._integral_rate_scalar(t+t0) - self._integral_rate_scalar(t0)
+    adj_eigvals = integral_rate_scalar * self.eigvals
+    trans = jnp.einsum("ij,jk,kl->il", self.eigvecs, jnp.diag(jnp.exp(adj_eigvals)), self.inv_eigvecs, 
+                       precision=jax.lax.Precision.HIGHEST)
+    trans = jnp.clip(trans, 0., 1.)
+    return trans
+
 class Experiment_MaskDiff(Experiment):
   """Train and evaluate a masked discrete diffusion model."""
 
   # We override the base initialization
   def __init__(self, config: ml_collections.ConfigDict):
     self.config = config
-
-    print(config.data)
 
     # Set seed before initializing model.
     seed = config.training.seed
@@ -32,6 +74,10 @@ class Experiment_MaskDiff(Experiment):
     self.rng, model_rng = jax.random.split(self.rng)
     self.model, params = self.get_model_and_params(model_rng)
     parameter_overview.log_parameter_overview(params)
+
+    # initialize forward process
+    # Assuming masking forward process
+    self.forward_process = AbsorbingRate(config.noise)
 
     # initialize train state
     logging.info('=== Initializing train state ===')
@@ -132,7 +178,6 @@ class Experiment_MaskDiff(Experiment):
     S = config.model.vocab_size # config["state_size"]
     D = x0.shape[0]
 
-    # TODO: initialize the forward process
     forward_process = self.forward_process #config["forward_process"]
     min_t = config.training.min_t # config["min_t"]
     max_t = config.training.max_t # config["max_t"]
@@ -151,8 +196,6 @@ class Experiment_MaskDiff(Experiment):
     # 1. Sample a random t
     # --------------------------------------------------------------
 
-    # TODO: sampling uniformly might not be a good idea
-    # ofcourse, sampling non-uniformly is equivalent to changing the scalar rate parameter
     t = jr.uniform(key_t, minval=min_t, maxval=max_t)
 
     # q^d_{t|0}(*2|*1): (S, S) float array of finite-time transition probabilities
@@ -246,7 +289,7 @@ class Experiment_MaskDiff(Experiment):
         "nll": x0_nll
     }
 
-    return loss_dict
+    return loss, loss_dict
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
