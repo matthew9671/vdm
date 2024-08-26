@@ -8,6 +8,15 @@ from typing import Any, Tuple
 from vdm.experiment import Experiment
 import vdm.transformer as transformer
 
+import functools
+import ml_collections
+import vdm.train_state
+import vdm.utils as utils
+import vdm.dataset as dataset
+from absl import logging
+
+from clu import parameter_overview
+from clu import checkpoint
 
 class AbsorbingRate():
   def __init__(self, config):
@@ -52,6 +61,14 @@ class AbsorbingRate():
                        precision=jax.lax.Precision.HIGHEST)
     trans = jnp.clip(trans, 0., 1.)
     return trans
+
+# Replicated from experiment.py
+def restore_partial(state, state_restore_dict):
+  state_dict = flax.serialization.to_state_dict(state)
+  state_dict = copy_dict(state_dict, state_restore_dict)
+  state = flax.serialization.from_state_dict(state, state_dict)
+
+  return state
 
 class Experiment_MaskDiff(Experiment):
   """Train and evaluate a masked discrete diffusion model."""
