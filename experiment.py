@@ -172,9 +172,6 @@ class Experiment(ABC):
     logging.warning('=== Experiment.train_and_evaluate() ===')
     logging.info('Workdir: '+workdir)
 
-    # We're just testing model initialization for now
-    return
-
     #if jax.process_index() == 0:
     #  if not tf.io.gfile.exists(workdir):
     #    tf.io.gfile.mkdir(workdir)
