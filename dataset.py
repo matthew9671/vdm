@@ -145,7 +145,9 @@ def create_custom_train_dataset(
 
   # Load custom data
   data = load_custom_data(file_path)
-  size = len(data)
+  # size = len(data)
+  # TODO: we are taking a subset for debuging
+  size = 10000
 
   # Create TensorFlow dataset
   train_ds = tf.data.Dataset.from_tensor_slices(data)
@@ -161,9 +163,15 @@ def create_custom_train_dataset(
   # Shuffle, batch, and prefetch
   batch_dims = [jax.local_device_count(), substeps, per_device_batch_size]
   train_ds = train_ds.shuffle(buffer_size=len(data))
+
+  train_ds = train_ds.repeat(None) # Repeat infinitely
+
   train_ds = train_ds.batch(batch_dims[-1], drop_remainder=True)
   train_ds = train_ds.batch(batch_dims[-2], drop_remainder=True)
   train_ds = train_ds.batch(batch_dims[-3], drop_remainder=True)
+
+
+
   train_ds = train_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
   return None, train_ds
