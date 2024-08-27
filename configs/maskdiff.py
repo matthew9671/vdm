@@ -38,9 +38,9 @@ def get_config():
     # tpu-v3 has less memory, use smaller network?
     vocab_size=1024 + 1, # Caveat: conditional generation stuff
     hidden_size=768,
-    num_hidden_layers=12, # 24
+    num_hidden_layers=24, # 24
     num_attention_heads=16,
-    intermediate_size=1024, #3072
+    intermediate_size=3072, #3072
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 1, # seq length + 1?
@@ -83,8 +83,7 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      # TODO: we use super small learning rate for debugging
-      learning_rate=1e-7, #2e-4 in paper version
+      learning_rate=1e-4, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
   )
