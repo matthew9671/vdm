@@ -8,6 +8,8 @@ from typing import Any, Tuple
 from vdm.experiment import Experiment
 import vdm.transformer as transformer
 
+from jax.nn import softmax
+
 import functools
 import ml_collections
 import vdm.train_state
