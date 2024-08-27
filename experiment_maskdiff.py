@@ -300,15 +300,16 @@ class Experiment_MaskDiff(Experiment):
     log_pi_eval_xT = jnp.sum(pi_logits[xT])
     elbo = jnp.sum(- score_entropy + Rt_eval_y * y_mask) + log_pi_eval_xT
 
-    loss_dict = {
+    scalar_dict = {
         "loss": loss,
         "elbo": elbo / D,
-        # "noisy_sample": y,
-        # "score_entropy_array": score_entropy,
         "nll": x0_nll
     }
 
-    return loss, loss_dict
+    img_dict = {}
+    metrics = {"scalars": scalar_dict, "images": img_dict}
+
+    return loss, metrics
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))

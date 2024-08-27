@@ -241,29 +241,30 @@ class Experiment(ABC):
           metrics = jax.tree_map(avg_over_substeps, metrics)
           writer.write_scalars(step, metrics)
 
-        if step % config.steps_per_eval == 0 or is_last_step or step == 1000:
-          logging.debug('=== Running eval ===')
-          with report_progress.timed('eval'):
-            eval_metrics = []
-            for eval_step in range(config.num_steps_eval):
-              batch = self.eval_iter.next()
-              batch = jax.tree_map(jnp.asarray, batch)
-              metrics = self.p_eval_step(
-                  state.ema_params, batch, flax_utils.replicate(eval_step))
-              eval_metrics.append(metrics['scalars'])
+        # We're getting rid of eval for now
+        # if step % config.steps_per_eval == 0 or is_last_step or step == 1000:
+        #   logging.debug('=== Running eval ===')
+        #   with report_progress.timed('eval'):
+        #     eval_metrics = []
+        #     for eval_step in range(config.num_steps_eval):
+        #       batch = self.eval_iter.next()
+        #       batch = jax.tree_map(jnp.asarray, batch)
+        #       metrics = self.p_eval_step(
+        #           state.ema_params, batch, flax_utils.replicate(eval_step))
+        #       eval_metrics.append(metrics['scalars'])
 
-            # average over eval metrics
-            eval_metrics = utils.get_metrics(eval_metrics)
-            eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
-            writer.write_scalars(step, eval_metrics)
+        #     # average over eval metrics
+        #     eval_metrics = utils.get_metrics(eval_metrics)
+        #     eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
+        #     writer.write_scalars(step, eval_metrics)
 
-            # print out a batch of images
-            metrics = flax_utils.unreplicate(metrics)
-            images = metrics['images']
-            samples = self.p_sample(params=state.ema_params)
-            samples = utils.generate_image_grids(samples)[None, :, :, :]
-            images['samples'] = samples.astype(np.uint8)
-            writer.write_images(step, images)
+        #     # print out a batch of images
+        #     metrics = flax_utils.unreplicate(metrics)
+        #     images = metrics['images']
+        #     samples = self.p_sample(params=state.ema_params)
+        #     samples = utils.generate_image_grids(samples)[None, :, :, :]
+        #     images['samples'] = samples.astype(np.uint8)
+        #     writer.write_images(step, images)
 
         if step % config.steps_per_save == 0 or is_last_step:
           with report_progress.timed('checkpoint'):
