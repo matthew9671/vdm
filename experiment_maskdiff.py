@@ -10,7 +10,7 @@ import vdm.transformer as transformer
 
 from jax.nn import softmax
 
-import functools
+from functools import partial
 import ml_collections
 import vdm.train_state
 import vdm.utils as utils
@@ -119,14 +119,14 @@ class Experiment_MaskDiff(Experiment):
     # initialize train/eval step
     logging.info('=== Initializing train/eval step ===')
     self.rng, train_rng = jax.random.split(self.rng)
-    self.p_train_step = functools.partial(self.train_step, train_rng)
-    self.p_train_step = functools.partial(jax.lax.scan, self.p_train_step)
+    self.p_train_step = partial(self.train_step, train_rng)
+    self.p_train_step = partial(jax.lax.scan, self.p_train_step)
     self.p_train_step = jax.pmap(self.p_train_step, "batch")
 
     self.rng, eval_rng, sample_rng = jax.random.split(self.rng, 3)
-    self.p_eval_step = functools.partial(self.eval_step, eval_rng)
+    self.p_eval_step = partial(self.eval_step, eval_rng)
     self.p_eval_step = jax.pmap(self.p_eval_step, "batch")
-    self.p_sample = functools.partial(
+    self.p_sample = partial(
         self.sample_fn,
         # dummy_inputs=next(self.eval_iter)["images"][0],
         dummy_inputs=None,
@@ -186,6 +186,14 @@ class Experiment_MaskDiff(Experiment):
   #   return bpd, metrics
 
   def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
+    batch_size = inputs.shape[0]
+    loss, metrics = vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size))
+    metrics = jax.tree_map(lambda x: x.mean(axis=0), metrics)
+    loss = jnp.mean(loss)
+    # TODO: maybe should also divide by sequence length
+    return loss, metrics
+
+  def loss_single(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
     """
     key: a jax PRNGKey.
     data: (H, W, C) int array, each value should be in [0, S)
