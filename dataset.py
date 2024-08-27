@@ -144,9 +144,7 @@ def create_custom_train_dataset(
   per_device_batch_size = batch_size // jax.device_count()
 
   # Load custom data
-  # data = load_custom_data(file_path)
-  # TODO: we are taking a subset for debuging
-  data = load_custom_data(file_path)[:10000]
+  data = load_custom_data(file_path)
 
   # Create TensorFlow dataset
   train_ds = tf.data.Dataset.from_tensor_slices(data)
