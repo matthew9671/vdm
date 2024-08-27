@@ -68,5 +68,5 @@ def main(argv):
 
 if __name__ == "__main__":
   jax.config.config_with_absl()
-  jax.config.update("jax_debug_nans", True)
+  # jax.config.update("jax_debug_nans", True)
   app.run(main)

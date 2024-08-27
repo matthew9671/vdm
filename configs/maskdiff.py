@@ -69,7 +69,7 @@ def get_config():
       num_steps_eval=100,
       batch_size_train=768, #1024 in paper version
       batch_size_eval=1024,
-      steps_per_logging=1000,
+      steps_per_logging=1,#1000,
       steps_per_eval=10_000,
       steps_per_save=10_000,
       profile=False,

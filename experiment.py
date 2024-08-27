@@ -172,9 +172,9 @@ class Experiment(ABC):
     logging.warning('=== Experiment.train_and_evaluate() ===')
     logging.info('Workdir: '+workdir)
 
-    #if jax.process_index() == 0:
-    #  if not tf.io.gfile.exists(workdir):
-    #    tf.io.gfile.mkdir(workdir)
+    if jax.process_index() == 0:
+     if not tf.io.gfile.exists(workdir):
+       tf.io.gfile.mkdir(workdir)
 
     config = self.config.training
     logging.info('num_steps_train=%d', config.num_steps_train)
