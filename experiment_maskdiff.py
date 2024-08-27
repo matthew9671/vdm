@@ -183,7 +183,7 @@ class Experiment_MaskDiff(Experiment):
 
   #   return bpd, metrics
 
-  def loss_fn(self, params, inputs, key, is_train) -> Tuple[float, Any]:
+  def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
     """
     key: a jax PRNGKey.
     data: (H, W, C) int array, each value should be in [0, S)
@@ -201,7 +201,7 @@ class Experiment_MaskDiff(Experiment):
     eps = config.training.eps # config["eps"]
     nll_weight = config.training.nll_weight # config["nll_weight"]
 
-    key_t, key_T, key_y = jr.split(key, 3)
+    key_t, key_T, key_y = jr.split(rng, 3)
 
     rngs = {}
 
