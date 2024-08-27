@@ -150,38 +150,38 @@ class Experiment_MaskDiff(Experiment):
     # params = model.init({"params": rng1, "sample": rng2}, **inputs)
     return model, params
 
-  def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
-    rng, sample_rng = jax.random.split(rng)
-    rngs = {"sample": sample_rng}
-    if is_train:
-      rng, dropout_rng = jax.random.split(rng)
-      rngs["dropout"] = dropout_rng
+  # def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
+  #   rng, sample_rng = jax.random.split(rng)
+  #   rngs = {"sample": sample_rng}
+  #   if is_train:
+  #     rng, dropout_rng = jax.random.split(rng)
+  #     rngs["dropout"] = dropout_rng
 
-    # sample time steps, with antithetic sampling
-    outputs = self.state.apply_fn(
-        variables={'params': params},
-        **inputs,
-        rngs=rngs,
-        deterministic=not is_train,
-    )
+  #   # sample time steps, with antithetic sampling
+  #   outputs = self.state.apply_fn(
+  #       variables={'params': params},
+  #       **inputs,
+  #       rngs=rngs,
+  #       deterministic=not is_train,
+  #   )
 
-    rescale_to_bpd = 1./(np.prod(inputs["images"].shape[1:]) * np.log(2.))
-    bpd_latent = jnp.mean(outputs.loss_klz) * rescale_to_bpd
-    bpd_recon = jnp.mean(outputs.loss_recon) * rescale_to_bpd
-    bpd_diff = jnp.mean(outputs.loss_diff) * rescale_to_bpd
-    bpd = bpd_recon + bpd_latent + bpd_diff
-    scalar_dict = {
-        "bpd": bpd,
-        "bpd_latent": bpd_latent,
-        "bpd_recon": bpd_recon,
-        "bpd_diff": bpd_diff,
-        "var0": outputs.var_0,
-        "var": outputs.var_1,
-    }
-    img_dict = {"inputs": inputs["images"]}
-    metrics = {"scalars": scalar_dict, "images": img_dict}
+  #   rescale_to_bpd = 1./(np.prod(inputs["images"].shape[1:]) * np.log(2.))
+  #   bpd_latent = jnp.mean(outputs.loss_klz) * rescale_to_bpd
+  #   bpd_recon = jnp.mean(outputs.loss_recon) * rescale_to_bpd
+  #   bpd_diff = jnp.mean(outputs.loss_diff) * rescale_to_bpd
+  #   bpd = bpd_recon + bpd_latent + bpd_diff
+  #   scalar_dict = {
+  #       "bpd": bpd,
+  #       "bpd_latent": bpd_latent,
+  #       "bpd_recon": bpd_recon,
+  #       "bpd_diff": bpd_diff,
+  #       "var0": outputs.var_0,
+  #       "var": outputs.var_1,
+  #   }
+  #   img_dict = {"inputs": inputs["images"]}
+  #   metrics = {"scalars": scalar_dict, "images": img_dict}
 
-    return bpd, metrics
+  #   return bpd, metrics
 
   def loss_fn(self, params, inputs, key, is_train) -> Tuple[float, Any]:
     """

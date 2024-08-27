@@ -153,7 +153,7 @@ def create_custom_train_dataset(
   # We don't have preprocessing
   # train_ds = train_ds.map(preprocess_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-  split = tfds.split_for_jax_process('train', drop_remainder=True)
+  # split = tfds.split_for_jax_process('train', drop_remainder=True)
   # train_ds = tfds.load('my_dataset', split=split)
   # train_ds = apply_split(train_ds, size, split)
   train_ds = apply_split_with_sharding(train_ds)
@@ -161,7 +161,9 @@ def create_custom_train_dataset(
   # Shuffle, batch, and prefetch
   batch_dims = [jax.local_device_count(), substeps, per_device_batch_size]
   train_ds = train_ds.shuffle(buffer_size=len(data))
-  train_ds = train_ds.batch(batch_dims[-1] * batch_dims[-2], drop_remainder=True)
+  train_ds = train_ds.batch(batch_dims[-1], drop_remainder=True)
+  train_ds = train_ds.batch(batch_dims[-2], drop_remainder=True)
+  train_ds = train_ds.batch(batch_dims[-3], drop_remainder=True)
   train_ds = train_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
   return None, train_ds
