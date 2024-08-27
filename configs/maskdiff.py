@@ -34,24 +34,6 @@ def get_config():
       seq_length=256,
   )
 
-#   config.model = d(
-#       vocab_size=256,
-#       sample_softmax=False,
-#       antithetic_time_sampling=True,
-#       with_fourier_features=True,
-#       with_attention=False, #True in paper version
-
-#       # configurations of the noise schedule
-#       gamma_type='learnable_nnet',  # learnable_scalar / learnable_nnet / fixed
-#       gamma_min=-13.3,
-#       gamma_max=5.,
-
-#       # configurations of the score model
-#       sm_n_timesteps=0,
-#       sm_n_embd=256,
-#       sm_n_layer=32,
-#       sm_pdrop=0.05,
-#   )
   config.model = d(
     # tpu-v3 has less memory, use smaller network?
     vocab_size=1024 + 1, # Caveat: conditional generation stuff
@@ -81,7 +63,7 @@ def get_config():
       nll_weight=.01,
 
       seed=1,
-      substeps=10,
+      substeps=1,
       num_steps_lr_warmup=100,
       num_steps_train=100_000_000,
       num_steps_eval=100,
@@ -101,7 +83,8 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=1e-4, #2e-4 in paper version
+      # TODO: we use super small learning rate for debugging
+      learning_rate=1e-7, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
   )
