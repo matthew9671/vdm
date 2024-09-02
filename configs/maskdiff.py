@@ -50,6 +50,10 @@ def get_config():
     # latent_size = 16,
   )
 
+  config.sampler = d(
+    num_steps=100
+  )
+
   config.noise = d(
     state_size=1024 + 1,
     rate_eps=1e-3
@@ -87,5 +91,22 @@ def get_config():
       lr_decay=False,
       ema_rate=0.9999,
   )
+
+  config.vqvae = ml_collections.ConfigDict()
+  config.vqvae.quantizer = "vq"
+  config.vqvae.codebook_size = 1024
+
+  config.vqvae.entropy_loss_ratio = 0.1
+  config.vqvae.entropy_temperature = 0.01
+  config.vqvae.entropy_loss_type = "softmax"
+  config.vqvae.commitment_cost = 0.25
+
+  config.vqvae.filters = 128
+  config.vqvae.num_res_blocks = 2
+  config.vqvae.channel_multipliers = [1, 1, 2, 2, 4]
+  config.vqvae.embedding_dim = 256
+  config.vqvae.conv_downsample = False
+  config.vqvae.activation_fn = "swish"
+  config.vqvae.norm_type = "GN"
 
   return config

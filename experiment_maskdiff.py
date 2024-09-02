@@ -7,6 +7,7 @@ from typing import Any, Tuple
 
 from vdm.experiment import Experiment
 import vdm.transformer as transformer
+from vdm.nets import vqgan_tokenizer
 
 from jax.nn import softmax
 
@@ -19,6 +20,9 @@ from absl import logging
 
 from clu import parameter_overview
 from clu import checkpoint
+
+import tensorflow.compat.v1 as tf
+import flax
 
 class AbsorbingRate():
   def __init__(self, config):
@@ -82,6 +86,11 @@ class Experiment_MaskDiff(Experiment):
     # Set seed before initializing model.
     seed = config.training.seed
     self.rng = utils.with_verbosity("ERROR", lambda: jax.random.PRNGKey(seed))
+
+    # initialize tokenizer
+    logging.warning('=== initializing tokenizer ===')
+    tokenizer_path = "/home/yixiuz/maskgit_checkpoints/tokenizer_imagenet256_checkpoint"
+    self.load_imagenet_decoder(tokenizer_path)
 
     # initialize dataset
     logging.warning('=== Initializing dataset ===')
@@ -354,3 +363,30 @@ class Experiment_MaskDiff(Experiment):
     )
 
     return samples
+
+  def sample_fn(self, *, dummy_inputs, rng, params):
+    # We don't really need to use the dummy inputs.
+
+    config = self.config
+
+    S = config.model.vocab_size
+    D = config.data.seq_length
+    min_t = config.training.min_t
+    max_t = config.training.max_t
+    num_steps = config.sampler.num_steps
+    
+    # Initialize the all-mask state
+    xT = jnp.ones((D,)) * (S - 1)
+    
+    ts = jnp.linspace(min_t, max_t, num_steps)
+    samples, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng)
+    return samples
+
+  def load_imagenet_decoder(self, checkpoint_path):
+    # Assume that we've already downloaded the pretrained vqvae
+    self.tokenizer_model = vqgan_tokenizer.VQVAE(config=self.config, dtype=jnp.float32, train=False)
+    with tf.io.gfile.GFile(checkpoint_path, "rb") as f:
+      self.tokenizer_variables = flax.serialization.from_bytes(None, f.read())
+    
+
+      
