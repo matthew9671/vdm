@@ -88,7 +88,7 @@ class Experiment_MaskDiff(Experiment):
     self.rng = utils.with_verbosity("ERROR", lambda: jax.random.PRNGKey(seed))
 
     # initialize tokenizer
-    logging.warning('=== initializing tokenizer ===')
+    logging.warning('=== Initializing tokenizer ===')
     tokenizer_path = "/home/yixiuz/maskgit_checkpoints/tokenizer_imagenet256_checkpoint"
     self.load_imagenet_decoder(tokenizer_path)
 

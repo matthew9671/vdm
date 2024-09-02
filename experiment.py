@@ -289,18 +289,18 @@ class Experiment(ABC):
 
     eval_metrics = []
 
-    for eval_step in range(self.config.training.num_steps_eval):
-      batch = self.eval_iter.next()
-      batch = jax.tree_map(jnp.asarray, batch)
-      metrics = self.p_eval_step(
-          params, batch, flax_utils.replicate(eval_step))
-      eval_metrics.append(metrics['scalars'])
+    # for eval_step in range(self.config.training.num_steps_eval):
+    #   batch = self.eval_iter.next()
+    #   batch = jax.tree_map(jnp.asarray, batch)
+    #   metrics = self.p_eval_step(
+    #       params, batch, flax_utils.replicate(eval_step))
+    #   eval_metrics.append(metrics['scalars'])
 
-    # average over eval metrics
-    eval_metrics = utils.get_metrics(eval_metrics)
-    eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
+    # # average over eval metrics
+    # eval_metrics = utils.get_metrics(eval_metrics)
+    # eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
 
-    writer.write_scalars(step, eval_metrics)
+    # writer.write_scalars(step, eval_metrics)
 
     # sample a batch of images
     samples = self.p_sample(params=params)
