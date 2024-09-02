@@ -24,6 +24,8 @@ from clu import checkpoint
 import tensorflow.compat.v1 as tf
 import flax
 
+from vdn.sampling import backward_process_tau_leaping
+
 class AbsorbingRate():
   def __init__(self, config):
     self.state_size = S = config.state_size
@@ -328,41 +330,41 @@ class Experiment_MaskDiff(Experiment):
 
     return loss, metrics
 
-  def sample_fn(self, *, dummy_inputs, rng, params):
-    rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
+  # def sample_fn(self, *, dummy_inputs, rng, params):
+  #   rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
 
-    if self.model.config.sm_n_timesteps > 0:
-      T = self.model.config.sm_n_timesteps
-    else:
-      T = 1000
+  #   if self.model.config.sm_n_timesteps > 0:
+  #     T = self.model.config.sm_n_timesteps
+  #   else:
+  #     T = 1000
 
-    conditioning = jnp.zeros((dummy_inputs.shape[0],), dtype='uint8')
+  #   conditioning = jnp.zeros((dummy_inputs.shape[0],), dtype='uint8')
 
-    # sample z_0 from the diffusion model
-    rng, sample_rng = jax.random.split(rng)
-    z_init = jax.random.normal(sample_rng, dummy_inputs.shape)
+  #   # sample z_0 from the diffusion model
+  #   rng, sample_rng = jax.random.split(rng)
+  #   z_init = jax.random.normal(sample_rng, dummy_inputs.shape)
 
-    def body_fn(i, z_t):
-      return self.state.apply_fn(
-          variables={'params': params},
-          i=i,
-          T=T,
-          z_t=z_t,
-          conditioning=conditioning,
-          rng=rng,
-          method=self.model.sample,
-      )
+  #   def body_fn(i, z_t):
+  #     return self.state.apply_fn(
+  #         variables={'params': params},
+  #         i=i,
+  #         T=T,
+  #         z_t=z_t,
+  #         conditioning=conditioning,
+  #         rng=rng,
+  #         method=self.model.sample,
+  #     )
 
-    z_0 = jax.lax.fori_loop(
-        lower=0, upper=T, body_fun=body_fn, init_val=z_init)
+  #   z_0 = jax.lax.fori_loop(
+  #       lower=0, upper=T, body_fun=body_fn, init_val=z_init)
 
-    samples = self.state.apply_fn(
-        variables={'params': params},
-        z_0=z_0,
-        method=self.model.generate_x,
-    )
+  #   samples = self.state.apply_fn(
+  #       variables={'params': params},
+  #       z_0=z_0,
+  #       method=self.model.generate_x,
+  #   )
 
-    return samples
+  #   return samples
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     # We don't really need to use the dummy inputs.
@@ -379,8 +381,18 @@ class Experiment_MaskDiff(Experiment):
     xT = jnp.ones((D,)) * (S - 1)
     
     ts = jnp.linspace(min_t, max_t, num_steps)
-    samples, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng)
-    return samples
+    tokens, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng)
+
+    logging.info("Sampled token shape: " + tokens.shape)
+
+    output_tokens = jnp.reshape(tokens[..., 1:], [-1, 16, 16])
+    gen_images = self.tokenizer_model.apply(
+              self.tokenizer_variables,
+              output_tokens,
+              method=self.tokenizer_model.decode_from_indices,
+              mutable=False)
+
+    return gen_images
 
   def load_imagenet_decoder(self, checkpoint_path):
     # Assume that we've already downloaded the pretrained vqvae
