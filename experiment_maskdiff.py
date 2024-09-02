@@ -381,7 +381,8 @@ class Experiment_MaskDiff(Experiment):
     xT = jnp.ones((D,)) * (S - 1)
     
     ts = jnp.linspace(min_t, max_t, num_steps)
-    tokens, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng)
+    tokens, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng, 
+      self.forward_process)
 
     logging.info("Sampled token shape: " + tokens.shape)
 

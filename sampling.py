@@ -59,7 +59,7 @@ def compute_backward(y, t, apply_fn, params, config, forward_process):
     }
     return results
     
-def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key):
+def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_process):
     # Assuming 1D data
     D = config.data.seq_length
     S = config.model.vocab_size
