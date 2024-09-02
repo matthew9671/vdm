@@ -24,7 +24,7 @@ from clu import checkpoint
 import tensorflow.compat.v1 as tf
 import flax
 
-from vdn.sampling import backward_process_tau_leaping
+from vdm.sampling import backward_process_tau_leaping
 
 class AbsorbingRate():
   def __init__(self, config):
