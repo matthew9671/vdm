@@ -384,7 +384,7 @@ class Experiment_MaskDiff(Experiment):
     tokens, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng, 
       self.forward_process)
 
-    logging.info("Sampled token shape: " + tokens.shape)
+    logging.info("Sampled token shape: ", tokens.shape)
 
     output_tokens = jnp.reshape(tokens[..., 1:], [-1, 16, 16])
     gen_images = self.tokenizer_model.apply(
