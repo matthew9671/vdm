@@ -385,6 +385,7 @@ class Experiment_MaskDiff(Experiment):
       self.forward_process)
 
     logging.info("Sampled token shape: " + str(tokens.shape))
+    logging.info(str(tokens))
 
     output_tokens = jnp.reshape(tokens, [-1, 16, 16])
     gen_images = self.tokenizer_model.apply(

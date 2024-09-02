@@ -285,9 +285,10 @@ class Experiment(ABC):
     eval_logdir = os.path.join(logdir, 'eval')
     tf.io.gfile.makedirs(eval_logdir)
     writer = metric_writers.create_default_writer(
-        eval_logdir, just_logging=jax.process_index() > 0)
+        eval_logdir, #just_logging=jax.process_index() > 0
+        )
 
-    eval_metrics = []
+    # eval_metrics = []
 
     # for eval_step in range(self.config.training.num_steps_eval):
     #   batch = self.eval_iter.next()
