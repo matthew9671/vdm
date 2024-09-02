@@ -9,14 +9,15 @@ from functools import partial
 
 def poisson_jump_reject(key, x, rates):
     D = x.shape[0]
+    S = rates.shape[1]
     # Mask out the self transitions
     rates = rates.at[jnp.arange(D), x].set(0.0)
     # (D, S)
     jump_nums = jr.poisson(key, rates)
     jump_target = jnp.argmax(jump_nums, axis=1)
 
-    # Assuming that the mask is -1
-    out = jnp.where((x == -1) & (jnp.sum(jump_nums, axis=1) == 1), jump_target, x)
+    # Assuming that the mask is S-1
+    out = jnp.where((x == (S-1)) & (jnp.sum(jump_nums, axis=1) == 1), jump_target, x)
     return out
 
 def compute_backward(y, t, apply_fn, params, config, forward_process):
@@ -35,13 +36,13 @@ def compute_backward(y, t, apply_fn, params, config, forward_process):
     # TODO: we used squeeze to get rid of the batch dimension
     x0_logits = apply_fn({"params": params}, y, t, 
         deterministic=True).squeeze()
-    # Only take the valid parts of the output
-    x0_logits = x0_logits[...,:S-1]
+    # # Only take the valid parts of the output
+    # x0_logits = x0_logits[...,:S-1]
     
     # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
     p0t_eval_y = softmax(x0_logits, axis=-1)
     # Manually append a 0 column, since it corresponds to the mask token
-    p0t_eval_y = jnp.concatenate((p0t_eval_y, jnp.zeros((D, 1))), axis=1)
+    # p0t_eval_y = jnp.concatenate((p0t_eval_y, jnp.zeros((D, 1))), axis=1)
     
     # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
     qt0_eval_y = qt0[:,y].T + eps
