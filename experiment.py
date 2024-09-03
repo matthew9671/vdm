@@ -304,7 +304,7 @@ class Experiment(ABC):
     # writer.write_scalars(step, eval_metrics)
 
     # sample a batch of images
-    tokens, samples = self.p_sample(params=params, rng=jr.split(self.rng, jax.process_count()))
+    tokens, samples = self.p_sample(params=params, rng=jax.random.split(self.rng, jax.process_count()))
     logging.info("Tokens: " + str(tokens[0]))
     samples = utils.generate_image_grids(samples)[None, :, :, :]
     samples = {'samples': samples#.astype(np.uint8)
