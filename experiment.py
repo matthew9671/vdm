@@ -306,7 +306,8 @@ class Experiment(ABC):
     # sample a batch of images
     samples = self.p_sample(params=params)
     samples = utils.generate_image_grids(samples)[None, :, :, :]
-    samples = {'samples': samples.astype(np.uint8)}
+    samples = {'samples': samples#.astype(np.uint8)
+      }
     writer.write_images(step, samples)
 
   def train_step(self, base_rng, state, batch):
