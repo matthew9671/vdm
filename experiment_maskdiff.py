@@ -370,7 +370,7 @@ class Experiment_MaskDiff(Experiment):
     # We don't really need to use the dummy inputs.
 
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
-    rng = jax.random.fold_in(rng, jax.process_index())
+    # rng = jax.random.fold_in(rng, jax.process_index())
 
     config = self.config
 
