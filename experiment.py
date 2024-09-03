@@ -304,7 +304,8 @@ class Experiment(ABC):
     # writer.write_scalars(step, eval_metrics)
 
     # sample a batch of images
-    samples = self.p_sample(params=params)
+    tokens, samples = self.p_sample(params=params)
+    logging.info("Tokens: " + str(tokens[0]))
     samples = utils.generate_image_grids(samples)[None, :, :, :]
     samples = {'samples': samples#.astype(np.uint8)
       }

@@ -385,7 +385,6 @@ class Experiment_MaskDiff(Experiment):
       self.forward_process)
 
     logging.info("Sampled token shape: " + str(tokens.shape))
-    logging.info(str(tokens))
 
     output_tokens = jnp.reshape(tokens, [-1, 16, 16])
     gen_images = self.tokenizer_model.apply(
@@ -394,7 +393,7 @@ class Experiment_MaskDiff(Experiment):
               method=self.tokenizer_model.decode_from_indices,
               mutable=False)
 
-    return gen_images
+    return output_tokens, gen_images
 
   def load_imagenet_decoder(self, checkpoint_path):
     # Assume that we've already downloaded the pretrained vqvae
