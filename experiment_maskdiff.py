@@ -137,11 +137,11 @@ class Experiment_MaskDiff(Experiment):
     self.rng, eval_rng, sample_rng = jax.random.split(self.rng, 3)
     self.p_eval_step = partial(self.eval_step, eval_rng)
     self.p_eval_step = jax.pmap(self.p_eval_step, "batch")
+    # This assumes that we are iterating over something with a batch axis.
     self.p_sample = partial(
         self.sample_fn,
-        # dummy_inputs=next(self.eval_iter)["images"][0],
-        dummy_inputs=None,
-        rng=sample_rng,
+        dummy_inputs=None,#next(self.eval_iter)["images"][0],
+        # rng=sample_rng,
     )
     self.p_sample = utils.dist(
         self.p_sample, accumulate='concat', axis_name='batch')
