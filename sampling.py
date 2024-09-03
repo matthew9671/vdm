@@ -17,7 +17,8 @@ def poisson_jump_reject(key, x, rates):
     jump_target = jnp.argmax(jump_nums, axis=1)
 
     # Assuming that the mask is S-1
-    out = jnp.where((x == (S-1)) & (jnp.sum(jump_nums, axis=1) == 1), jump_target, x)
+    out = jnp.where(#(x == (S-1)) & 
+                    (jnp.sum(jump_nums, axis=1) == 1), jump_target, x)
     return out
 
 def compute_backward(y, t, apply_fn, params, config, forward_process):
