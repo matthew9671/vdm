@@ -25,6 +25,8 @@ from vdm.utils import get_workdir
 import vdm.experiment_vdm
 import vdm.experiment_maskdiff
 
+import socket
+
 FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file(
     "config", None, "Training configuration.", lock_config=False)
@@ -40,6 +42,7 @@ def main(argv):
   del argv
   if jax.process_index() == 0:
     logging.set_verbosity(FLAGS.log_level)
+    logging.info("Worker " + socket.gethostname() + " has process id 0.")
   else:
     logging.set_verbosity("error")
   logging.warning("=== Start of main() ===")

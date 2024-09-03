@@ -82,9 +82,12 @@ def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_
         return (x, key), x
 
     (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
-    res = compute_backward(x, t, apply_fn, params, config, forward_process)
-    x0_logits = res["x0_logits"]
+    # res = compute_backward(x, t, apply_fn, params, config, forward_process)
+    # x0_logits = res["x0_logits"]
 
-    x0_pred = jnp.argmax(x0_logits, axis=1)
+    # x0_pred = jnp.argmax(x0_logits, axis=1)
+
+    # TODO: temporarily remove the argmax for debugging
+    x0_pred = x
 
     return x0_pred, x_hist
