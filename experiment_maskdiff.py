@@ -368,6 +368,7 @@ class Experiment_MaskDiff(Experiment):
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     # We don't really need to use the dummy inputs.
+    rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
 
     config = self.config
 
