@@ -383,7 +383,7 @@ class Experiment_MaskDiff(Experiment):
     # Initialize the all-mask state
     xT = jnp.ones((D,), dtype=int) * (S - 1)
     
-    ts = jnp.linspace(min_t, max_t, num_steps)
+    ts = jnp.linspace(max_t, min_t, num_steps)
     tokens, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng, 
       self.forward_process)
 

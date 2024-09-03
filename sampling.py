@@ -9,7 +9,7 @@ from functools import partial
 
 def poisson_jump_reject(key, x, rates):
     D = x.shape[0]
-    S = rates.shape[1]
+    # S = rates.shape[1]
     # Mask out the self transitions
     rates = rates.at[jnp.arange(D), x].set(0.0)
     # (D, S)
