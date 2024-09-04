@@ -116,8 +116,13 @@ class TransformerLayer(nn.Module):
   initializer_fn: InitializerType
 
   @nn.compact
-  def __call__(self, layer_input: jnp.ndarray, input_mask: jnp.ndarray,
+  def __call__(self, layer_input: jnp.ndarray, 
+               time_embedding: jnp.ndarray,
+               input_mask: jnp.ndarray,
                deterministic: bool) -> jnp.ndarray:
+
+    B, L, K = layer_input.shape
+
     attention_output = Attention(
         hidden_size=self.hidden_size,
         hidden_dropout_prob=self.hidden_dropout_prob,
@@ -128,12 +133,18 @@ class TransformerLayer(nn.Module):
             input_mask=input_mask,
             deterministic=deterministic)
 
+    # Apply film scaling to the outputs
+    film_params = nn.Dense(2 * self.hidden_size)(time_embedding)
+    attention_output = attention_output * film_params[:, None, :K] + film_params[:, None, K:]
+
     layer_output = Mlp(
         hidden_size=self.hidden_size,
         hidden_dropout_prob=self.hidden_dropout_prob,
         intermediate_size=self.intermediate_size,
         initializer_fn=self.initializer_fn)(
             attention_output=attention_output, deterministic=deterministic)
+
+    layer_output = layer_output * film_params[:, None, :K] + film_params[:, None, K:]
 
     return layer_output
 
@@ -210,7 +221,7 @@ class Bias(nn.Module):
 
     return inputs + bias
 
-
+# TODO: do we need to involve time embeddings in here as well?
 class MlmLayer(nn.Module):
   """MLM layer for masked token prediction."""
   hidden_size: int
@@ -218,16 +229,22 @@ class MlmLayer(nn.Module):
 
   @nn.compact
   def __call__(self, last_layer: jnp.ndarray,
-               embeddings: jnp.ndarray) -> jnp.ndarray:
+               embeddings: jnp.ndarray,
+               time_embedding: jnp.ndarray) -> jnp.ndarray:
     mlm_hidden = nn.Dense(
         features=self.hidden_size,
         kernel_init=self.initializer_fn,
         name='mlm_dense')(
             last_layer)
+
     mlm_hidden = jax.nn.gelu(mlm_hidden)
     mlm_hidden = nn.LayerNorm(
         epsilon=LAYERNORM_EPSILON, name='mlm_ln')(
             mlm_hidden)
+    # Apply film scaling to the outputs
+    film_params = nn.Dense(2 * self.hidden_size)(time_embedding)
+    mlm_hidden = mlm_hidden * film_params[:, None, :K] + film_params[:, None, K:]
+
     output_weights = jnp.transpose(embeddings)
     logits = jnp.matmul(mlm_hidden, output_weights)
     logits = Bias(name='mlm_bias')(logits)
@@ -245,11 +262,12 @@ class Transformer(nn.Module):
   attention_probs_dropout_prob: float = 0.1
   max_position_embeddings: int = 256
   initializer_range: float = 0.02
+  time_embedding_size: int = 64
+  time_scale_factor: int = 1000
 
   @nn.compact
   def __call__(self,
                input_ids: jnp.ndarray,
-               # Add time-conditioning
                t: float,
                deterministic: bool = True) -> Dict[Text, jnp.ndarray]:
     input_ids = input_ids.astype('int32')
@@ -261,6 +279,11 @@ class Transformer(nn.Module):
         initializer_fn=truncated_normal(self.initializer_range))(
             input_ids=input_ids, deterministic=deterministic)
 
+    temb = transformer_timestep_embedding(t * self.time_scale_factor, self.time_embedding_size)
+    temb = nn.Dense(self.hidden_size)(temb)
+    temb = nn.relu(temb)
+    time_embedding = nn.Dense(4 * self.time_embedding_size)(temb)
+
     layer_input = input_embeddings
     for _ in range(self.num_hidden_layers):
       layer_output = TransformerLayer(
@@ -271,6 +294,7 @@ class Transformer(nn.Module):
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
           initializer_fn=truncated_normal(self.initializer_range))(
               layer_input=layer_input,
+              time_embedding=time_embedding,
               input_mask=jnp.ones_like(input_ids, dtype=jnp.int32),
               deterministic=deterministic)
       layer_input = layer_output
@@ -280,7 +304,22 @@ class Transformer(nn.Module):
     logits = MlmLayer(
         hidden_size=self.hidden_size,
         initializer_fn=truncated_normal(self.initializer_range))(
-            last_layer=layer_output, embeddings=word_embedding_matrix)
+            last_layer=layer_output, embeddings=word_embedding_matrix,
+            time_embedding=time_embedding)
 
     return logits
 
+def transformer_timestep_embedding(timesteps, embedding_dim, max_positions=10000):
+  assert len(timesteps.shape) == 1
+  half_dim = embedding_dim // 2
+  emb_scale = jnp.log(max_positions) / (half_dim - 1)
+
+  emb = jnp.exp(jnp.arange(half_dim) * -emb_scale)
+  emb = timesteps[:, None].astype(jnp.float32) * emb[None, :]
+  emb = jnp.concatenate([jnp.sin(emb), jnp.cos(emb)], axis=1)
+  
+  if embedding_dim % 2 == 1:  # zero pad if embedding_dim is odd
+      emb = jnp.pad(emb, ((0, 0), (0, 1)), mode='constant')
+  
+  assert emb.shape == (timesteps.shape[0], embedding_dim)
+  return emb
