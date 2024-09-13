@@ -266,7 +266,7 @@ class Experiment(ABC):
             # images['samples'] = samples.astype(np.uint8)
             # writer.write_images(step, images)
 
-            tokens, samples = self.p_sample(params=params, rng=jax.random.split(self.rng, 8))
+            tokens, samples = self.p_sample(params=state.ema_params, rng=jax.random.split(self.rng, 8))
             logging.info("Tokens: " + str(tokens[0]))
             samples = utils.generate_image_grids(samples)[None, :, :, :]
             samples = { 'samples': samples }
