@@ -45,8 +45,8 @@ def get_config():
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 1, # seq length + 1?
     # time conditioning
-    time_embedding_size=64,
-    time_scale_factor=1000,
+    # time_embedding_size=64,
+    # time_scale_factor=1000,
     # mask_token_id = -1,
   )
 
