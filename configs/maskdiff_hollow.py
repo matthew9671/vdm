@@ -39,10 +39,10 @@ def get_config():
   config.model = d(
     # tpu-v3 has less memory, use smaller network?
     vocab_size=1024 + 1, # Caveat: conditional generation stuff
-    hidden_size=768 // 2,
-    num_hidden_layers=24, # 24
-    num_attention_heads=16,
-    intermediate_size=3072 // 2,
+    hidden_size=768 // 8,
+    num_hidden_layers=24 // 2, # 24
+    num_attention_heads=16 // 8,
+    intermediate_size=3072 // 8,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 1, # seq length + 1?
@@ -77,7 +77,7 @@ def get_config():
       num_steps_eval=100,
       batch_size_train=768 * 1, #1024 in paper version
       batch_size_eval=1024,
-      steps_per_logging=1000,
+      steps_per_logging=10,
       steps_per_eval=1_000,
       steps_per_save=10_000,
       profile=False,
