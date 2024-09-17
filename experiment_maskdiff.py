@@ -155,6 +155,8 @@ class Experiment_MaskDiff(Experiment):
 
     inputs = jnp.zeros((2, config.data.seq_length), dtype=int)
     params = model.init(rng, inputs, 0)
+
+    logging.info(f'Parameter count: {utils.count_parameters(params)}')
     return model, params
 
   def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:

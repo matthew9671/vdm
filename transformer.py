@@ -380,10 +380,11 @@ class HollowTransformer(nn.Module):
             input_ids=input_ids, deterministic=deterministic)
     
     B, L, K = x.shape
+    H = self.num_attention_heads
       
-    forward_mask = jnp.tile(jnp.tril(jnp.ones((L, L)))[None], (B, 1))
-    backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None], (B, 1))
-    mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=2)      
+    forward_mask = jnp.tile(jnp.tril(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
+    backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
+    mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
     # Causal attention doesn't like zero padding
     pad = jnp.ones((B, 1, K))

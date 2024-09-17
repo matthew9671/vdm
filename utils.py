@@ -202,3 +202,9 @@ def with_verbosity(temporary_verbosity_level, fn):
   result = fn()
   logging.set_verbosity(old_verbosity_level)
   return result
+
+def count_parameters(params):
+  total = 0
+  for param in jax.tree_util.tree_leaves(params):
+    total += param.size
+  return total
