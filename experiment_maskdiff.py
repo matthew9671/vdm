@@ -156,7 +156,12 @@ class Experiment_MaskDiff(Experiment):
 
   def get_model_and_params(self, rng: PRNGKey):
     config = self.config
-    model = transformer.HollowTransformer(**config.model)
+    if config.use_hollow_transformer:
+      logging.info("=== Using the hollow transformer ===")
+      model = transformer.HollowTransformer(**config.model)
+    else:
+      logging.info("=== Using the default transformer ===")
+      model = transformer.Transformer(**config.model)
 
     inputs = jnp.zeros((2, config.data.seq_length), dtype=int)
     params = model.init(rng, inputs, 0)
