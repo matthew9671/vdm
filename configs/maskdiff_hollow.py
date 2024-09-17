@@ -28,7 +28,7 @@ def get_config():
   config.model_type = "model_transformer"
   config.ckpt_restore_dir = 'None'
 
-  config.use_hollow_transformer = False
+  config.use_hollow_transformer = True
 
   config.data = d(
       dataset='tokenized_imagenet_256',  # cifar10/cifar10_aug/cifar10_aug_with_channel
@@ -39,13 +39,15 @@ def get_config():
   config.model = d(
     # tpu-v3 has less memory, use smaller network?
     vocab_size=1024 + 1, # Caveat: conditional generation stuff
-    hidden_size=768,
+    hidden_size=768 // 2,
     num_hidden_layers=24, # 24
     num_attention_heads=16,
-    intermediate_size=3072, #3072
+    intermediate_size=3072 // 2,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 1, # seq length + 1?
+    num_layers_per_mixed=6,
+
     # time conditioning
     # time_embedding_size=64,
     # time_scale_factor=1000,

@@ -151,24 +151,18 @@ class Experiment_MaskDiff(Experiment):
 
   def get_model_and_params(self, rng: PRNGKey):
     config = self.config
-    model = transformer.Transformer(**config.model)
+    model = transformer.HollowTransformer(**config.model)
 
-    # Do we need a batch dimension here?
-    inputs = jnp.zeros((1, config.data.seq_length), dtype=int)
+    inputs = jnp.zeros((2, config.data.seq_length), dtype=int)
     params = model.init(rng, inputs, 0)
-
-    # inputs = {"images": jnp.zeros((2, 32, 32, 3), "uint8")}
-    # inputs["conditioning"] = jnp.zeros((2,))
-    # rng1, rng2 = jax.random.split(rng)
-    # params = model.init({"params": rng1, "sample": rng2}, **inputs)
     return model, params
 
   def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
-    batch_size = inputs.shape[0]
+    batch_size, seq_len = inputs.shape
     loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size))
     metrics = jax.tree_map(lambda x: x.mean(axis=0), metrics)
-    loss = jnp.mean(loss)
-    # TODO: maybe should also divide by sequence length
+    # Average over batch and divide by sequence length
+    loss = jnp.mean(loss) / seq_len
     return loss, metrics
 
   def loss_single(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
@@ -297,47 +291,10 @@ class Experiment_MaskDiff(Experiment):
 
     return loss, metrics
 
-  # def sample_fn(self, *, dummy_inputs, rng, params):
-  #   rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
-
-  #   if self.model.config.sm_n_timesteps > 0:
-  #     T = self.model.config.sm_n_timesteps
-  #   else:
-  #     T = 1000
-
-  #   conditioning = jnp.zeros((dummy_inputs.shape[0],), dtype='uint8')
-
-  #   # sample z_0 from the diffusion model
-  #   rng, sample_rng = jax.random.split(rng)
-  #   z_init = jax.random.normal(sample_rng, dummy_inputs.shape)
-
-  #   def body_fn(i, z_t):
-  #     return self.state.apply_fn(
-  #         variables={'params': params},
-  #         i=i,
-  #         T=T,
-  #         z_t=z_t,
-  #         conditioning=conditioning,
-  #         rng=rng,
-  #         method=self.model.sample,
-  #     )
-
-  #   z_0 = jax.lax.fori_loop(
-  #       lower=0, upper=T, body_fun=body_fn, init_val=z_init)
-
-  #   samples = self.state.apply_fn(
-  #       variables={'params': params},
-  #       z_0=z_0,
-  #       method=self.model.generate_x,
-  #   )
-
-  #   return samples
-
   def sample_fn(self, *, dummy_inputs, rng, params):
     # We don't really need to use the dummy inputs.
 
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
-    # rng = jax.random.fold_in(rng, jax.process_index())
 
     config = self.config
 
