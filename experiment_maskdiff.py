@@ -148,6 +148,11 @@ class Experiment_MaskDiff(Experiment):
 
     logging.info('=== Done with Experiment.__init__ ===')
 
+    # Debugging
+    logging.info('=== Testing for NaNs in the initialization ===')
+    batch = jax.tree_map(jnp.asarray, next(self.train_iter))
+    out = self.loss_fn(params, batch, self.rng, True)
+    logging.info(str(out))
 
   def get_model_and_params(self, rng: PRNGKey):
     config = self.config
