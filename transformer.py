@@ -368,6 +368,7 @@ class HollowTransformer(nn.Module):
   @nn.compact
   def __call__(self,
                input_ids: jnp.ndarray,
+               t: float, # This is not currently used
                deterministic: bool = True) -> Dict[Text, jnp.ndarray]:
 
     input_ids = input_ids.astype('int32')
