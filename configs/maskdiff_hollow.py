@@ -73,9 +73,9 @@ def get_config():
       seed=1,
       substeps=1,
       num_steps_lr_warmup=100,
-      num_steps_train=500_000, #100_000_000,
+      num_steps_train=500_000 / 2, #100_000_000,
       num_steps_eval=100,
-      batch_size_train=768, #1024 in paper version
+      batch_size_train=768 * 2, #1024 in paper version
       batch_size_eval=1024,
       steps_per_logging=1000,
       steps_per_eval=1_000,
