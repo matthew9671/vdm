@@ -151,9 +151,10 @@ class Experiment_MaskDiff(Experiment):
     # Debugging
     logging.info('=== Testing for NaNs in the initialization ===')
     batch = jax.tree_map(jnp.asarray, next(self.train_iter))
-    logging.info(str(batch[0]))
-    # out = self.loss_fn(self.state.params, batch, self.rng, True)
-    # logging.info(str(out))
+    logging.info(str(batch.shape))
+    # The batch has a device dimension but we only want to run it separately on each device
+    out = self.loss_fn(self.state.params, batch[0], self.rng, True)
+    logging.info(str(out))
 
   def get_model_and_params(self, rng: PRNGKey):
     config = self.config
