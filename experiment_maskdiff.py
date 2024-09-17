@@ -163,8 +163,8 @@ class Experiment_MaskDiff(Experiment):
     batch_size, seq_len = inputs.shape[0], np.prod(inputs.shape[1:])
     loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size))
     metrics = jax.tree_map(lambda x: x.mean(axis=0), metrics)
-    # Average over batch and divide by sequence length
-    loss = jnp.mean(loss) / seq_len
+
+    loss = jnp.mean(loss) #/ seq_len
     return loss, metrics
 
   def loss_single(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
