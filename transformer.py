@@ -257,7 +257,7 @@ class Transformer(nn.Module):
         embedding_size=self.hidden_size,
         hidden_dropout_prob=self.hidden_dropout_prob,
         vocab_size=self.vocab_size,
-        max_position_embeddings=self.max_position_embeddings,
+        max_position_embeddings=self.max_position_embeddings + 2, # Including the padded values
         initializer_fn=truncated_normal(self.initializer_range))(
             input_ids=input_ids, deterministic=deterministic)
 
@@ -371,6 +371,11 @@ class HollowTransformer(nn.Module):
                t: float, # This is not currently used
                deterministic: bool = True) -> Dict[Text, jnp.ndarray]:
 
+    B = input_ids.shape[0]
+    # Causal attention doesn't like zero padding
+    pad = jnp.zeros((B, 1))
+    input_ids = jnp.concatenate([pad, input_ids, pad], axis=1)
+
     input_ids = input_ids.astype('int32')
     x = Embed(
         embedding_size=self.hidden_size,
@@ -389,8 +394,8 @@ class HollowTransformer(nn.Module):
 
     # Causal attention doesn't like zero padding
     pad = jnp.ones((B, 1, K))
-    xf = x #jnp.concatenate([pad, x[:,:-1]], axis=1)
-    xb = x #jnp.concatenate([x[:,1:], pad], axis=1)
+    xf = x[:,:-1] #jnp.concatenate([pad, x[:,:-1]], axis=1)
+    xb = x[:,1:] #jnp.concatenate([x[:,1:], pad], axis=1)
     xm = None
       
     for i in range(self.num_hidden_layers):
