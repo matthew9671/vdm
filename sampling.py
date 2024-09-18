@@ -35,7 +35,7 @@ def compute_backward(y, t, apply_fn, params, config, forward_process):
     Rt_eval_y = Rt[:, y].T
     
     # TODO: we used squeeze to get rid of the batch dimension
-    x0_logits = apply_fn({"params": params}, y, t, 
+    x0_logits = apply_fn({"params": params}, y[None], t, 
         deterministic=True).squeeze()
     # # Only take the valid parts of the output
     # x0_logits = x0_logits[...,:S-1]
