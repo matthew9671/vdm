@@ -257,7 +257,7 @@ class Transformer(nn.Module):
         embedding_size=self.hidden_size,
         hidden_dropout_prob=self.hidden_dropout_prob,
         vocab_size=self.vocab_size,
-        max_position_embeddings=self.max_position_embeddings + 2, # Including the padded values
+        max_position_embeddings=self.max_position_embeddings,
         initializer_fn=truncated_normal(self.initializer_range))(
             input_ids=input_ids, deterministic=deterministic)
 
@@ -381,7 +381,7 @@ class HollowTransformer(nn.Module):
         embedding_size=self.hidden_size,
         hidden_dropout_prob=self.hidden_dropout_prob,
         vocab_size=self.vocab_size,
-        max_position_embeddings=self.max_position_embeddings,
+        max_position_embeddings=self.max_position_embeddings + 2, # Including the padded values
         initializer_fn=truncated_normal(self.initializer_range))(
             input_ids=input_ids, deterministic=deterministic)
     
