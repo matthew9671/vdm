@@ -322,7 +322,7 @@ class Experiment_MaskDiff(Experiment):
     for _ in range(2):
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
-      tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 16))
+      tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8))
       logging.info("Shape: " + str(samples.shape))
       uint8_image = (samples * 255).astype(np.uint8)
 
