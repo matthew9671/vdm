@@ -66,6 +66,8 @@ def main(argv):
     experiment.train_and_evaluate(workdir)
   elif FLAGS.mode == "eval":
     experiment.evaluate(FLAGS.workdir, FLAGS.checkpoint)
+  elif FLAGS.mode == "sample":
+    experiment.sample(FLAGS.checkpoint)
   else:
     raise Exception("Unknown FLAGS.mode")
 

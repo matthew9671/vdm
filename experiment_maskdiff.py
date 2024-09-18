@@ -148,14 +148,6 @@ class Experiment_MaskDiff(Experiment):
 
     logging.info('=== Done with Experiment.__init__ ===')
 
-    # Debugging
-    # logging.info('=== Testing for NaNs in the initialization ===')
-    # batch = jax.tree_map(jnp.asarray, next(self.train_iter))
-    # logging.info(str(batch.shape))
-    # # The batch has a device dimension but we only want to run it separately on each device
-    # out = self.loss_fn(self.state.params, batch[0][0], self.rng, True)
-    # logging.info(str(out))
-
   def get_model_and_params(self, rng: PRNGKey):
     config = self.config
     if config.use_hollow_transformer:
@@ -250,7 +242,6 @@ class Experiment_MaskDiff(Experiment):
 
     # s_t^{\theta}^{*1}(y, *2): (D, S) float array of marginal likelihood ratios predicted by the model
     # Also known as the "concrete score" in (Lou et al. 2023)
-#     st_eval_y = (p0t_eval_y / qt0_eval_y) @ qt0 
     st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
                            precision=jax.lax.Precision.HIGHEST)
 
@@ -305,6 +296,22 @@ class Experiment_MaskDiff(Experiment):
     metrics = {"scalars": scalar_dict, "images": img_dict}
 
     return loss, metrics
+
+  def sample(self, checkpoint_dir):
+    """Perform one evaluation."""
+    logging.info('=== Experiment.sample() ===')
+
+    ckpt = checkpoint.Checkpoint(checkpoint_dir)
+    state_dict = ckpt.restore_dict()
+    params = flax.core.FrozenDict(state_dict['ema_params'])
+    step = int(state_dict['step'])
+
+    # Distribute training.
+    params = flax_utils.replicate(params)
+
+    # sample a batch of images
+    tokens, samples = self.p_sample(params=params, rng=jax.random.split(self.rng, 8))
+    logging.info("Shape: " + str(samples.shape))
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     # We don't really need to use the dummy inputs.
