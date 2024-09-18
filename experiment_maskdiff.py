@@ -244,6 +244,16 @@ class Experiment_MaskDiff(Experiment):
     
     # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
     p0t_eval_y = softmax(x0_logits, axis=-1)
+
+    # Compute the cross entropy between prediction and data
+    x0_one_hot = jax.nn.one_hot(x0, S)
+    logits = jnp.log(p0t_eval_y + eps)
+    loss = - jnp.mean(x0_one_hot * logits)
+
+    metrics = {"scalars": {}, "images": {}}
+
+    return loss, metrics
+
     # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
     qt0_eval_y = qt0[:,y].T + eps
 
@@ -277,7 +287,7 @@ class Experiment_MaskDiff(Experiment):
 
     # (D, S) float array, with each entry corresponding to a choice of (d, x^d)
     # the cases where x^d = y^d are removed via masking
-    score_entropy = Rt_eval_y * y_mask * (st_eval_y - qt0_x_over_y * jnp.log(st_eval_y + eps))
+    # score_entropy = Rt_eval_y * y_mask * (st_eval_y - qt0_x_over_y * jnp.log(st_eval_y + eps))
     
     # Compute the cross entropy between prediction and data
     x0_one_hot = jax.nn.one_hot(x0, S)
@@ -289,14 +299,14 @@ class Experiment_MaskDiff(Experiment):
     
     # Sample from q_T to estimate the elbo
     # (S,) float array of the logits of the stationary distribution
-    pi_logits = forward_process.target_logits()
-    xT = jr.categorical(key_T, logits=pi_logits, shape=(D,))
-    log_pi_eval_xT = jnp.sum(pi_logits[xT])
-    elbo = jnp.sum(- score_entropy + Rt_eval_y * y_mask) + log_pi_eval_xT
+    # pi_logits = forward_process.target_logits()
+    # xT = jr.categorical(key_T, logits=pi_logits, shape=(D,))
+    # log_pi_eval_xT = jnp.sum(pi_logits[xT])
+    # elbo = jnp.sum(- score_entropy + Rt_eval_y * y_mask) + log_pi_eval_xT
 
     scalar_dict = {
         "loss": loss,
-        "elbo": elbo / D,
+        # "elbo": elbo / D,
         "nll": x0_nll
     }
 
