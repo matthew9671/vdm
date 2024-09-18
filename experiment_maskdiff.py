@@ -149,12 +149,12 @@ class Experiment_MaskDiff(Experiment):
     logging.info('=== Done with Experiment.__init__ ===')
 
     # Debugging
-    logging.info('=== Testing for NaNs in the initialization ===')
-    batch = jax.tree_map(jnp.asarray, next(self.train_iter))
-    logging.info(str(batch.shape))
-    # The batch has a device dimension but we only want to run it separately on each device
-    out = self.loss_fn(self.state.params, batch[0][0], self.rng, True)
-    logging.info(str(out))
+    # logging.info('=== Testing for NaNs in the initialization ===')
+    # batch = jax.tree_map(jnp.asarray, next(self.train_iter))
+    # logging.info(str(batch.shape))
+    # # The batch has a device dimension but we only want to run it separately on each device
+    # out = self.loss_fn(self.state.params, batch[0][0], self.rng, True)
+    # logging.info(str(out))
 
   def get_model_and_params(self, rng: PRNGKey):
     config = self.config
@@ -172,11 +172,11 @@ class Experiment_MaskDiff(Experiment):
     return model, params
 
   def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
-    batch_size, seq_len = inputs.shape[0], np.prod(inputs.shape[1:])
+    batch_size = inputs.shape[0]
     loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size))
     metrics = jax.tree_map(lambda x: x.mean(axis=0), metrics)
 
-    loss = jnp.mean(loss) #/ seq_len
+    loss = jnp.mean(loss)
     return loss, metrics
 
   def loss_single(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
@@ -234,7 +234,7 @@ class Experiment_MaskDiff(Experiment):
 
     # x0_logits = model.apply(params, y, t, rngs={"dropout": key_dropout})
     x0_logits = self.state.apply_fn(
-        {"params": params}, y[None], t, # TODO: we're just adding this batch dimension for consistency!
+        {"params": params}, y, t,
         rngs=rngs,
         deterministic=not is_train,
     )
