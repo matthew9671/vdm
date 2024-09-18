@@ -371,7 +371,7 @@ class HollowTransformer(nn.Module):
                t: float, # This is not currently used
                deterministic: bool = True) -> Dict[Text, jnp.ndarray]:
 
-    B = input_ids.shape[0]
+    B, L = input_ids.shape
     # Causal attention doesn't like zero padding
     pad = jnp.zeros((B, 1))
     input_ids = jnp.concatenate([pad, input_ids, pad], axis=1)
@@ -385,7 +385,7 @@ class HollowTransformer(nn.Module):
         initializer_fn=truncated_normal(self.initializer_range))(
             input_ids=input_ids, deterministic=deterministic)
     
-    B, L, K = x.shape
+    # B, L, K = x.shape
     H = self.num_attention_heads
       
     forward_mask = jnp.tile(jnp.tril(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
@@ -393,7 +393,7 @@ class HollowTransformer(nn.Module):
     mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
     # Causal attention doesn't like zero padding
-    pad = jnp.ones((B, 1, K))
+    # pad = jnp.ones((B, 1, K))
     xf = x[:,:-2] #jnp.concatenate([pad, x[:,:-1]], axis=1)
     xb = x[:,2:] #jnp.concatenate([x[:,1:], pad], axis=1)
     xm = None
