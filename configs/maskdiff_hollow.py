@@ -42,7 +42,7 @@ def get_config():
     hidden_size=768 // 2,
     num_hidden_layers=24, # 24
     num_attention_heads=16 // 2,
-    intermediate_size=3072 // 2,
+    intermediate_size=3072 // 3 * 2,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256, # seq length, since we are doing unconditional generation
