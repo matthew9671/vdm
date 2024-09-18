@@ -23,6 +23,7 @@ from clu import checkpoint
 
 import tensorflow.compat.v1 as tf
 import flax
+import flax.jax_utils as flax_utils
 
 from vdm.sampling import backward_process_tau_leaping
 
