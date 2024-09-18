@@ -28,6 +28,7 @@ import flax.jax_utils as flax_utils
 from vdm.sampling import backward_process_tau_leaping
 
 from PIL import Image
+import os
 
 class AbsorbingRate():
   def __init__(self, config):
