@@ -301,7 +301,7 @@ class Experiment_MaskDiff(Experiment):
 
     return loss, metrics
 
-  def sample(self, workdir, checkpoint_dir):
+  def sample(self, logdir, checkpoint_dir):
     """Perform one evaluation."""
     logging.info('=== Experiment.sample() ===')
 
