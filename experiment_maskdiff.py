@@ -27,6 +27,8 @@ import flax.jax_utils as flax_utils
 
 from vdm.sampling import backward_process_tau_leaping
 
+from PIL import Image
+
 class AbsorbingRate():
   def __init__(self, config):
     self.state_size = S = config.state_size
@@ -298,9 +300,12 @@ class Experiment_MaskDiff(Experiment):
 
     return loss, metrics
 
-  def sample(self, checkpoint_dir):
+  def sample(self, workdir, checkpoint_dir):
     """Perform one evaluation."""
     logging.info('=== Experiment.sample() ===')
+
+    sample_logdir = os.path.join(logdir, 'samples')
+    tf.io.gfile.makedirs(sample_logdir)
 
     ckpt = checkpoint.Checkpoint(checkpoint_dir)
     state_dict = ckpt.restore_dict()
@@ -310,9 +315,23 @@ class Experiment_MaskDiff(Experiment):
     # Distribute training.
     params = flax_utils.replicate(params)
 
-    # sample a batch of images
-    tokens, samples = self.p_sample(params=params, rng=jax.random.split(self.rng, 8))
-    logging.info("Shape: " + str(samples.shape))
+    rng = jax.random.PRNGKey(self.config.sampler.seed)
+    image_id = 0
+
+    for _ in range(2):
+      rng, curr_rng = jax.random.split(rng)
+      # sample a batch of images
+      tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 16))
+      logging.info("Shape: " + str(samples.shape))
+      uint8_image = (samples * 255).astype(np.uint8)
+
+      if jax.process_index() == 0:
+        # Save the images
+        for i in range(uint8_image.shape[0]):
+          image_id += 1
+          path_to_save = sample_logdir + f'/{image_id}.png'
+          img = Image.fromarray(uint8_image[i])
+          img.save(path_to_save)
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     # We don't really need to use the dummy inputs.
@@ -334,7 +353,7 @@ class Experiment_MaskDiff(Experiment):
     tokens, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng, 
       self.forward_process)
 
-    logging.info("Sampled token shape: " + str(tokens.shape))
+    # logging.info("Sampled token shape: " + str(tokens.shape))
 
     output_tokens = jnp.reshape(tokens, [-1, 16, 16])
     gen_images = self.tokenizer_model.apply(
