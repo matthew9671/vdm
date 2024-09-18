@@ -389,8 +389,8 @@ class HollowTransformer(nn.Module):
 
     # Causal attention doesn't like zero padding
     pad = jnp.ones((B, 1, K))
-    xf = jnp.concatenate([pad, x[:,:-1]], axis=1)
-    xb = jnp.concatenate([x[:,1:], pad], axis=1)
+    xf = x #jnp.concatenate([pad, x[:,:-1]], axis=1)
+    xb = x #jnp.concatenate([x[:,1:], pad], axis=1)
     xm = None
       
     for i in range(self.num_hidden_layers):
