@@ -40,7 +40,7 @@ def get_config():
     # tpu-v3 has less memory, use smaller network?
     vocab_size=1024 + 1, # Caveat: conditional generation stuff
     hidden_size=768 // 8,
-    num_hidden_layers=24 // 2, # 24
+    num_hidden_layers=24 // 4, # 24
     num_attention_heads=16 // 8,
     intermediate_size=3072 // 8,
     hidden_dropout_prob=0.1, 
