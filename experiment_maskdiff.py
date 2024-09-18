@@ -234,7 +234,7 @@ class Experiment_MaskDiff(Experiment):
 
     # x0_logits = model.apply(params, y, t, rngs={"dropout": key_dropout})
     x0_logits = self.state.apply_fn(
-        {"params": params}, y, t,
+        {"params": params}, y[None], t, # TODO: we're just adding this batch dimension for consistency!
         rngs=rngs,
         deterministic=not is_train,
     )
