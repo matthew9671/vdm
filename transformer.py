@@ -372,7 +372,6 @@ class HollowTransformer(nn.Module):
                deterministic: bool = True) -> Dict[Text, jnp.ndarray]:
 
     B, L = input_ids.shape
-    # Causal attention doesn't like zero padding
     pad = jnp.zeros((B, 1))
     input_ids = jnp.concatenate([pad, input_ids, pad], axis=1)
 
@@ -385,15 +384,12 @@ class HollowTransformer(nn.Module):
         initializer_fn=truncated_normal(self.initializer_range))(
             input_ids=input_ids, deterministic=deterministic)
     
-    # B, L, K = x.shape
     H = self.num_attention_heads
       
     forward_mask = jnp.tile(jnp.tril(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
     backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
     mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
-    # Causal attention doesn't like zero padding
-    # pad = jnp.ones((B, 1, K))
     xf = x[:,:-2] #jnp.concatenate([pad, x[:,:-1]], axis=1)
     xb = x[:,2:] #jnp.concatenate([x[:,1:], pad], axis=1)
     xm = None
@@ -416,20 +412,20 @@ class HollowTransformer(nn.Module):
       xf = f_layer(q=xf, kv=xf, mask=forward_mask, deterministic=deterministic)
       xb = b_layer(q=xb, kv=xb, mask=backward_mask, deterministic=deterministic)
 
-    #   if (i + 1) % self.num_layers_per_mixed == 0:
-    #     if xm is None:
-    #       xm = jnp.concatenate([xf, xb], axis=2)
-    #     xfb = jnp.concatenate([xf, xb], axis=1)
-    #     m_layer = GenericTransformerLayer(
-    #       intermediate_size=self.intermediate_size,
-    #       hidden_size=self.hidden_size * 2, # since we're combining the streams
-    #       hidden_dropout_prob=self.hidden_dropout_prob,
-    #       num_attention_heads=self.num_attention_heads,
-    #       attention_probs_dropout_prob=self.attention_probs_dropout_prob,
-    #       initializer_fn=truncated_normal(self.initializer_range))
-    #     xm = m_layer(q=xm, kv=xfb, mask=mixing_mask, deterministic=deterministic)
+      if (i + 1) % self.num_layers_per_mixed == 0:
+        if xm is None:
+          xm = jnp.concatenate([xf, xb], axis=2)
+        xfb = jnp.concatenate([xf, xb], axis=1)
+        m_layer = GenericTransformerLayer(
+          intermediate_size=self.intermediate_size,
+          hidden_size=self.hidden_size * 2, # since we're combining the streams
+          hidden_dropout_prob=self.hidden_dropout_prob,
+          num_attention_heads=self.num_attention_heads,
+          attention_probs_dropout_prob=self.attention_probs_dropout_prob,
+          initializer_fn=truncated_normal(self.initializer_range))
+        xm = m_layer(q=xm, kv=xfb, mask=mixing_mask, deterministic=deterministic)
 
-    layer_output = xf + xb # xm
+    layer_output = xm
       
     word_embedding_matrix = self.variables['params']['Embed_0'][
         'word_embeddings']['embedding']
