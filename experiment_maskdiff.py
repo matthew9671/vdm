@@ -318,8 +318,9 @@ class Experiment_MaskDiff(Experiment):
 
     rng = jax.random.PRNGKey(self.config.sampler.seed)
     image_id = 0
+    max_samples = self.config.sampler.max_samples
 
-    for _ in range(2):
+    while image_id < max_samples:
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
       tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8))
@@ -330,6 +331,7 @@ class Experiment_MaskDiff(Experiment):
         # Save the images
         for i in range(uint8_image.shape[0]):
           image_id += 1
+          if image_id > max_samples: break
           path_to_save = sample_logdir + f'/{image_id}.png'
           img = Image.fromarray(uint8_image[i])
           img.save(path_to_save)

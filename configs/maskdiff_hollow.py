@@ -56,7 +56,8 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=100
+    num_steps=20,
+    max_samples=10_000
   )
 
   config.noise = d(
