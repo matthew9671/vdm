@@ -187,7 +187,11 @@ class Experiment(ABC):
     ckpt = checkpoint.MultihostCheckpoint(checkpoint_dir, max_to_keep=5)
     checkpoint_to_restore = ckpt.get_latest_checkpoint_to_restore_from()
     if checkpoint_to_restore:
-      state = ckpt.restore_or_initialize(state, checkpoint_to_restore)
+      init_state = ckpt.restore_or_initialize(state, checkpoint_to_restore)
+    # If we're not restoring a checkpoint for training
+    if self.config.get('ckpt_restore_dir', 'None') is None:
+      state = init_state
+      
     initial_step = int(state.step)
 
     # Distribute training.
