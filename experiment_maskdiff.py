@@ -336,17 +336,25 @@ class Experiment_MaskDiff(Experiment):
     file_name = self.config.sampler.output_file_name or 'out'
     all_images = []
 
+    import fidjax
+    weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
+    reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
+    fid = fidjax.FID(weights)
+    all_acts = []
+
     while image_id < max_samples:
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
       tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8))      
       samples = np.clip(samples, 0, 1)      
-      uint8_image = (samples * 255).astype(np.uint8)
+      uint8_images = (samples * 255).astype(np.uint8)
 
-      all_images.append(uint8_image)
+      all_images.append(uint8_images)
 
       image_id += samples.shape[0]
       logging.info(f"Number of samples: {image_id}/{max_samples}")
+
+      acts.append(fid.compute_acts(uint8_images))
 
       # if jax.process_index() == 0:
       #   # Save the images
@@ -358,6 +366,7 @@ class Experiment_MaskDiff(Experiment):
       #     img.save(path_to_save)
 
     if jax.process_index() == 0:
+      jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(acts, axis=0))
       jnp.save(sample_logdir + f'/{file_name}', jnp.concatenate(all_images, axis=0))
 
   def sample_fn(self, *, dummy_inputs, rng, params):
