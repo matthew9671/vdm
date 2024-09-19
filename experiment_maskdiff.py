@@ -75,6 +75,17 @@ class AbsorbingRate():
     return trans
 
 # Replicated from experiment.py
+def copy_dict(dict1, dict2):
+  if not isinstance(dict1, dict):
+    assert not isinstance(dict2, dict)
+    return dict2
+  for key in dict1.keys():
+    if key in dict2:
+      dict1[key] = copy_dict(dict1[key], dict2[key])
+
+  return dict1
+
+
 def restore_partial(state, state_restore_dict):
   state_dict = flax.serialization.to_state_dict(state)
   state_dict = copy_dict(state_dict, state_restore_dict)
