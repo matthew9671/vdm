@@ -325,6 +325,8 @@ class Experiment_MaskDiff(Experiment):
       # sample a batch of images
       tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8))
       logging.info("Shape: " + str(samples.shape))
+      
+      samples = jnp.clip(samples, 0, 1)      
       uint8_image = (samples * 255).astype(np.uint8)
 
       if jax.process_index() == 0:
