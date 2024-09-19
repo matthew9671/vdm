@@ -56,7 +56,7 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=20,
+    num_steps=100,
     max_samples=10_000
   )
 
