@@ -354,7 +354,7 @@ class Experiment_MaskDiff(Experiment):
       image_id += samples.shape[0]
       logging.info(f"Number of samples: {image_id}/{max_samples}")
 
-      acts.append(fid.compute_acts(uint8_images))
+      all_acts.append(fid.compute_acts(uint8_images))
 
       # if jax.process_index() == 0:
       #   # Save the images
@@ -366,7 +366,7 @@ class Experiment_MaskDiff(Experiment):
       #     img.save(path_to_save)
 
     if jax.process_index() == 0:
-      jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(acts, axis=0))
+      jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(all_acts, axis=0))
       jnp.save(sample_logdir + f'/{file_name}', jnp.concatenate(all_images, axis=0))
 
   def sample_fn(self, *, dummy_inputs, rng, params):
