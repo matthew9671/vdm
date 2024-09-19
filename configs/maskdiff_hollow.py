@@ -58,7 +58,7 @@ def get_config():
   config.sampler = d(
     seed=42,
     num_steps=100,
-    max_samples=200,
+    max_samples=1000,
     output_file_name="converged_samples_10k"
   )
 

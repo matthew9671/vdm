@@ -339,13 +339,14 @@ class Experiment_MaskDiff(Experiment):
     while image_id < max_samples:
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
-      tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8))
-      logging.info("Shape: " + str(samples.shape))
-      
+      tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8))      
       samples = np.clip(samples, 0, 1)      
       uint8_image = (samples * 255).astype(np.uint8)
 
       all_images.append(uint8_image)
+
+      image_id += samples.shape[0]
+      logging.info(f"Number of samples: {image_id}/{max_samples}")
 
       # if jax.process_index() == 0:
       #   # Save the images
@@ -355,7 +356,7 @@ class Experiment_MaskDiff(Experiment):
       #     path_to_save = sample_logdir + f'/{image_id}.png'
       #     img = Image.fromarray(uint8_image[i])
       #     img.save(path_to_save)
-      
+
     if jax.process_index() == 0:
       jnp.save(sample_logdir + f'/{file_name}', jnp.concatenate(all_images, axis=0))
 
