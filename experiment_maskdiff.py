@@ -333,6 +333,9 @@ class Experiment_MaskDiff(Experiment):
     image_id = 0
     max_samples = self.config.sampler.max_samples
 
+    file_name = self.config.sampler.output_file_name or 'out'
+    all_images = []
+
     while image_id < max_samples:
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
@@ -342,14 +345,19 @@ class Experiment_MaskDiff(Experiment):
       samples = np.clip(samples, 0, 1)      
       uint8_image = (samples * 255).astype(np.uint8)
 
-      if jax.process_index() == 0:
-        # Save the images
-        for i in range(uint8_image.shape[0]):
-          image_id += 1
-          if image_id > max_samples: break
-          path_to_save = sample_logdir + f'/{image_id}.png'
-          img = Image.fromarray(uint8_image[i])
-          img.save(path_to_save)
+      all_images.append(uint8_image)
+
+      # if jax.process_index() == 0:
+      #   # Save the images
+      #   for i in range(uint8_image.shape[0]):
+      #     image_id += 1
+      #     if image_id > max_samples: break
+      #     path_to_save = sample_logdir + f'/{image_id}.png'
+      #     img = Image.fromarray(uint8_image[i])
+      #     img.save(path_to_save)
+      
+    if jax.process_index() == 0:
+      jnp.save(sample_logdir + f'/{file_name}', jnp.concatenate(all_images, axis=0))
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     # We don't really need to use the dummy inputs.
