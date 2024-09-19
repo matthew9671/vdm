@@ -339,7 +339,7 @@ class Experiment_MaskDiff(Experiment):
     import fidjax
     weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
-    fid = fidjax.FID(weights)
+    fid = fidjax.FID(weights, reference)
     all_acts = []
 
     while image_id < max_samples:
@@ -356,18 +356,17 @@ class Experiment_MaskDiff(Experiment):
 
       all_acts.append(fid.compute_acts(uint8_images))
 
-      # if jax.process_index() == 0:
-      #   # Save the images
-      #   for i in range(uint8_image.shape[0]):
-      #     image_id += 1
-      #     if image_id > max_samples: break
-      #     path_to_save = sample_logdir + f'/{image_id}.png'
-      #     img = Image.fromarray(uint8_image[i])
-      #     img.save(path_to_save)
-
     if jax.process_index() == 0:
       jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(all_acts, axis=0))
       jnp.save(sample_logdir + f'/{file_name}', jnp.concatenate(all_images, axis=0))
+
+      logging.info("Finished saving samples and activations. Computing FID...")
+      stats = fid.compute_stats(all_acts)
+      # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
+      stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
+      ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
+      score = fid.compute_score(stats_cpu, ref_cpu)
+      logging.info(f"FID score: {score}")
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     # We don't really need to use the dummy inputs.
