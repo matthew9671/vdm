@@ -32,6 +32,7 @@ config_flags.DEFINE_config_file(
     "config", None, "Training configuration.", lock_config=False)
 flags.DEFINE_string("workdir", None, "Work unit directory.")
 flags.DEFINE_string("checkpoint", '', "Checkpoint to evaluate.")
+flags.DEFINE_string("ckpt_restore_dir", None, "Checkpoint to restore training from.")
 flags.DEFINE_string("mode", 'train', "train / eval")
 flags.DEFINE_string("model", 'vdm', 'vdm')
 flags.mark_flags_as_required(["config", "workdir"])
