@@ -61,7 +61,7 @@ def get_config():
     max_samples=10_000,
     output_file_name="fb_samples_10k",
     corrector="forward_backward",
-    corrector_step_size=.1,
+    corrector_step_size=1.,
   )
 
   config.noise = d(
