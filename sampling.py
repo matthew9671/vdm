@@ -57,7 +57,8 @@ def compute_backward(y, t, apply_fn, params, config, forward_process):
         "score": st_eval_y,
         "rates": (st_eval_y * Rt_eval_y) * y_mask,
         "x0_logits": x0_logits,
-        "Rt": Rt,
+        "Rt_eval_y": Rt_eval_y,
+        "Rt_eval_x": Rt[y]
     }
     return results
     
@@ -89,33 +90,52 @@ def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_
 
     return x0_pred, x_hist
 
-# def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forward_process):
-#     """
-#     We assume that correctors are used 
-#     """
-#     # Assuming 1D data
-#     D = config.data.seq_length
-#     S = config.model.vocab_size
+def mpf_corrector(res):
+    coeff = res["Rt_eval_x"] + res["Rt_eval_y"]
+    score = res["score"]
+    return coeff * jnp.sqrt(score)
 
-#     t = ts[0]
-#     x = xT
+def barker_corrector(res):
+    coeff = res["Rt_eval_x"] + res["Rt_eval_y"]
+    score = res["score"]
+    return coeff * score / (1 + score)
+
+def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forward_process):
+    """
+    We assume that 1 corrector step is always used after each predictor step 
+    """
+    # Assuming 1D data
+    D = config.data.seq_length
+    S = config.model.vocab_size
+
+    t = ts[0]
+    x = xT
     
-#     poisson_jump = poisson_jump_reject
+    poisson_jump = poisson_jump_reject
 
-#     def _step(carry, idx):
-#         x, key = carry
-#         t = ts[idx]
-#         dt = t - ts[idx+1]
-#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
-#         backward_rates = res["rates"]
-#         x = poisson_jump(key, x, backward_rates * dt)
-#         key = jr.split(key)[0]
-#         return (x, key), x
+    corrector = config.sampler.corrector
 
-#     (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
-#     res = compute_backward(x, t, apply_fn, params, config, forward_process)
-#     x0_logits = res["x0_logits"]
+    if corrector == "barker":
+        corrector_rate = lambda rt_y, rty_, s: (rt_y + rty_) * s / (1 + s) 
+    elif corrector == "mpf":
+        balancing_function = lambda score: jnp.sqrt(score)
+    elif :
+        balancing_function = None
 
-#     x0_pred = jnp.argmax(x0_logits, axis=1)
+    def _step(carry, idx):
+        x, key = carry
+        t = ts[idx]
+        dt = t - ts[idx+1]
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        backward_rates = res["rates"]
+        x = poisson_jump(key, x, backward_rates * dt)
+        key = jr.split(key)[0]
+        return (x, key), x
 
-#     return x0_pred, x_hist
+    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
+    res = compute_backward(x, t, apply_fn, params, config, forward_process)
+    x0_logits = res["x0_logits"]
+
+    x0_pred = jnp.argmax(x0_logits, axis=1)
+
+    return x0_pred, x_hist

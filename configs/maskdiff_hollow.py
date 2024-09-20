@@ -57,10 +57,11 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=100,
-    max_samples=1_000,
-    output_file_name="test",
-    corrector_type="",
+    num_steps=50, # Cut the number of steps in half due to using correctors
+    max_samples=10_000,
+    output_file_name="mpf_samples_10k",
+    corrector="mpf",
+    corrector_step_size=1.,
   )
 
   config.noise = d(

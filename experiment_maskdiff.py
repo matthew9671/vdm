@@ -25,7 +25,7 @@ import tensorflow.compat.v1 as tf
 import flax
 import flax.jax_utils as flax_utils
 
-from vdm.sampling import backward_process_tau_leaping
+from vdm.sampling import backward_process_tau_leaping, backward_process_pc_tau_leaping
 
 from PIL import Image
 import os
@@ -376,6 +376,12 @@ class Experiment_MaskDiff(Experiment):
 
     config = self.config
 
+    if config.sampler.corrector:
+      backward_process = backward_process_pc_tau_leaping
+      logging.info(f"Using corrector: {config.sampler.corrector}")
+    else:
+      backward_process = backward_process_tau_leaping
+
     S = config.model.vocab_size
     D = config.data.seq_length
     min_t = config.training.min_t
@@ -386,7 +392,7 @@ class Experiment_MaskDiff(Experiment):
     xT = jnp.ones((D,), dtype=int) * (S - 1)
     
     ts = jnp.linspace(max_t, min_t, num_steps)
-    tokens, _ = backward_process_tau_leaping(self.state.apply_fn, params, ts, config, xT, rng, 
+    tokens, _ = backward_process(self.state.apply_fn, params, ts, config, xT, rng, 
       self.forward_process)
 
     # logging.info("Sampled token shape: " + str(tokens.shape))
