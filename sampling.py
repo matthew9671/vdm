@@ -88,3 +88,34 @@ def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_
     x0_pred = jnp.argmax(x0_logits, axis=1)
 
     return x0_pred, x_hist
+
+# def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forward_process):
+#     """
+#     We assume that correctors are used 
+#     """
+#     # Assuming 1D data
+#     D = config.data.seq_length
+#     S = config.model.vocab_size
+
+#     t = ts[0]
+#     x = xT
+    
+#     poisson_jump = poisson_jump_reject
+
+#     def _step(carry, idx):
+#         x, key = carry
+#         t = ts[idx]
+#         dt = t - ts[idx+1]
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         backward_rates = res["rates"]
+#         x = poisson_jump(key, x, backward_rates * dt)
+#         key = jr.split(key)[0]
+#         return (x, key), x
+
+#     (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
+#     res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#     x0_logits = res["x0_logits"]
+
+#     x0_pred = jnp.argmax(x0_logits, axis=1)
+
+#     return x0_pred, x_hist
