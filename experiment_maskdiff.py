@@ -367,6 +367,7 @@ class Experiment_MaskDiff(Experiment):
       ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
       score = fid.compute_score(stats_cpu, ref_cpu)
       logging.info(f"FID score: {score}")
+      logging.info(f"======= Complete =======")
 
   def sample_fn(self, *, dummy_inputs, rng, params):
     # We don't really need to use the dummy inputs.
