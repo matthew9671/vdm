@@ -127,7 +127,7 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
     else:
         raise Exception(f"Unknown corrector: {corrector}")
 
-    corrector_step_size = config.corrector_step_size
+    corrector_step_size = config.sampler.corrector_step_size
 
     def _step(carry, idx):
         x, key = carry
