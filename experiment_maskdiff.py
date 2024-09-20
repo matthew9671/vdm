@@ -355,7 +355,7 @@ class Experiment_MaskDiff(Experiment):
         # Save some sample images
         img = utils.generate_image_grids(uint8_images)
         path_to_save = sample_logdir + f'/{image_id}.png'
-        img = Image.fromarray(img)
+        img = Image.fromarray(img.astype(np.uint8))
         img.save(path_to_save)
 
       image_id += samples.shape[0]
