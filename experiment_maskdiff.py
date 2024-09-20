@@ -351,16 +351,19 @@ class Experiment_MaskDiff(Experiment):
 
       all_images.append(uint8_images)
 
+      if jax.process_index() == 0 and image_id == 0:
+        # Save some sample images
+        img = utils.generate_image_grids(uint8_images)
+        path_to_save = sample_logdir + f'/{image_id}.png'
+        img = Image.fromarray(img)
+        img.save(path_to_save)
+
       image_id += samples.shape[0]
       logging.info(f"Number of samples: {image_id}/{max_samples}")
 
       all_acts.append(fid.compute_acts(uint8_images))
 
-      if jax.process_index() == 0:
-        # Save some sample images
-        path_to_save = sample_logdir + f'/{image_id}.png'
-        img = Image.fromarray(uint8_image[0])
-        img.save(path_to_save)
+      
 
     if jax.process_index() == 0:
       logging.info("Finished saving samples and activations. Computing FID...")
