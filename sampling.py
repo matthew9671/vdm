@@ -100,6 +100,9 @@ def barker_corrector(res):
     score = res["score"]
     return coeff * score / (1 + score)
 
+def forward_backward_corrector(res):
+    return res["rates"] + res["Rt_eval_x"]
+
 def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forward_process):
     """
     We assume that 1 corrector step is always used after each predictor step 
@@ -116,20 +119,28 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
     corrector = config.sampler.corrector
 
     if corrector == "barker":
-        corrector_rate = lambda rt_y, rty_, s: (rt_y + rty_) * s / (1 + s) 
+        corrector_rate = barker_corrector
     elif corrector == "mpf":
-        balancing_function = lambda score: jnp.sqrt(score)
-    elif :
-        balancing_function = None
+        corrector_rate = mpf_corrector
+    elif corrector == "forward_backward":
+        corrector_rate = forward_backward_corrector
+    else:
+        raise Exception(f"Unknown corrector: {corrector}")
+
+    corrector_step_size = config.corrector_step_size
 
     def _step(carry, idx):
         x, key = carry
+        key, p_key, c_key = jr.split(key, 3)
+
         t = ts[idx]
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         backward_rates = res["rates"]
-        x = poisson_jump(key, x, backward_rates * dt)
-        key = jr.split(key)[0]
+        x = poisson_jump(p_key, x, backward_rates * dt)
+        # Corrector
+        x = poisson_jump(c_key, x, corrector_rate(res) * dt * corrector_step_size)
+
         return (x, key), x
 
     (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
