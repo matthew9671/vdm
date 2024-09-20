@@ -60,8 +60,8 @@ def get_config():
     num_steps=50, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
     output_file_name="mpf_samples_10k",
-    corrector="mpf",
-    corrector_step_size=.01,
+    corrector="forward_backward",
+    corrector_step_size=.1,
   )
 
   config.noise = d(
