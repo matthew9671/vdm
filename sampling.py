@@ -17,8 +17,7 @@ def poisson_jump_reject(key, x, rates):
     jump_target = jnp.argmax(jump_nums, axis=1)
 
     # Assuming that the mask is S-1
-    out = jnp.where(#(x == (S-1)) & 
-                    (jnp.sum(jump_nums, axis=1) == 1), jump_target, x)
+    out = jnp.where((jnp.sum(jump_nums, axis=1) == 1), jump_target, x)
     return out
 
 def compute_backward(y, t, apply_fn, params, config, forward_process):
@@ -53,14 +52,16 @@ def compute_backward(y, t, apply_fn, params, config, forward_process):
     # Change the score such that the score for the non-masked dimensions are inverted
     # This only works for absorbing (masking diffusion ofcourse)
     mask_token = S - 1
-    st_eval_y = jnp.where((y != mask_token)[:,None], 1 / (st_eval_y + eps), st_eval_y)
+    backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
+    forward_score_from_curr = jnp.concatenate([jnp.zeros((D, S-1)), 1 / backward_score_to_curr[:, None]], axis=1)
+    score = jnp.where((y != mask_token)[:,None], forward_score_from_curr, st_eval_y)
 
     # (D, S) float array that masks out y[d] for each d index
     y_mask = jnp.ones((D, S))
     y_mask = y_mask.at[jnp.arange(D), y].set(0.0)
     
     results = {
-        "score": st_eval_y,
+        "score": score,
         "rates": (st_eval_y * Rt_eval_y) * y_mask,
         "x0_logits": x0_logits,
         "Rt_eval_y": Rt_eval_y,
