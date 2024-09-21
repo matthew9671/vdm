@@ -49,6 +49,12 @@ def compute_backward(y, t, apply_fn, params, config, forward_process):
     qt0_eval_y = qt0[:,y].T + eps
     st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
                            precision=jax.lax.Precision.HIGHEST)
+
+    # Change the score such that the score for the non-masked dimensions are inverted
+    # This only works for absorbing (masking diffusion ofcourse)
+    mask_token = S - 1
+    st_eval_y = jnp.where((y != mask_token)[:,None], 1 / (st_eval_y + eps), st_eval_y)
+
     # (D, S) float array that masks out y[d] for each d index
     y_mask = jnp.ones((D, S))
     y_mask = y_mask.at[jnp.arange(D), y].set(0.0)
