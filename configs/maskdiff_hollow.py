@@ -62,7 +62,7 @@ def get_config():
     output_file_name="mpf_samples_10k",
     # corrector="forward_backward",
     corrector="mpf",
-    corrector_step_size=.1,
+    corrector_step_size=.001,
   )
 
   config.noise = d(
