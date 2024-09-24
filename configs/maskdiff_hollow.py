@@ -57,11 +57,11 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=256, # Cut the number of steps in half due to using correctors
+    num_steps=256 // 2, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
-    output_file_name="no_corrector_256steps_samples_10k",
-    # corrector="forward_backward",
-    corrector=None,#"barker",
+    output_file_name="forward_backward_256steps_samples_10k",
+    corrector="forward_backward",
+    # corrector=None,#"barker",
     corrector_step_size=1.,
   )
 
