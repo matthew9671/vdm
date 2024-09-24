@@ -53,7 +53,12 @@ def get_config():
   )
 
   config.sampler = d(
-    num_steps=100
+    seed=42,
+    num_steps=256 // 2, # Cut the number of steps in half due to using correctors
+    max_samples=10_000,
+    output_file_name="baseline_128steps_samples_10k",
+    corrector=None,
+    corrector_step_size=.01,
   )
 
   config.noise = d(
