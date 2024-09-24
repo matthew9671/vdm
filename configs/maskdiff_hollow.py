@@ -59,10 +59,10 @@ def get_config():
     seed=42,
     num_steps=256 // 2, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
-    output_file_name="forward_backward_256steps_samples_10k",
-    corrector="forward_backward",
+    output_file_name="mpf_256steps_samples_10k",
+    corrector="mpf",
     # corrector=None,#"barker",
-    corrector_step_size=1.,
+    corrector_step_size=.01,
   )
 
   config.noise = d(
