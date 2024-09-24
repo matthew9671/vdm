@@ -141,8 +141,6 @@ class Experiment_MaskDiff(Experiment):
       state_restore_dict = ckpt_restore.restore_dict(checkpoint_to_restore)
       self.state = restore_partial(self.state, state_restore_dict)
       del state_restore_dict, ckpt_restore, checkpoint_to_restore
-    else:
-      assert(False)
 
     # initialize train/eval step
     logging.info('=== Initializing train/eval step ===')
