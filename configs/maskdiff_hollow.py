@@ -62,7 +62,7 @@ def get_config():
     output_file_name="barker_256steps_entry_time_samples_10k",
     # corrector=None,
     # corrector="mpf", corrector_step_size=.01,
-    corrector="barker", corrector_step_size=.5,
+    corrector="barker", corrector_step_size=1.,
     # corrector="forward_backward", corrector_step_size=1.,
     corrector_entry_time=.9,
   )
