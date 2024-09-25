@@ -26,8 +26,8 @@ def get_config():
   config = ml_collections.ConfigDict()
   config.exp_name = "exp_vdm"
   config.model_type = "model_transformer"
-  # config.ckpt_restore_dir = 'None'
-  config.ckpt_restore_dir = 'gs://maskdiff/hollow/240918/checkpoints-0'
+  config.ckpt_restore_dir = 'None'
+  # config.ckpt_restore_dir = 'gs://maskdiff/hollow/240918/checkpoints-0'
 
   config.use_hollow_transformer = True
 
@@ -43,7 +43,7 @@ def get_config():
     hidden_size=768,
     num_hidden_layers=24, # 24
     num_attention_heads=16,
-    intermediate_size=3072 // 2,
+    intermediate_size=3072 // 3,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256, # seq length, since we are doing unconditional generation
