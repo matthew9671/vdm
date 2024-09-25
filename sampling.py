@@ -212,7 +212,7 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         rp = res["rates"]
         x = poisson_jump(p_key, x, rp * dt)
         # Corrector
-        
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
         x = poisson_jump(c_key, x, rc * dt * corrector_step_size)
 
