@@ -60,7 +60,7 @@ def get_config():
     num_steps=256 // 2, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
     output_file_name="mpf_256steps_entry_time_samples_10k",
-    corrector=None,
+    # corrector=None,
     corrector="mpf",
     # corrector="barker",
     corrector_step_size=.01,
