@@ -59,11 +59,11 @@ def get_config():
     seed=42,
     num_steps=256 // 2, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
-    output_file_name="barker_256steps_entry_time_samples_10k",
+    output_file_name="fb_256steps_entry_time_samples_10k",
     # corrector=None,
     # corrector="mpf", corrector_step_size=.01,
-    corrector="barker", corrector_step_size=2.,
-    # corrector="forward_backward", corrector_step_size=1.,
+    # corrector="barker", corrector_step_size=2.,
+    corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=.9,
   )
 
