@@ -110,6 +110,54 @@ def barker_corrector(res):
 def forward_backward_corrector(res):
     return res["rates"] + res["Rt_eval_x"]
 
+# def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forward_process):
+#     """
+#     We assume that 1 corrector step is always used after each predictor step 
+#     """
+#     # Assuming 1D data
+#     D = config.data.seq_length
+#     S = config.model.vocab_size
+
+#     t = ts[0]
+#     x = xT
+    
+#     poisson_jump = poisson_jump_reject
+
+#     corrector = config.sampler.corrector
+
+#     if corrector == "barker":
+#         corrector_rate = barker_corrector
+#     elif corrector == "mpf":
+#         corrector_rate = mpf_corrector
+#     elif corrector == "forward_backward":
+#         corrector_rate = forward_backward_corrector
+#     else:
+#         raise Exception(f"Unknown corrector: {corrector}")
+
+#     corrector_step_size = config.sampler.corrector_step_size
+
+#     def _step(carry, idx):
+#         x, key = carry
+#         key, p_key, c_key = jr.split(key, 3)
+
+#         t = ts[idx]
+#         dt = t - ts[idx+1]
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         backward_rates = res["rates"]
+#         x = poisson_jump(p_key, x, backward_rates * dt)
+#         # Corrector
+#         x = poisson_jump(c_key, x, corrector_rate(res) * dt * corrector_step_size)
+
+#         return (x, key), x
+
+#     (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
+#     res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#     x0_logits = res["x0_logits"]
+
+#     x0_pred = jnp.argmax(x0_logits, axis=1)
+
+#     return x0_pred, x_hist
+
 def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forward_process):
     """
     We assume that 1 corrector step is always used after each predictor step 
@@ -124,7 +172,8 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
     poisson_jump = poisson_jump_reject
 
     corrector = config.sampler.corrector
-
+    start = int(len(ts) * (1 - config.sampler.corrector_start_percentage))
+    
     if corrector == "barker":
         corrector_rate = barker_corrector
     elif corrector == "mpf":
@@ -136,22 +185,56 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
 
     corrector_step_size = config.sampler.corrector_step_size
 
-    def _step(carry, idx):
+    def _p_step(carry, idx):
         x, key = carry
         key, p_key, c_key = jr.split(key, 3)
 
         t = ts[idx]
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        backward_rates = res["rates"]
-        x = poisson_jump(p_key, x, backward_rates * dt)
+        rp = res["rates"]
+        x = poisson_jump(p_key, x, rp * dt)
+
+        out = {
+            "x": x,
+            "rp": rp
+        }
+        
+        return (x, key), out
+    
+    def _pc_step(carry, idx):
+        x, key = carry
+        key, p_key, c_key = jr.split(key, 3)
+
+        t = ts[idx]
+        dt = t - ts[idx+1]
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        rp = res["rates"]
+        x = poisson_jump(p_key, x, rp * dt)
         # Corrector
-        x = poisson_jump(c_key, x, corrector_rate(res) * dt * corrector_step_size)
+        
+        rc = corrector_rate(res)
+        x = poisson_jump(c_key, x, rc * dt * corrector_step_size)
 
-        return (x, key), x
+        out = {
+            "x": x,
+            "rp": rp,
+            "rc": rc
+        }
+        
+        return (x, key), out
 
-    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
-    res = compute_backward(x, t, apply_fn, params, config, forward_process)
+    t_ids = jnp.arange(len(ts)-1)
+    (x, key), out_1 = jax.lax.scan(_p_step, (xT, key), t_ids[:start])
+    (x, _), out_2 = jax.lax.scan(_pc_step, (x, key), t_ids[start:])
+
+    x_hist = {
+        "x": jnp.concatenate([out_1["x"], out_2["x"]]),
+        "rp": jnp.concatenate([out_1["rp"], out_2["rp"]]),
+        "rc": out_2["rc"]
+    }
+    
+    res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
 
     x0_pred = jnp.argmax(x0_logits, axis=1)
