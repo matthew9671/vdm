@@ -40,14 +40,14 @@ def get_config():
   config.model = d(
     # tpu-v3 has less memory, use smaller network?
     vocab_size=1024 + 1, # Caveat: conditional generation stuff
-    hidden_size=768,
+    hidden_size=768 // 2,
     num_hidden_layers=24, # 24
-    num_attention_heads=16,
-    intermediate_size=3072 // 2,
+    num_attention_heads=16 // 2,
+    intermediate_size=3072 // 3 * 2,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256, # seq length, since we are doing unconditional generation
-    num_layers_per_mixed=24,
+    num_layers_per_mixed=6,
 
     # time conditioning
     # time_embedding_size=64,
@@ -59,11 +59,11 @@ def get_config():
     seed=42,
     num_steps=256 // 2, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
-    output_file_name="barker_256steps_samples_10k",
+    output_file_name="barker_256steps_entry_time_samples_10k",
     # corrector="mpf",
     corrector="barker",
     corrector_step_size=.1,
-    corrector_start_percentage = .9
+    corrector_entry_time=.9,
   )
 
   config.noise = d(

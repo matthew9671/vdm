@@ -172,7 +172,7 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
     poisson_jump = poisson_jump_reject
 
     corrector = config.sampler.corrector
-    start = int(len(ts) * (1 - config.sampler.corrector_start_percentage))
+    start = int(len(ts) * (1 - config.sampler.corrector_entry_time))
     
     if corrector == "barker":
         corrector_rate = barker_corrector
