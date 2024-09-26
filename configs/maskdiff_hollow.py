@@ -63,17 +63,17 @@ def get_config():
     seed=42,
     num_steps=256 // 2, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
-    update_type="gillespies", # "tau_leaping", "gillespies", "euler"
+    update_type="euler", # "tau_leaping", "gillespies", "euler"
     k = 2,
-    output_file_name="2_gillespies_mpf_samples_10k",
+    output_file_name="euler_barker_samples_10k",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.01,
-    # corrector="barker", corrector_step_size=2.,
+    # corrector="mpf", corrector_step_size=.01,
+    corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.9,
     # How much time do we use for a single gillespies corrector update
-    corrector_step_cutoff=5e-4, # Use None for a k=1 gillespies update
-    # corrector_step_cutoff=None,
+    # corrector_step_cutoff=5e-4, # Use None for a k=1 gillespies update
+    corrector_step_cutoff=None,
   )
 
   config.noise = d(
