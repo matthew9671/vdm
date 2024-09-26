@@ -72,7 +72,8 @@ def get_config():
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.9,
     # How much time do we use for a single gillespies corrector update
-    corrector_step_cutoff=1e-4, # Use None for a k=1 gillespies update
+    # corrector_step_cutoff=1e-4, # Use None for a k=1 gillespies update
+    corrector_step_cutoff=None,
   )
 
   config.noise = d(
