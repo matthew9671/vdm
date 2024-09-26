@@ -26,7 +26,8 @@ def get_config():
   config = ml_collections.ConfigDict()
   config.exp_name = "exp_vdm"
   config.model_type = "model_transformer"
-  config.ckpt_restore_dir = 'None'
+  # config.ckpt_restore_dir = 'None'
+  config.ckpt_restore_dir = 'gs://maskdiff/hollow/240925/checkpoints-0'
   # config.ckpt_restore_dir = 'gs://maskdiff/hollow/240918/checkpoints-0'
 
   config.use_hollow_transformer = True
@@ -40,37 +41,37 @@ def get_config():
   config.model = d(
     # tpu-v3 has less memory, use smaller network?
     vocab_size=1024 + 1, # Caveat: conditional generation stuff
-    # hidden_size=768,
-    # num_hidden_layers=24, # 24
-    # num_attention_heads=16,
-    # intermediate_size=3072 // 3,
-    # hidden_dropout_prob=0.1, 
-    # attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
-    # max_position_embeddings=256, # seq length, since we are doing unconditional generation
-    # num_layers_per_mixed=24,
-
-    hidden_size=768 // 2,
+    hidden_size=768,
     num_hidden_layers=24, # 24
-    num_attention_heads=16 // 2,
-    intermediate_size=3072 // 3 * 2,
+    num_attention_heads=16,
+    intermediate_size=3072 // 3,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256, # seq length, since we are doing unconditional generation
-    num_layers_per_mixed=24 // 4,
+    num_layers_per_mixed=24,
+
+    # hidden_size=768 // 2,
+    # num_hidden_layers=24, # 24
+    # num_attention_heads=16 // 2,
+    # intermediate_size=3072 // 3 * 2,
+    # hidden_dropout_prob=0.1, 
+    # attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
+    # max_position_embeddings=256, # seq length, since we are doing unconditional generation
+    # num_layers_per_mixed=24 // 4,
   )
 
   config.sampler = d(
     seed=42,
-    num_steps=256 // 2, # Cut the number of steps in half due to using correctors
+    num_steps=256, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
     update_type="euler", # "tau_leaping", "gillespies", "euler"
     
-    output_file_name="euler_barker_256steps_samples_10k",
-    # corrector=None,
+    output_file_name="",
+    corrector=None,
     # corrector="mpf", corrector_step_size=.05,
-    corrector="barker", corrector_step_size=2.,
+    # corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=2.,
-    corrector_entry_time=0.9,
+    # corrector_entry_time=0.9,
     # Gillespie's parameters
     k = 2,
     # How much time do we use for a single gillespies corrector update
