@@ -67,7 +67,7 @@ def get_config():
     # Gillespie's parameters
     k = 2,
     # How much time do we use for a single gillespies corrector update
-    corrector_step_cutoff=2 / 128, # should be equivalent to euler update with step size * 1 / num_steps 
+    corrector_step_cutoff=1/128, # should be equivalent to euler update with step size * 1 / num_steps 
     # corrector_step_cutoff=, # Use None for a k=1 gillespides update
     # corrector_step_cutoff=None,
   )
