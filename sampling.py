@@ -88,7 +88,12 @@ def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_
     t = ts[0]
     x = xT
     
-    poisson_jump = poisson_jump_reject
+    if config.sampler.update_type == "euler":
+        update_func = euler_update
+    elif config.sampler.update_type == "tau_leaping": 
+        update_func = poisson_jump_reject
+    else:
+        raise Exception(f"Unknown update type: {config.sampler.update_type}")
 
     def _step(carry, idx):
         x, key = carry
@@ -96,7 +101,7 @@ def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         backward_rates = res["rates"]
-        x = poisson_jump(key, x, backward_rates * dt)
+        x = update_func(key, x, backward_rates * dt)
         key = jr.split(key)[0]
         return (x, key), x
 
@@ -132,7 +137,12 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
     t = ts[0]
     x = xT
     
-    poisson_jump = poisson_jump_reject
+    if config.sampler.update_type == "euler":
+        update_func = euler_update
+    elif config.sampler.update_type == "tau_leaping": 
+        update_func = poisson_jump_reject
+    else:
+        raise Exception(f"Unknown update type: {config.sampler.update_type}")
 
     corrector = config.sampler.corrector
     start = int(len(ts) * (1 - config.sampler.corrector_entry_time))
@@ -156,7 +166,7 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
-        x = poisson_jump(p_key, x, rp * dt)
+        x = update_func(p_key, x, rp * dt)
 
         out = {
             "x": x,
@@ -173,11 +183,11 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
-        x = poisson_jump(p_key, x, rp * dt)
+        x = update_func(p_key, x, rp * dt)
         # Corrector
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
-        x = poisson_jump(c_key, x, rc * dt * corrector_step_size)
+        x = update_func(c_key, x, rc * dt * corrector_step_size)
 
         out = {
             "x": x,
@@ -242,7 +252,7 @@ def backward_process_pc_k_gillespies(apply_fn, params, ts, config, xT, key, forw
     t = ts[0]
     x = xT
 
-    poisson_jump = poisson_jump_accept
+    update_func = poisson_jump_reject
     
     if corrector == "barker":
         corrector_rate = barker_corrector
