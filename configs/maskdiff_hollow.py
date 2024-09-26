@@ -64,8 +64,8 @@ def get_config():
     num_steps=256 // 2, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
     update_type="gillespies", # "tau_leaping", "gillespies", "euler"
-    k = 1,
-    output_file_name="1_gillespies_mpf_samples_10k",
+    k = 2,
+    output_file_name="2_gillespies_mpf_samples_10k",
     # corrector=None,
     corrector="mpf", corrector_step_size=.01,
     # corrector="barker", corrector_step_size=2.,
