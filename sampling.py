@@ -20,29 +20,29 @@ def poisson_jump_reject(key, x, rates):
     out = jnp.where((jnp.sum(jump_nums, axis=1) == 1), jump_target, x)
     return out
 
-# def euler_update(key, x, rates):
-#     D = x.shape[0]
-#     # Mask out the self transitions
-#     rates = rates.at[jnp.arange(D), x].set(0.0)
-#     sum_rates = jnp.sum(rates, axis=1)
-#     transition_logits = jnp.log1p(-jnp.exp(-rates)) # Prob = 1 - exp(-rate)
-#     transition_logits = transition_logits.at[jnp.arange(D), x].set(-sum_rates)
-
-#     out = jr.categorical(key, transition_logits).astype(jnp.int32)
-#     return out
-
 def euler_update(key, x, rates):
     D = x.shape[0]
     # Mask out the self transitions
     rates = rates.at[jnp.arange(D), x].set(0.0)
     sum_rates = jnp.sum(rates, axis=1)
-
-    transition_prob = 1 - jnp.exp(-rates) #jnp.log1p(-jnp.exp(-rates)) # Prob = 1 - exp(-rate)
-    transition_prob = transition_prob.at[jnp.arange(D), x].set(jnp.exp(-sum_rates))
-    transition_prob = jnp.clip(transition_prob, 0., 1.)
+    transition_logit = jnp.log(-jnp.expm1(-rates)) # Prob = 1 - exp(-rate)
+    transition_logit = transition_logit.at[jnp.arange(D), x].set(-sum_rates)
     
-    out = jr.categorical(key, jnp.log(transition_prob)).astype(jnp.int32)
+    out = jr.categorical(key, transition_logit).astype(jnp.int32)
     return out
+
+# def euler_update(key, x, rates):
+#     D = x.shape[0]
+#     # Mask out the self transitions
+#     rates = rates.at[jnp.arange(D), x].set(0.0)
+#     sum_rates = jnp.sum(rates, axis=1)
+
+#     transition_prob = 1 - jnp.exp(-rates) #jnp.log1p(-jnp.exp(-rates)) # Prob = 1 - exp(-rate)
+#     transition_prob = transition_prob.at[jnp.arange(D), x].set(jnp.exp(-sum_rates))
+#     transition_prob = jnp.clip(transition_prob, 0., 1.)
+    
+#     out = jr.categorical(key, jnp.log(transition_prob)).astype(jnp.int32)
+#     return out
 
 def dumb_euler_update(key, x, rates):
     D = x.shape[0]
