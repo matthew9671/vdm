@@ -28,45 +28,40 @@ def get_config():
   config.model_type = "model_transformer"
   config.ckpt_restore_dir = 'None'
 
-  config.use_hollow_transformer = False 
+  config.use_hollow_transformer = True
 
   config.data = d(
       dataset='tokenized_imagenet_256',  # cifar10/cifar10_aug/cifar10_aug_with_channel
       ignore_cache=False,
       seq_length=256,
+      codebook_size=1024,
   )
 
   config.model = d(
     # tpu-v3 has less memory, use smaller network?
-    vocab_size=1024 + 1, # Caveat: conditional generation stuff
-
+    vocab_size=1024 + 1000 + 1, # 1024 tokens, 1000 labels, 1 mask
     hidden_size=768,
     num_hidden_layers=24, # 24
     num_attention_heads=16,
-    intermediate_size=3072,
+    intermediate_size=3072 // 3,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
-    max_position_embeddings=256 + 1, # seq length, since we are doing unconditional generation
+    max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
+    num_layers_per_mixed=24,
   )
 
   config.sampler = d(
     seed=42,
-    num_steps=128, # Cut the number of steps in half due to using correctors
+    num_steps=256, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
     update_type="euler", # "tau_leaping", "gillespies", "euler"
     
-    output_file_name="euler_fb_256steps",
-    # corrector=None,
+    output_file_name="",
+    corrector=None,
     # corrector="mpf", corrector_step_size=.05,
-    # corrector="barker", corrector_step_size=3.,
-    corrector="forward_backward", corrector_step_size=3.,
-    corrector_entry_time=0.9,
-    # Gillespie's parameters
-    k = 2,
-    # How much time do we use for a single gillespies corrector update
-    corrector_step_cutoff=5/128, # should be equivalent to euler update with step size * 1 / num_steps 
-    # corrector_step_cutoff=, # Use None for a k=1 gillespides update
-    # corrector_step_cutoff=None,
+    # corrector="barker", corrector_step_size=2.,
+    # corrector="forward_backward", corrector_step_size=2.,
+    # corrector_entry_time=0.9,
   )
 
   config.noise = d(
@@ -84,7 +79,7 @@ def get_config():
       seed=1,
       substeps=1,
       num_steps_lr_warmup=100,
-      num_steps_train=250_000, #100_000_000,
+      num_steps_train=500_000, #100_000_000,
       num_steps_eval=100,
       batch_size_train=768 * 2, #1024 in paper version
       batch_size_eval=1024,
