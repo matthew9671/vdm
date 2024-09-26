@@ -21,10 +21,9 @@ def poisson_jump_reject(key, x, rates):
     return out
 
 def euler_update(key, x, rates):
-    eps = 1e-6
     D = x.shape[0]
     # Mask out the self transitions
-    rates = rates.at[jnp.arange(D), x].set(eps)
+    rates = rates.at[jnp.arange(D), x].set(0.0)
     sum_rates = jnp.sum(rates, axis=1)
     transition_logits = jnp.log1p(-jnp.exp(-rates)) # Prob = 1 - exp(-rate)
     transition_logits = transition_logits.at[jnp.arange(D), x].set(-sum_rates)
