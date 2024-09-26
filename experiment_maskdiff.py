@@ -388,7 +388,7 @@ class Experiment_MaskDiff(Experiment):
     if config.sampler.corrector:
       if config.sampler.update_type == "gillespies":
         backward_process = backward_process_pc_k_gillespies
-      elif config.sampler.update_type == "tau_leaping":
+      else: # tau-leaping or euler
         backward_process = backward_process_pc_tau_leaping
       logging.info(f"Using sampling strategy: {config.sampler.update_type}")
       logging.info(f"Using corrector: {config.sampler.corrector}")

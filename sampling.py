@@ -267,7 +267,7 @@ def backward_process_pc_k_gillespies(apply_fn, params, ts, config, xT, key, forw
         _, x, t, _ = state
         no_corrector = (jnp.sum(x == (S-1)) / D) > corrector_entry_time
         not_at_end = t > ts[-1]
-        return no_corrector and not_at_end
+        return jnp.logical_and(no_corrector, not_at_end)
     
     def _end_cond(state):
         key, x, t, i = state
