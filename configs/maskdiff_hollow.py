@@ -65,10 +65,10 @@ def get_config():
     max_samples=10_000,
     update_type="euler", # "tau_leaping", "gillespies", "euler"
     
-    output_file_name="euler_mpf_256steps_samples_10k",
+    output_file_name="euler_barker_256steps_samples_10k",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.2,
-    # corrector="barker", corrector_step_size=2.,
+    # corrector="mpf", corrector_step_size=.05,
+    corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.9,
     # Gillespie's parameters
