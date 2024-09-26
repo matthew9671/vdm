@@ -25,7 +25,8 @@ import tensorflow.compat.v1 as tf
 import flax
 import flax.jax_utils as flax_utils
 
-from vdm.sampling import backward_process_tau_leaping, backward_process_pc_tau_leaping
+from vdm.sampling import backward_process_tau_leaping, \
+  backward_process_pc_tau_leaping, backward_process_pc_k_gillespies
 
 from PIL import Image
 import os
@@ -385,7 +386,11 @@ class Experiment_MaskDiff(Experiment):
     config = self.config
 
     if config.sampler.corrector:
-      backward_process = backward_process_pc_tau_leaping
+      if config.sampler.update_type == "gillespies":
+        backward_process = backward_process_pc_k_gillespies
+      elif config.sampler.update_type == "tau_leaping":
+        backward_process = backward_process_pc_tau_leaping
+      logging.info(f"Using sampling strategy: {config.sampler.update_type}")
       logging.info(f"Using corrector: {config.sampler.corrector}")
     else:
       backward_process = backward_process_tau_leaping
