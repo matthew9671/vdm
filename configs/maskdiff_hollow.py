@@ -63,9 +63,9 @@ def get_config():
     seed=42,
     num_steps=500, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
-    update_type="euler", # "tau_leaping", "gillespies", "euler"
+    update_type="approx_euler", # "tau_leaping", "gillespies", "euler"
     k = 2,
-    output_file_name="euler_no_corrector_500steps_samples_10k",
+    output_file_name="approx_euler_no_corrector_500steps_samples_10k",
     corrector=None,
     # corrector="mpf", corrector_step_size=.01,
     # corrector="barker", corrector_step_size=2.,

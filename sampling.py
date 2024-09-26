@@ -31,6 +31,17 @@ def euler_update(key, x, rates):
     out = jr.categorical(key, transition_logits).astype(jnp.int32)
     return out
 
+def dumb_euler_update(key, x, rates):
+    D = x.shape[0]
+    # Mask out the self transitions
+    rates = rates.at[jnp.arange(D), x].set(0.0)
+    sum_rates = jnp.sum(rates, axis=1)
+    rates = rates.at[jnp.arange(D), x].set(1 - sum_rates)
+    rates = jnp.clip(rates, 0., 1.)
+    
+    out = jr.categorical(key, jnp.log(rates)).astype(jnp.int32)
+    return out
+
 def compute_backward(y, t, apply_fn, params, config, forward_process):
     y = y.flatten()
     D = y.shape[0]
@@ -90,6 +101,8 @@ def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_
     
     if config.sampler.update_type == "euler":
         update_func = euler_update
+    elif config.sampler.update_type == "approx_euler":
+        update_func = dumb_euler_update
     elif config.sampler.update_type == "tau_leaping": 
         update_func = poisson_jump_reject
     else:
