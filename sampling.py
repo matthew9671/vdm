@@ -36,6 +36,7 @@ def euler_update(key, x, rates):
     # Mask out the self transitions
     rates = rates.at[jnp.arange(D), x].set(0.0)
     sum_rates = jnp.sum(rates, axis=1)
+
     transition_prob = 1 - jnp.exp(-rates) #jnp.log1p(-jnp.exp(-rates)) # Prob = 1 - exp(-rate)
     transition_prob = transition_prob.at[jnp.arange(D), x].set(jnp.exp(-sum_rates))
     transition_prob = jnp.clip(transition_prob, 0., 1.)
@@ -48,6 +49,7 @@ def dumb_euler_update(key, x, rates):
     # Mask out the self transitions
     rates = rates.at[jnp.arange(D), x].set(0.0)
     sum_rates = jnp.sum(rates, axis=1)
+
     rates = rates.at[jnp.arange(D), x].set(1 - sum_rates)
     rates = jnp.clip(rates, 0., 1.)
     
@@ -164,6 +166,8 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
     
     if config.sampler.update_type == "euler":
         update_func = euler_update
+    elif config.sampler.update_type == "approx_euler":
+        update_func = dumb_euler_update
     elif config.sampler.update_type == "tau_leaping": 
         update_func = poisson_jump_reject
     else:
