@@ -61,18 +61,20 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=500, # Cut the number of steps in half due to using correctors
+    num_steps=256 // 2, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
-    update_type="euler", # "tau_leaping", "gillespies", "euler"
-    k = 2,
-    output_file_name="euler_no_corrector_500steps_samples_10k",
+    update_type="approx_euler", # "tau_leaping", "gillespies", "euler"
+    
+    output_file_name="approx_euler_mpf_256steps_samples_10k",
     corrector=None,
-    # corrector="mpf", corrector_step_size=.01,
+    corrector="mpf", corrector_step_size=.01,
     # corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.9,
+    # Gillespie's parameters
+    k = 2,
     # How much time do we use for a single gillespies corrector update
-    # corrector_step_cutoff=5e-4, # Use None for a k=1 gillespies update
+    # corrector_step_cutoff=5e-4, # Use None for a k=1 gillespides update
     corrector_step_cutoff=None,
   )
 
