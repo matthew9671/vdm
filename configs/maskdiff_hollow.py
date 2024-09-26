@@ -66,7 +66,7 @@ def get_config():
     update_type="approx_euler", # "tau_leaping", "gillespies", "euler"
     
     output_file_name="approx_euler_mpf_256steps_samples_10k",
-    corrector=None,
+    # corrector=None,
     corrector="mpf", corrector_step_size=.01,
     # corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=2.,
