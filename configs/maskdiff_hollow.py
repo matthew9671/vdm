@@ -65,12 +65,12 @@ def get_config():
     max_samples=10_000,
     update_type="gillespies", # "tau_leaping", "gillespies", "euler"
     k = 1,
-    output_file_name="1_gillespies_no_corrector_samples_10k",
+    output_file_name="1_gillespies_mpf_samples_10k",
     # corrector=None,
-    # corrector="mpf", corrector_step_size=.01,
+    corrector="mpf", corrector_step_size=.01,
     # corrector="barker", corrector_step_size=2.,
-    corrector="forward_backward", corrector_step_size=2.,
-    corrector_entry_time=0.0,
+    # corrector="forward_backward", corrector_step_size=2.,
+    corrector_entry_time=0.9,
     # How much time do we use for a single gillespies corrector update
     corrector_step_cutoff=1e-4, # Use None for a k=1 gillespies update
   )
