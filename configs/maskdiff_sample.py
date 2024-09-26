@@ -46,7 +46,7 @@ def get_config():
     intermediate_size=3072,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
-    max_position_embeddings=256, # seq length, since we are doing unconditional generation
+    max_position_embeddings=257, # seq length, since we are doing unconditional generation
   )
 
   config.sampler = d(
