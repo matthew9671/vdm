@@ -31,7 +31,7 @@ from vdm.conditional_sampling import backward_process_tau_leaping, \
 from PIL import Image
 import os
 
-class AbsorbingRate():
+class AbsorbingRateCosine():
   def __init__(self, config):
     self.state_size = S = config.state_size
     self.scalar_rate = 1
@@ -56,12 +56,15 @@ class AbsorbingRate():
     S = self.state_size
     logits = - jnp.ones((S,)) * 10000
     return logits.at[-1].set(0)
-      
+          
   def _integral_rate_scalar(self, t):
-    return -jnp.log1p(-(1 - self.eps) * t)
-  
+    # This is -log of (1-m(t)) where m(t) is the desired mask percentage at time t.
+    return - jnp.log(1 - jnp.cos(jnp.pi / 2 * (1 - t * (1 - self.eps))))
+
   def _rate_scalar(self, t):
-    return (1 - self.eps) / (1 - (1 - self.eps) * t)
+    b = 1 - self.eps
+    theta = jnp.pi / 2 * (1 - t * b)
+    return b * jnp.pi / 2 * jnp.sin(theta) / (1 - jnp.cos(theta))
       
   def rate(self, t):
     return self._rate_scalar(t) * self.base_rate
@@ -123,7 +126,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     # initialize forward process
     # Assuming masking forward process
-    self.forward_process = AbsorbingRate(config.noise)
+    self.forward_process = AbsorbingRateCosine(config.noise)
 
     # initialize train state
     logging.info('=== Initializing train state ===')

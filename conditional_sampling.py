@@ -78,14 +78,14 @@ def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_
         t = ts[idx]
         dt = t - ts[idx+1]
 
-        res = compute_backward(label, x, t, apply_fn, params, config, forward_process)
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
         x = x.at[1:-1].update(update_func(key, x[1:-1], rp * dt))
 
         return (x, key), x
 
     (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
-    res = compute_backward(label, x, t, apply_fn, params, config, forward_process)
+    res = compute_backward(x, t, apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
 
     x0_pred = jnp.argmax(x0_logits, axis=1)
