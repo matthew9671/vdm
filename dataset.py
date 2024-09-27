@@ -89,25 +89,13 @@ def create_dataset(config, data_rng):
     elif config.data.dataset == 'tokenized_imagenet_256':
       _, train_ds = create_custom_train_dataset(
           '/home/yixiuz/tokenized_imagenet/256x256.npy',
+          '/home/yixiuz/tokenized_imagenet/256x256_labels.npy',
           config.training.batch_size_train,
           config.training.substeps,
           rng1,
           None)
 
-      # _, eval_ds = create_custom_eval_dataset(
-      #     'tokenized_imagenet/256x256',
-      #     config.training.batch_size_eval,
-      #     'validation',
-      #     rng2,
-      #     None)
-
       eval_ds = train_ds
-
-      # # Debugging
-      # host_data = list(train_ds.as_numpy_iterator())[0]
-      # # Print the data this host has received
-      # host_index = jax.process_index()
-      # print(f"Host {host_index} received data: {host_data}")
 
     else:
       raise Exception("Unrecognized config.data.dataset")
@@ -130,6 +118,7 @@ def apply_split_with_sharding(dataset):
 
 def create_custom_train_dataset(
       file_path: str,
+      label_file_path: str,
       batch_size: int,
       substeps: int,
       data_rng,
@@ -145,16 +134,14 @@ def create_custom_train_dataset(
 
   # Load custom data
   data = load_custom_data(file_path)
+  labels = load_custom_data(label_file_path)
 
   # Create TensorFlow dataset
-  train_ds = tf.data.Dataset.from_tensor_slices(data)
+  train_ds = tf.data.Dataset.from_tensor_slices({ "data": data, "label": labels })
 
   # We don't have preprocessing
   # train_ds = train_ds.map(preprocess_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-  # split = tfds.split_for_jax_process('train', drop_remainder=True)
-  # train_ds = tfds.load('my_dataset', split=split)
-  # train_ds = apply_split(train_ds, size, split)
   train_ds = apply_split_with_sharding(train_ds)
 
   # Shuffle, batch, and prefetch

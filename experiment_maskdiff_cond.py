@@ -25,7 +25,7 @@ import tensorflow.compat.v1 as tf
 import flax
 import flax.jax_utils as flax_utils
 
-from vdm.sampling import backward_process_tau_leaping, \
+from vdm.conditional_sampling import backward_process_tau_leaping, \
   backward_process_pc_tau_leaping, backward_process_pc_k_gillespies
 
 from PIL import Image
@@ -156,8 +156,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # This assumes that we are iterating over something with a batch axis.
     self.p_sample = partial(
         self.sample_fn,
-        dummy_inputs=None,#next(self.eval_iter)["images"][0],
-        # rng=sample_rng,
+        dummy_inputs=None
     )
     self.p_sample = utils.dist(
         self.p_sample, accumulate='concat', axis_name='batch')
@@ -180,7 +179,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     return model, params
 
   def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
-    batch_size = inputs.shape[0]
+    batch_size = inputs["data"].shape[0]
     loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size))
     metrics = jax.tree_map(lambda x: x.mean(axis=0), metrics)
 
@@ -193,12 +192,11 @@ class Experiment_MaskDiff_Conditional(Experiment):
     data: (H, W, C) int array, each value should be in [0, S)
     """
     config = self.config
-    data = inputs
+    data, label = inputs["data"], inputs["label"]
 
     x0 = data.flatten()
-    S = config.model.vocab_size 
-    # TODO: Use -1 instead.
-    mask = S
+    S = config.data.codebook_size + 1
+    mask = -1
     D = x0.shape[0]
 
     forward_process = self.forward_process #config["forward_process"]
@@ -237,21 +235,27 @@ class Experiment_MaskDiff_Conditional(Experiment):
     log_qt0_eval_x0 = jnp.log(qt0_eval_x0 + eps)
     # (D,) int array
     y = jr.categorical(key_y, logits=log_qt0_eval_x0)
-    # TODO: after we sample y, can we turn S into -1s?
+    # Turn all occurences of S into the mask token (-1)
+    # This doesn't affect indexing because python
+    y = jnp.where((y == (S-1)), mask, y)
 
     # --------------------------------------------------------------
     # 3. Evaluate the likelihood ratio predicted by the model
     # --------------------------------------------------------------
 
-    # x0_logits = model.apply(params, y, t, rngs={"dropout": key_dropout})
+    # Shift the label and turn it into an array
+    label_arr = jnp.array(label + S, dtype=jnp.int32)
+    y_with_label = jnp.concatenate([label_arr, y, label_arr])
     x0_logits = self.state.apply_fn(
-        {"params": params}, y[None], t,  # Assume that our model takes in a batch dimension (t is not used at the moment)
+        {"params": params}, y_with_label[None], t,  # Assume that our model takes in a batch dimension (t is not used at the moment)
         rngs=rngs,
         deterministic=not is_train,
     )
 
-    # Assuming our model auto-adds a batch dimension, we want to remove it here:
-    x0_logits = x0_logits[0]
+    # Assuming our model auto-adds a batch dimension
+    # Also removing the label that gets added to the first and last position
+    # Finally note that only the first S dimensions is used in the output.
+    x0_logits = x0_logits[0, 1:-1, :S]
     
     # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
     p0t_eval_y = softmax(x0_logits, axis=-1)
@@ -287,11 +291,12 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     # (D, S) float array, with each entry corresponding to a choice of (d, x^d)
     # the cases where x^d = y^d are removed via masking
-    Rt_eval_x = Rt[y, :]
+    Rt_eval_x = Rt[y]
     # st_eval_y represents "score from y"
     # We only care when y is not mask
-    score_to_y = jnp.where((y == mask), 1, st_eval_y[jnp.arange(D), y]) + eps
-    score_entropy = jnp.sum(Rt_eval_y * y_mask * st_eval_y) - jnp.sum(Rt_eval_x[:, mask] * jnp.log(score_to_y)) # changed mean to sum
+    score_to_y = jnp.where((y == mask), 1, st_eval_y[jnp.arange(D), y])
+    score_entropy = jnp.sum(Rt_eval_y * y_mask * st_eval_y) \
+        - jnp.sum(Rt_eval_x[:, mask] * jnp.log(score_to_y + eps)) # changed mean to sum
     
     # Compute the cross entropy between prediction and data
     x0_one_hot = jax.nn.one_hot(x0, S)
@@ -368,8 +373,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       all_acts.append(fid.compute_acts(uint8_images))
 
-      
-
     if jax.process_index() == 0:
       logging.info("Finished saving samples and activations. Computing FID...")
       stats = fid.compute_stats(all_acts)
@@ -384,10 +387,12 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       logging.info(f"======= Complete =======")
 
-  def sample_fn(self, *, dummy_inputs, rng, params):
+  def sample_fn(self, *, dummy_inputs, rng, params, label=None):
     # We don't really need to use the dummy inputs.
 
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
+    # Since we display images in a 11x11 grid
+    label = label or jax.lax.axis_index('batch') // 11
 
     config = self.config
 
@@ -401,7 +406,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     else:
       backward_process = backward_process_tau_leaping
 
-    S = config.model.vocab_size
+    S = config.data.codebook_size + 1
     D = config.data.seq_length
     min_t = config.training.min_t
     max_t = config.training.max_t
@@ -409,12 +414,12 @@ class Experiment_MaskDiff_Conditional(Experiment):
     
     # Initialize the all-mask state
     xT = jnp.ones((D,), dtype=int) * (S - 1)
+    label_arr = jnp.array(label + S, dtype=jnp.int32)
+    xT_with_label = jnp.concatenate([label_arr, xT, label_arr])
     
     ts = jnp.linspace(max_t, min_t, num_steps)
-    tokens, _ = backward_process(self.state.apply_fn, params, ts, config, xT, rng, 
+    tokens, _ = backward_process(self.state.apply_fn, params, ts, config, xT_with_label, rng, 
       self.forward_process)
-
-    # logging.info("Sampled token shape: " + str(tokens.shape))
 
     output_tokens = jnp.reshape(tokens, [-1, 16, 16])
     gen_images = self.tokenizer_model.apply(

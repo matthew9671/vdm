@@ -24,6 +24,7 @@ from ml_collections import config_flags
 from vdm.utils import get_workdir
 import vdm.experiment_vdm
 import vdm.experiment_maskdiff
+import vdm.experiment_maskdiff_cond
 
 import socket
 
@@ -58,7 +59,7 @@ def main(argv):
   # if FLAGS.model == "vdm":
   #   experiment = vdm.experiment_vdm.Experiment_VDM(FLAGS.config)
 
-  experiment = vdm.experiment_maskdiff.Experiment_MaskDiff(FLAGS.config)
+  experiment = vdm.experiment_maskdiff_cond.Experiment_MaskDiff_Conditional(FLAGS.config)
 
   if FLAGS.mode == "train":
     workdir = os.path.join(FLAGS.workdir, get_workdir())
