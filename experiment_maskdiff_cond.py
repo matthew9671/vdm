@@ -414,7 +414,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     
     # Initialize the all-mask state
     xT = jnp.ones((D,), dtype=int) * (S - 1)
-    label_arr = jnp.array(label + S, dtype=jnp.int32)
+    label_arr = jnp.array([label + S], dtype=jnp.int32)
     xT_with_label = jnp.concatenate([label_arr, xT, label_arr])
     
     ts = jnp.linspace(max_t, min_t, num_steps)
