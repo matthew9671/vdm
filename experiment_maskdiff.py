@@ -300,11 +300,12 @@ class Experiment_MaskDiff(Experiment):
     pi_logits = forward_process.target_logits()
     xT = jr.categorical(key_T, logits=pi_logits, shape=(D,))
     log_pi_eval_xT = jnp.sum(pi_logits[xT])
-    elbo = jnp.sum(- score_entropy + Rt_eval_y * y_mask) + log_pi_eval_xT
+    # This elbo is probably not meaningful at all
+    # elbo = jnp.sum(- score_entropy + Rt_eval_y * y_mask) + log_pi_eval_xT
 
     scalar_dict = {
         "loss": loss,
-        "elbo": elbo / D,
+        # "elbo": elbo / D,
         "nll": x0_nll
     }
 

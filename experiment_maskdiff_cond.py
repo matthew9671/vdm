@@ -244,7 +244,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # --------------------------------------------------------------
 
     # Shift the label and turn it into an array
-    label_arr = jnp.array(label + S, dtype=jnp.int32)
+    label_arr = jnp.array([label + S], dtype=jnp.int32)
     y_with_label = jnp.concatenate([label_arr, y, label_arr])
     x0_logits = self.state.apply_fn(
         {"params": params}, y_with_label[None], t,  # Assume that our model takes in a batch dimension (t is not used at the moment)
