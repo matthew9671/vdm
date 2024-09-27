@@ -80,7 +80,7 @@ def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_
 
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
-        x = x.at[1:-1].update(update_func(key, x[1:-1], rp * dt))
+        x = x.at[1:-1].set(update_func(key, x[1:-1], rp * dt))
 
         return (x, key), x
 
@@ -129,7 +129,7 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
         # Only update the data, do not update the label
-        x = x.at[1:-1].update(update_func(p_key, x[1:-1], rp * dt))
+        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
 
         out = {
             "x": x,
@@ -146,11 +146,11 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
-        x = x.at[1:-1].update(update_func(p_key, x[1:-1], rp * dt))
+        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
         # Corrector
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
-        x = x.at[1:-1].update(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
+        x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
 
         out = {
             "x": x,
@@ -221,7 +221,7 @@ def backward_process_pc_k_gillespies(apply_fn, params, ts, config, xT, key, forw
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
         x_update, dt = k_gillespies_update(p_key, x[1:-1], rp, k=k)
-        x = x.at[1:-1].update(x_update)
+        x = x.at[1:-1].set(x_update)
 
         t -= dt 
         
@@ -234,7 +234,7 @@ def backward_process_pc_k_gillespies(apply_fn, params, ts, config, xT, key, forw
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
         x_update, dt = k_gillespies_update(p_key, x[1:-1], rp, k=k)
-        x = x.at[1:-1].update(x_update)
+        x = x.at[1:-1].set(x_update)
 
         t -= dt 
         
@@ -242,7 +242,7 @@ def backward_process_pc_k_gillespies(apply_fn, params, ts, config, xT, key, forw
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
         x_update, _ = k_gillespies_update(c_key, x[1:-1], rc, cutoff=corrector_cutoff)
-        x = x.at[1:-1].update(x_update)
+        x = x.at[1:-1].set(x_update)
 
         return (key, x, t, nfe+2)
 
