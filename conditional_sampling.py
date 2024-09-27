@@ -45,7 +45,7 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     # This only works for absorbing (masking diffusion ofcourse)
     backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
     forward_score_from_curr = jnp.concatenate([jnp.zeros((D, S-1)), 1 / backward_score_to_curr[:, None]], axis=1)
-    score = jnp.where((y != mask_token)[:,None], forward_score_from_curr, st_eval_y)
+    score = jnp.where((y != mask)[:,None], forward_score_from_curr, st_eval_y)
 
     # (D, S) float array that masks out y[d] for each d index
     y_mask = jnp.ones((D, S))

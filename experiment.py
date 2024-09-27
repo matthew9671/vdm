@@ -250,7 +250,7 @@ class Experiment(ABC):
           writer.write_scalars(step, metrics)
 
         # We're getting rid of eval for now
-        if step % config.steps_per_eval == 0 or is_last_step or step == 10:
+        if step % config.steps_per_eval == 0 or is_last_step or step == 10 or step == 1:
           logging.debug('=== Running eval ===')
           with report_progress.timed('eval'):
         #     eval_metrics = []

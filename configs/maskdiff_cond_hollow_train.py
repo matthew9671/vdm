@@ -74,7 +74,7 @@ def get_config():
       min_t=0.01,
       max_t=1.,
       eps=1e-6,
-      nll_weight=.01,
+      nll_weight=0.0,
 
       seed=1,
       substeps=1,
