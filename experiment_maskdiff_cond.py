@@ -31,7 +31,7 @@ from vdm.conditional_sampling import backward_process_tau_leaping, \
 from PIL import Image
 import os
 
-class AbsorbingRateCosine():
+class AbsorbingRate():
   def __init__(self, config):
     self.state_size = S = config.state_size
     self.scalar_rate = 1
