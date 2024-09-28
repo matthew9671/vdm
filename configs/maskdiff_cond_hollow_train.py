@@ -57,10 +57,10 @@ def get_config():
     max_samples=10_000,
     update_type="euler", # "tau_leaping", "gillespies", "euler"
     
-    output_file_name="mpf_256steps",
+    output_file_name="barker_256steps",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.05,
-    # corrector="barker", corrector_step_size=2.,
+    # corrector="mpf", corrector_step_size=.05,
+    corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.9,
   )
