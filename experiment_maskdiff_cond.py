@@ -362,7 +362,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
       tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
-        samples_per_label=samples_per_label, completed_samples=jnp.ones((8,)) * image_id)      
+        samples_per_label=jnp.ones((8,)) * samples_per_label,
+        completed_samples=jnp.ones((8,)) * image_id)      
       samples = np.clip(samples, 0, 1)      
       uint8_images = (samples * 255).astype(np.uint8)
 
