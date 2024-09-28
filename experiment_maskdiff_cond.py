@@ -355,16 +355,20 @@ class Experiment_MaskDiff_Conditional(Experiment):
     fid = fidjax.FID(weights, reference)
     all_acts = []
 
+    # We want to sample 10 images per label/class
+    samples_per_label = 10
+
     while image_id < max_samples:
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
-      tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8))      
+      tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
+        samples_per_label=samples_per_label, completed_samples=jax.ones((8,)) * image_id)      
       samples = np.clip(samples, 0, 1)      
       uint8_images = (samples * 255).astype(np.uint8)
 
       all_images.append(uint8_images)
 
-      if jax.process_index() == 0 and image_id == 0:
+      if jax.process_index() == 0 and image_id % (128 * 10) = 0:
         # Save some sample images
         img = utils.generate_image_grids(uint8_images)
         path_to_save = sample_logdir + f'/{image_id}.png'
@@ -390,12 +394,13 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       logging.info(f"======= Complete =======")
 
-  def sample_fn(self, *, dummy_inputs, rng, params, label=None):
+  def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
     # We don't really need to use the dummy inputs.
 
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
-    # Since we display images in a 11x11 grid
-    label = label or jax.lax.axis_index('batch') // 11
+
+    label = (completed_samples + jax.lax.axis_index('batch')) // samples_per_label
+    label = min(label, 999) # There are only 1000 labels in total
 
     config = self.config
 
