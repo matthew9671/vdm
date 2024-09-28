@@ -362,8 +362,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
       tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
-        samples_per_label=jnp.ones((8,)) * samples_per_label,
-        completed_samples=jnp.ones((8,)) * image_id)      
+                                      samples_per_label=jnp.ones((8,)) * samples_per_label,
+                                      completed_samples=jnp.ones((8,)) * image_id)      
       samples = np.clip(samples, 0, 1)      
       uint8_images = (samples * 255).astype(np.uint8)
 
@@ -401,7 +401,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
 
     label = (completed_samples + jax.lax.axis_index('batch')) // samples_per_label
-    label = min(label, 999) # There are only 1000 labels in total
+    label = jnp.clip(label, max=999) # There are only 1000 labels in total
 
     config = self.config
 
