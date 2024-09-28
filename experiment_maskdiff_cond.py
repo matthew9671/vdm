@@ -368,7 +368,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       all_images.append(uint8_images)
 
-      if jax.process_index() == 0 and image_id % (128 * 10) = 0:
+      if jax.process_index() == 0 and image_id % (128 * 10) == 0:
         # Save some sample images
         img = utils.generate_image_grids(uint8_images)
         path_to_save = sample_logdir + f'/{image_id}.png'
