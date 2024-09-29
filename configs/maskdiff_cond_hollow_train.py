@@ -27,7 +27,7 @@ def get_config():
   config.exp_name = "exp_vdm"
   config.model_type = "model_transformer"
   # config.ckpt_restore_dir = 'None'
-  config.ckpt_restore_dir = 'gs://maskdiff/cond_hollow/240927/checkpoints-0/'
+  config.ckpt_restore_dir = 'gs://maskdiff/cond_hollow/240928/checkpoints-0/'
 
   config.use_hollow_transformer = True
 
@@ -85,7 +85,7 @@ def get_config():
       seed=1,
       substeps=1,
       num_steps_lr_warmup=100,
-      num_steps_train=500_000, #100_000_000,
+      num_steps_train=700_000, #100_000_000,
       num_steps_eval=100,
       batch_size_train=768, #1024 in paper version
       batch_size_eval=1024,
