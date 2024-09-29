@@ -184,6 +184,10 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
         x = update_func(p_key, x, rp * dt)
+
+        # Update time
+        t -= dt 
+
         # Corrector
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)

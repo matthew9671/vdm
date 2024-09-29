@@ -147,6 +147,10 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+
+        # Change current time (!!)
+        t -= dt
+
         # Corrector
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
@@ -183,7 +187,7 @@ def backward_process_pc_k_gillespies(apply_fn, params, ts, config, xT, key, forw
     """
     # Assuming 1D data
     D = config.data.seq_length
-    S = config.model.vocab_size
+    S = config.data.codebook_size
     corrector = config.sampler.corrector
     k = config.sampler.k
     corrector_entry_time = config.sampler.corrector_entry_time
@@ -268,7 +272,7 @@ def backward_process_pc_k_gillespies_euler(apply_fn, params, ts, config, xT, key
     """
     # Assuming 1D data
     D = config.data.seq_length
-    S = config.model.vocab_size
+    S = config.data.codebook_size
     corrector = config.sampler.corrector
     k = config.sampler.k
     corrector_entry_time = config.sampler.corrector_entry_time
