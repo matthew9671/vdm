@@ -53,16 +53,17 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=128, # Cut the number of steps in half due to using correctors
+    num_steps=32, # Cut the number of steps in half due to using correctors
     max_samples=10_000,
     update_type="euler", # "tau_leaping", "gillespies", "euler"
     
-    output_file_name="mpf_256steps",
+    output_file_name="mpf_64steps_2csteps",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.1,
+    corrector="mpf", corrector_step_size=.02,
     # corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=5.,
     corrector_entry_time=0.5,
+    num_corrector_steps=2,
 
     # k-Gillespies
     k=1,

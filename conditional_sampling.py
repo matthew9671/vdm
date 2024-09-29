@@ -98,6 +98,9 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
     """
     t = ts[0]
     x = xT
+
+    corrector = config.sampler.corrector
+    corrector_step_size = 1 / config.sampler.num_steps * config.sampler.corrector_step_size
     
     if config.sampler.update_type == "euler":
         update_func = euler_update
@@ -105,9 +108,6 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         update_func = poisson_jump_reject
     else:
         raise Exception(f"Unknown update type: {config.sampler.update_type}")
-
-    corrector = config.sampler.corrector
-    start = int(len(ts) * (1 - config.sampler.corrector_entry_time))
     
     if corrector == "barker":
         corrector_rate = barker_corrector
@@ -118,27 +118,17 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
     else:
         raise Exception(f"Unknown corrector: {corrector}")
 
-    corrector_step_size = config.sampler.corrector_step_size
-
-    def _p_step(carry, idx):
-        x, key = carry
-        key, p_key, c_key = jr.split(key, 3)
-
-        t = ts[idx]
-        dt = t - ts[idx+1]
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
-        # Only update the data, do not update the label
-        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
-
-        out = {
-            "x": x,
-            "rp": rp
-        }
+    def _c_step(i, carry):
+        x, key, t = carry
+        key, c_key = jr.split(key, 2)
         
-        return (x, key), out
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        rc = corrector_rate(res)
+        x = x.at[1:-1].set(update_func(c_key, x, rc * corrector_step_size))
+        
+        return (x, key, t)
     
-    def _pc_step(carry, idx):
+    def _step(carry, idx):
         x, key = carry
         key, p_key, c_key = jr.split(key, 3)
 
@@ -152,27 +142,15 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         t -= dt
 
         # Corrector
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rc = corrector_rate(res)
-        x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
+        x_update = jax.lax.cond(t <= config.sampler.corrector_entry_time,
+                        lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t))[0],
+                        lambda x: x, x) 
+        x = x.at[1:-1].set(x_update)
 
-        out = {
-            "x": x,
-            "rp": rp,
-            "rc": rc
-        }
-        
-        return (x, key), out
+        return (x, key), x
 
     t_ids = jnp.arange(len(ts)-1)
-    (x, key), out_1 = jax.lax.scan(_p_step, (xT, key), t_ids[:start])
-    (x, _), out_2 = jax.lax.scan(_pc_step, (x, key), t_ids[start:])
-
-    x_hist = {
-        "x": jnp.concatenate([out_1["x"], out_2["x"]]),
-        "rp": jnp.concatenate([out_1["rp"], out_2["rp"]]),
-        "rc": out_2["rc"]
-    }
+    (x, key), x_hist = jax.lax.scan(_step, (xT, key), t_ids)
     
     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
