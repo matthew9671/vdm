@@ -124,7 +124,7 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
-        x = x.at[1:-1].set(update_func(c_key, x, rc * corrector_step_size))
+        x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * corrector_step_size))
         
         return (x, key, t)
     
