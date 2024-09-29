@@ -61,7 +61,7 @@ def get_config():
     # corrector=None,
     # corrector="mpf", corrector_step_size=.05,
     # corrector="barker", corrector_step_size=2.,
-    corrector="forward_backward", corrector_step_size=2.,
+    corrector="forward_backward", corrector_step_size=5.,
     corrector_entry_time=0.9,
   )
 
