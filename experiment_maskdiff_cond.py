@@ -26,7 +26,8 @@ import flax
 import flax.jax_utils as flax_utils
 
 from vdm.conditional_sampling import backward_process_tau_leaping, \
-  backward_process_pc_tau_leaping, backward_process_pc_k_gillespies
+  backward_process_pc_tau_leaping, backward_process_pc_k_gillespies, \
+  backward_process_pc_k_gillespies_euler
 
 from PIL import Image
 import os
@@ -408,6 +409,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     if config.sampler.corrector:
       if config.sampler.update_type == "gillespies":
         backward_process = backward_process_pc_k_gillespies
+      elif config.sampler.update_type == "gillespies_euler":
+        backward_process = backward_process_pc_k_gillespies_euler
       else: # tau-leaping or euler
         backward_process = backward_process_pc_tau_leaping
       logging.info(f"Using sampling strategy: {config.sampler.update_type}")
