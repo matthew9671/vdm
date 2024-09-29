@@ -59,7 +59,7 @@ def get_config():
     
     output_file_name="mpf_256steps_late_entry",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.05,
+    corrector="mpf", corrector_step_size=.1,
     # corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.5,
