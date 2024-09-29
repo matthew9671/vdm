@@ -330,6 +330,9 @@ def backward_process_pc_k_gillespies_euler(apply_fn, params, ts, config, xT, key
     k = config.sampler.k
     corrector_entry_time = config.sampler.corrector_entry_time
     corrector_cutoff = config.sampler.corrector_step_cutoff
+
+    # Scale the corrector step size with the average predictor step size
+    corrector_step_size = 1 / D * k * config.sampler.corrector_step_size
     
     t = ts[0]
     x = xT
@@ -381,7 +384,7 @@ def backward_process_pc_k_gillespies_euler(apply_fn, params, ts, config, xT, key
         # Corrector
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
-        x, _ = euler_update(c_key, x, rc * dt * corrector_step_size)
+        x = euler_update(c_key, x, rc * corrector_step_size)
 
         return (key, x, t, nfe+2)
 
