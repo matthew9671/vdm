@@ -142,10 +142,9 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
         t -= dt
 
         # Corrector
-        x_update = jax.lax.cond(t <= config.sampler.corrector_entry_time,
+        x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
                         lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t))[0],
                         lambda x: x, x) 
-        x = x.at[1:-1].set(x_update)
 
         return (x, key), x
 
