@@ -62,7 +62,7 @@ def get_config():
     corrector="mpf", corrector_step_size=.1,
     # corrector="barker", corrector_step_size=1.,
     # corrector="forward_backward", corrector_step_size=5.,
-    corrector_entry_time=0.5,
+    corrector_entry_time=0.25,
   )
 
   config.noise = d(
