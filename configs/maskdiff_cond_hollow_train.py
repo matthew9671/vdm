@@ -58,7 +58,7 @@ def get_config():
     update_type="euler", # "tau_leaping", "gillespies", "euler"
     
     output_file_name="1mpf_128psteps",
-    corrector=None,
+    # corrector=None,
     corrector="mpf", corrector_step_size=.05,
     # corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=5.,
