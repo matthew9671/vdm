@@ -379,7 +379,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
         img.save(path_to_save)
 
       image_id += samples.shape[0]
-      logging.info(f"Number of samples: {image_id}/{max_samples}")
+      logging.info(f"Number of samples: {image_id}/{total_samples}")
 
       all_acts.append(fid.compute_acts(uint8_images))
 
@@ -419,11 +419,12 @@ class Experiment_MaskDiff_Conditional(Experiment):
     file_name = "results_test.csv"
     csv_file = os.path.join(logdir, file_name)
 
-    if os.path.exists(csv_file):
-      df = pd.read_csv(csv_file)
-    else:
-      df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
-        'cstep_size', 'num_pstep', 'corrector', 'fid'])
+    if jax.process_index() == 0:
+      if os.path.exists(csv_file):
+        df = pd.read_csv(csv_file)
+      else:
+        df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
+          'cstep_size', 'num_pstep', 'corrector', 'fid'])
 
     methods = ["euler"]
     num_csteps = [1, 2]
@@ -455,9 +456,14 @@ class Experiment_MaskDiff_Conditional(Experiment):
       cfg.corrector_entry_time = entry_time
       cfg.num_corrector_steps = num_cstep
 
-      fid_score = self._sample_and_compute_fid(fid, params, 
-        total_samples=1000,
-        samples_per_label=10, save_imgs=False)
+      try:
+        fid_score = self._sample_and_compute_fid(fid, params, 
+          total_samples=1000,
+          samples_per_label=10, save_imgs=False)
+      except:
+        logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
+        fid_score = None
+
       result = {
         'method': method, 
         'num_cstep': num_cstep, 
@@ -468,8 +474,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
         'fid': fid_score
       }
 
-      df = df.append(result, ignore_index=True)
-      df.to_csv(csv_file, index=False)
+      if jax.process_index() == 0:
+        df = df.append(result, ignore_index=True)
+        df.to_csv(csv_file, index=False)
 
   def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
     # We don't really need to use the dummy inputs.
