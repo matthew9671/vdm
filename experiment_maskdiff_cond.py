@@ -31,6 +31,7 @@ from vdm.conditional_sampling import backward_process_pc_single, \
 
 import fidjax
 import pandas as pd
+import itertools
 
 from PIL import Image
 import os
@@ -413,6 +414,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
+    fid = fidjax.FID(weights, reference)
 
     file_name = "results_test.csv"
     csv_file = os.path.join(logdir, file_name)
