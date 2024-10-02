@@ -180,11 +180,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       logging.info("=== Using the default transformer ===")
       model = transformer.Transformer(**config.model)
 
-    if self.config.ckpt_restore_dir is None:
-      inputs = jnp.zeros((2, config.data.seq_length), dtype=int)
-      params = model.init(rng, inputs, 0)
-    else:
-      params = { "params": {} }
+    inputs = jnp.zeros((2, config.data.seq_length), dtype=int)
+    params = model.init(rng, inputs, 0)
 
     logging.info(f'Parameter count: {utils.count_parameters(params)}')
     return model, params
