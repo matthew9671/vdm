@@ -127,7 +127,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     logging.warning('=== Initializing model ===')
     self.rng, model_rng = jax.random.split(self.rng)
     self.model, params = self.get_model_and_params(model_rng)
-    if params != None: parameter_overview.log_parameter_overview(params)
+    parameter_overview.log_parameter_overview(params)
 
     # initialize forward process
     # Assuming masking forward process
@@ -184,7 +184,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       inputs = jnp.zeros((2, config.data.seq_length), dtype=int)
       params = model.init(rng, inputs, 0)
     else:
-      params = None
+      params = { "params": {} }
 
     logging.info(f'Parameter count: {utils.count_parameters(params)}')
     return model, params
