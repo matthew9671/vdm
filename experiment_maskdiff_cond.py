@@ -438,7 +438,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     params_combination = itertools.product(methods, num_csteps, entry_times, 
       cstep_sizes, num_psteps, correctors)
 
-    params_combination = no_corrector_experiments + params_combination
+    params_combination = itertools.chain(no_corrector_experiments, 
+      params_combination)
 
     cfg = self.config.sampler
 
