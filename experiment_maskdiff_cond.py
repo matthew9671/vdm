@@ -29,6 +29,9 @@ from vdm.conditional_sampling import backward_process_pc_single, \
   backward_process_pc_multiple, backward_process_pc_k_gillespies, \
   backward_process_pc_k_gillespies_euler
 
+import fidjax
+import pandas as pd
+
 from PIL import Image
 import os
 
@@ -338,28 +341,25 @@ class Experiment_MaskDiff_Conditional(Experiment):
     ckpt = checkpoint.Checkpoint(checkpoint_dir)
     state_dict = ckpt.restore_dict()
     params = flax.core.FrozenDict(state_dict['ema_params'])
-    step = int(state_dict['step'])
-
     # Distribute training.
     params = flax_utils.replicate(params)
 
-    rng = jax.random.PRNGKey(self.config.sampler.seed)
-    image_id = 0
-    max_samples = self.config.sampler.max_samples
-
-    file_name = self.config.sampler.output_file_name or 'out'
-    all_images = []
-
-    import fidjax
     weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
+    
+    self._sample_and_compute_fid(fid, params, total_samples=self.config.sampler.max_samples,
+      samples_per_label=10, save_imgs=True, sample_logdir=sample_logdir)
+
+  def _sample_and_compute_fid(self, fid, params, total_samples=10_000, 
+    samples_per_label=10, save_imgs=False, sample_logdir=None):
+
+    image_id = 0
+    rng = jax.random.PRNGKey(self.config.sampler.seed)
     all_acts = []
+    all_images = []
 
-    # We want to sample 10 images per label/class
-    samples_per_label = 10
-
-    while image_id < max_samples:
+    while image_id < total_samples:
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
       tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
@@ -370,7 +370,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       all_images.append(uint8_images)
 
-      if jax.process_index() == 0 and image_id % (128 * 10) == 0:
+      if save_imgs and jax.process_index() == 0 and image_id % (128 * 10) == 0:
         # Save some sample images
         img = utils.generate_image_grids(uint8_images[:100])
         path_to_save = sample_logdir + f'/{image_id}.png'
@@ -391,32 +391,76 @@ class Experiment_MaskDiff_Conditional(Experiment):
       score = fid.compute_score(stats_cpu, ref_cpu)
       logging.info(f"FID score: {score}")
 
-      jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(all_acts, axis=0))
-      jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', jnp.concatenate(all_images, axis=0))
+      if save_imgs:
+        file_name = self.config.sampler.output_file_name or 'out'
+        jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', jnp.concatenate(all_images, axis=0))
 
       logging.info(f"======= Complete =======")
 
-  def sample_sweep(self):
+      return score
+    else:
+      return None
+
+  def sample_sweep(self, logdir, checkpoint_dir):
+
+    logging.info('=== Experiment.sample_sweep() ===')
+
+    ckpt = checkpoint.Checkpoint(checkpoint_dir)
+    state_dict = ckpt.restore_dict()
+    params = flax.core.FrozenDict(state_dict['ema_params'])
+    # Distribute training.
+    params = flax_utils.replicate(params)
+
+    weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
+    reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
+
+    file_name = "results_test.csv"
+    csv_file = os.path.join(logdir, file_name)
+
+    if os.path.exists(csv_file):
+      df = pd.read_csv(csv_file)
+    else:
+      df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
+        'cstep_size', 'num_pstep', 'corrector', 'fid'])
+
     methods = ["euler"]
     num_csteps = [1, 2]
     entry_times = [.9, .5, .3]
-    cstep_size = [2., 1., 5.] # divide by 100 for mpf stepsizes
+    cstep_sizes = [2., 1., 5.] # divide by 100 for mpf stepsizes
     num_psteps = [16, 32, 64, 128]
     correctors = [None, "forward_backward", "mpf", "barker"]
 
-    import pandas as pd
+    params_combination = itertools.product(methods, num_csteps, entry_time, 
+      cstep_sizes, num_psteps, correctors)
 
-    for method in methods:
-      for num_cstep in num_csteps:
-        for entry_time in entry_times:
-          for cstep_size in cstep_sizes:
-            for num_pstep in num_psteps:
-              for corrector in correctors:
-                # Adjust mpf stepsize
-                if corrector == "mpf":
-                  cstep_size /= 100
+    cfg = self.config.sampler
 
-    # write down the results in a pandas dataframe and save to csv
+    for method, num_cstep, entry_time, cstep_size, num_pstep, corrector in params_combination:
+      # Adjust mpf stepsize
+      if corrector == "mpf":
+        cstep_size /= 100
+
+      cfg.num_steps = num_pstep
+      cfg.update_type = method
+      cfg.corrector = corrector
+      cfg.corrector_step_size = cstep_size
+      cfg.corrector_entry_time = entry_time
+      cfg.num_corrector_steps = num_cstep
+
+      fid_score = self._sample_and_compute_fid(fid, params, total_samples=1000,
+        samples_per_label=10, save_imgs=False)
+      result = {
+        'method': method, 
+        'num_cstep': num_cstep, 
+        'entry_time': entry_time, 
+        'cstep_size': cstep_size, 
+        'num_pstep': num_pstep, 
+        'corrector': corrector, 
+        'fid': fid_score
+      }
+
+      df = df.append(result, ignore_index=True)
+      df.to_csv(csv_file, index=False)
 
   def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
     # We don't really need to use the dummy inputs.

@@ -69,6 +69,8 @@ def main(argv):
     experiment.evaluate(FLAGS.workdir, FLAGS.checkpoint)
   elif FLAGS.mode == "sample":
     experiment.sample(FLAGS.workdir, FLAGS.checkpoint)
+  elif FLAGS.mode == "sample_sweep":
+    experiment.sample(FLAGS.workdir, FLAGS.checkpoint)
   else:
     raise Exception("Unknown FLAGS.mode")
 
