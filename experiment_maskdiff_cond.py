@@ -372,7 +372,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       if jax.process_index() == 0 and image_id % (128 * 10) == 0:
         # Save some sample images
-        img = utils.generate_image_grids(uint8_images)
+        img = utils.generate_image_grids(uint8_images[:100])
         path_to_save = sample_logdir + f'/{image_id}.png'
         img = Image.fromarray(np.array(img))
         img.save(path_to_save)
@@ -398,11 +398,24 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
   def sample_sweep(self):
     methods = ["euler"]
-    corrector_steps = [1, 2]
-    starting_time = [.9, .5, .3]
+    num_csteps = [1, 2]
+    entry_times = [.9, .5, .3]
     cstep_size = [2., 1., 5.] # divide by 100 for mpf stepsizes
     num_psteps = [16, 32, 64, 128]
-    corrector = ["forward_backward", "mpf", "barker"]
+    correctors = [None, "forward_backward", "mpf", "barker"]
+
+    import pandas as pd
+
+    for method in methods:
+      for num_cstep in num_csteps:
+        for entry_time in entry_times:
+          for cstep_size in cstep_sizes:
+            for num_pstep in num_psteps:
+              for corrector in correctors:
+                # Adjust mpf stepsize
+                if corrector == "mpf":
+                  cstep_size /= 100
+
     # write down the results in a pandas dataframe and save to csv
 
   def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
