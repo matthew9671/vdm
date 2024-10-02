@@ -25,7 +25,7 @@ import tensorflow.compat.v1 as tf
 import flax
 import flax.jax_utils as flax_utils
 
-from vdm.conditional_sampling import backward_process_pc_single, \
+from vdm.conditional_sampling import backward_process_no_corrector, backward_process_pc_single, \
   backward_process_pc_multiple, backward_process_pc_k_gillespies, \
   backward_process_pc_k_gillespies_euler
 
@@ -455,7 +455,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       cfg.corrector_entry_time = entry_time
       cfg.num_corrector_steps = num_cstep
 
-      fid_score = self._sample_and_compute_fid(fid, params, total_samples=1000,
+      fid_score = self._sample_and_compute_fid(fid, params, 
+        total_samples=1000,
         samples_per_label=10, save_imgs=False)
       result = {
         'method': method, 
@@ -493,7 +494,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       logging.info(f"Using sampling strategy: {config.sampler.update_type}")
       logging.info(f"Using corrector: {config.sampler.corrector}")
     else:
-      backward_process = backward_process_tau_leaping
+      backward_process = backward_process_no_corrector
 
     S = config.data.codebook_size + 1
     D = config.data.seq_length

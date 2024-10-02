@@ -60,7 +60,7 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     }
     return results
     
-def backward_process_tau_leaping(apply_fn, params, ts, config, xT, key, forward_process):
+def backward_process_no_corrector(apply_fn, params, ts, config, xT, key, forward_process):
 
     t = ts[0]
     x = xT
