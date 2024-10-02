@@ -162,12 +162,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     self.p_eval_step = partial(self.eval_step, eval_rng)
     self.p_eval_step = jax.pmap(self.p_eval_step, "batch")
     # This assumes that we are iterating over something with a batch axis.
-    self.p_sample = partial(
-        self.sample_fn,
-        dummy_inputs=None
-    )
-    self.p_sample = utils.dist(
-        self.p_sample, accumulate='concat', axis_name='batch')
+    self.p_sample = partial(self.sample_fn, dummy_inputs=None)
+    self.p_sample = utils.dist(self.p_sample, accumulate='concat', axis_name='batch')
 
     logging.info('=== Done with Experiment.__init__ ===')
 
@@ -416,7 +412,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_test.csv"
+    file_name = "results.csv"
     csv_file = os.path.join(logdir, file_name)
 
     if jax.process_index() == 0:
@@ -456,9 +452,13 @@ class Experiment_MaskDiff_Conditional(Experiment):
       cfg.corrector_entry_time = entry_time
       cfg.num_corrector_steps = num_cstep
 
+      # Redefine the sample function now that we have changed configs
+      self.p_sample = partial(self.sample_fn, dummy_inputs=None)
+      self.p_sample = utils.dist(self.p_sample, accumulate='concat', axis_name='batch')
+
       try:
         fid_score = self._sample_and_compute_fid(fid, params, 
-          total_samples=1000,
+          total_samples=1_000,
           samples_per_label=10, save_imgs=False)
       except:
         logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
