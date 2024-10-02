@@ -26,7 +26,7 @@ def get_config():
   config = ml_collections.ConfigDict()
   config.exp_name = "exp_vdm"
   config.model_type = "model_transformer"
-  # config.ckpt_restore_dir = 'None'
+  # config.ckpt_restore_dir = None
   config.ckpt_restore_dir = 'gs://maskdiff/cond_hollow/240928/checkpoints-0/'
 
   config.use_hollow_transformer = True

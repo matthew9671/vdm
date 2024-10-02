@@ -127,7 +127,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     logging.warning('=== Initializing model ===')
     self.rng, model_rng = jax.random.split(self.rng)
     self.model, params = self.get_model_and_params(model_rng)
-    parameter_overview.log_parameter_overview(params)
+    if params != None: parameter_overview.log_parameter_overview(params)
 
     # initialize forward process
     # Assuming masking forward process
@@ -180,8 +180,11 @@ class Experiment_MaskDiff_Conditional(Experiment):
       logging.info("=== Using the default transformer ===")
       model = transformer.Transformer(**config.model)
 
-    inputs = jnp.zeros((2, config.data.seq_length), dtype=int)
-    params = model.init(rng, inputs, 0)
+    if self.config.ckpt_restore_dir is None:
+      inputs = jnp.zeros((2, config.data.seq_length), dtype=int)
+      params = model.init(rng, inputs, 0)
+    else:
+      params = None
 
     logging.info(f'Parameter count: {utils.count_parameters(params)}')
     return model, params
@@ -475,7 +478,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       }
 
       if jax.process_index() == 0:
-        df = df.append(result, ignore_index=True)
+        df = pd.concat([df, result], ignore_index=True)
         df.to_csv(csv_file, index=False)
 
   def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
