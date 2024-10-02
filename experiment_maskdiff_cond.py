@@ -25,8 +25,8 @@ import tensorflow.compat.v1 as tf
 import flax
 import flax.jax_utils as flax_utils
 
-from vdm.conditional_sampling import backward_process_tau_leaping, \
-  backward_process_pc_tau_leaping, backward_process_pc_k_gillespies, \
+from vdm.conditional_sampling import backward_process_pc_single, \
+  backward_process_pc_multiple, backward_process_pc_k_gillespies, \
   backward_process_pc_k_gillespies_euler
 
 from PIL import Image
@@ -396,6 +396,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       logging.info(f"======= Complete =======")
 
+  def sample_sweep(self):
+    methods = ["euler"]
+    corrector_steps = [1, 2]
+    starting_time = [.9, .5, .3]
+    cstep_size = [2., 1., 5.] # divide by 100 for mpf stepsizes
+    num_psteps = [16, 32, 64, 128]
+    corrector = ["forward_backward", "mpf", "barker"]
+    # write down the results in a pandas dataframe and save to csv
+
   def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
     # We don't really need to use the dummy inputs.
 
@@ -412,7 +421,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
       elif config.sampler.update_type == "gillespies_euler":
         backward_process = backward_process_pc_k_gillespies_euler
       else: # tau-leaping or euler
-        backward_process = backward_process_pc_tau_leaping
+        if config.sampler.num_corrector_steps == 1:
+          backward_process = backward_process_pc_single
+        else:
+          backward_process = backward_process_pc_multiple
       logging.info(f"Using sampling strategy: {config.sampler.update_type}")
       logging.info(f"Using corrector: {config.sampler.corrector}")
     else:
