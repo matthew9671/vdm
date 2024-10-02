@@ -430,10 +430,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
     entry_times = [.9, .5, .3]
     cstep_sizes = [2., 1., 5.] # divide by 100 for mpf stepsizes
     num_psteps = [16, 32, 64, 128]
-    correctors = [None, "forward_backward", "mpf", "barker"]
+    correctors = ["forward_backward", "mpf", "barker"]
 
-    params_combination = itertools.product(methods, num_csteps, entry_time, 
+    no_corrector_experiments = itertools.product(
+      methods[:1], num_csteps[:1], entry_times[:1], 
+      cstep_sizes[:1], num_psteps, [None])
+    params_combination = itertools.product(methods, num_csteps, entry_times, 
       cstep_sizes, num_psteps, correctors)
+
+    params_combination = no_corrector_experiments + params_combination
 
     cfg = self.config.sampler
 
