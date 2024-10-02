@@ -465,17 +465,17 @@ class Experiment_MaskDiff_Conditional(Experiment):
         fid_score = None
 
       result = {
-        'method': method, 
-        'num_cstep': num_cstep, 
-        'entry_time': entry_time, 
-        'cstep_size': cstep_size, 
-        'num_pstep': num_pstep, 
-        'corrector': corrector, 
-        'fid': fid_score
+        'method': [method], 
+        'num_cstep': [num_cstep], 
+        'entry_time': [entry_time], 
+        'cstep_size': [cstep_size], 
+        'num_pstep': [num_pstep], 
+        'corrector': [corrector], 
+        'fid': [fid_score]
       }
 
       if jax.process_index() == 0:
-        df = pd.concat([df, result], ignore_index=True)
+        df = pd.concat([df, pd.DataFrame(result)], ignore_index=True)
         df.to_csv(csv_file, index=False)
 
   def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
