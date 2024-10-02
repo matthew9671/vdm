@@ -458,7 +458,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       try:
         fid_score = self._sample_and_compute_fid(fid, params, 
-          total_samples=1_000,
+          total_samples=10_000,
           samples_per_label=10, save_imgs=False)
       except:
         logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
