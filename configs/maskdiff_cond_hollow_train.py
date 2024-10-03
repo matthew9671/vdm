@@ -59,7 +59,7 @@ def get_config():
     
     output_file_name="1mpf_128psteps",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.75,
+    corrector="mpf", corrector_step_size=.075,
     # corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=5.,
     corrector_entry_time=0.5,
