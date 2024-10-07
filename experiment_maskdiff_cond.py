@@ -351,7 +351,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
   def _sample_and_compute_fid(self, fid, params, total_samples=10_000, 
     samples_per_label=10, save_imgs=False, sample_logdir=None):
 
-    S = config.data.codebook_size + 1
+    S = self.config.data.codebook_size + 1
 
     image_id = 0
     rng = jax.random.PRNGKey(self.config.sampler.seed)
