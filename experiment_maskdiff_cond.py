@@ -69,7 +69,7 @@ class AbsorbingRateCosine():
 
   def _integral_rate_scalar(self, t):
     # This is -log of (1-m(t)) where m(t) is the desired mask percentage at time t.
-    return - jnp.log(1 - self.mask_percentage)
+    return - jnp.log(1 - self.mask_percentage(t))
 
   def _rate_scalar(self, t):
     b = 1 - self.eps
