@@ -36,6 +36,8 @@ import itertools
 from PIL import Image
 import os
 
+from matplotlib import pyplot as plt
+
 class AbsorbingRateCosine():
   def __init__(self, config):
     self.state_size = S = config.state_size
