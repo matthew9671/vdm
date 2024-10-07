@@ -64,9 +64,12 @@ class AbsorbingRateCosine():
     logits = - jnp.ones((S,)) * 10000
     return logits.at[-1].set(0)
           
+  def mask_percentage(self, t):
+    return jnp.cos(jnp.pi / 2 * (1 - t * (1 - self.eps)))
+
   def _integral_rate_scalar(self, t):
     # This is -log of (1-m(t)) where m(t) is the desired mask percentage at time t.
-    return - jnp.log(1 - jnp.cos(jnp.pi / 2 * (1 - t * (1 - self.eps))))
+    return - jnp.log(1 - self.mask_percentage)
 
   def _rate_scalar(self, t):
     b = 1 - self.eps
@@ -353,7 +356,19 @@ class Experiment_MaskDiff_Conditional(Experiment):
   def _sample_and_compute_fid(self, fid, params, total_samples=10_000, 
     samples_per_label=10, save_imgs=False, sample_logdir=None):
 
-    S = self.config.data.codebook_size + 1
+    config = self.config 
+    S = config.data.codebook_size + 1
+    D = config.data.seq_length
+
+    min_t = config.training.min_t
+    max_t = config.training.max_t
+    num_steps = config.sampler.num_steps
+    
+    ts = jnp.linspace(max_t, min_t, num_steps)
+    ts = ts[1:]
+    xs = jnp.arange(num_steps - 1)
+    expected_tokens = D * (1 - self.forward_process.mask_percentage(ts))
+    plt.plot(xs, expected_tokens, color="orange")
 
     image_id = 0
     rng = jax.random.PRNGKey(self.config.sampler.seed)
@@ -396,7 +411,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # Plot the mask curve and save as an image
       mask_curves = jnp.concatenate(mask_curves, axis=0)
       mean = jnp.mean(mask_curves, axis=0)
-      xs = jnp.arange(mean.shape[0])
       plt.plot(xs, mean, color='blue')
       plt.fill_between(xs, jnp.min(mask_curves, axis=0), 
                           jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
