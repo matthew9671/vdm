@@ -364,7 +364,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # sample a batch of images
       tokens_hist, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
                                       samples_per_label=jnp.ones((8,)) * samples_per_label,
-                                      completed_samples=jnp.ones((8,)) * image_id)      
+                                      completed_samples=jnp.ones((8,)) * image_id)
+      logging.info(f"{mask_curve.shape}")
       mask_curve = jnp.sum(tokens_hist != (S-1), axis=-1)
       mask_curves.append(mask_curve)
       
@@ -390,11 +391,11 @@ class Experiment_MaskDiff_Conditional(Experiment):
       file_name = self.config.sampler.output_file_name or 'out'
 
       # Plot the mask curve and save as an image
-      mask_curves = jnp.concatenate(mask_curves)
+      mask_curves = jnp.concatenate(mask_curves, axis=0)
       mean = jnp.mean(mask_curves, axis=0)
       xs = jnp.arange(mean.shape[0])
       plt.plot(xs, mean, color='blue')
-      plt.fill_between(x, jnp.min(mask_curves, axis=0), 
+      plt.fill_between(xs, jnp.min(mask_curves, axis=0), 
                           jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
       plt.xlabel('P steps')
       plt.ylabel('Number of unmasked tokens')
