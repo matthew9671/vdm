@@ -16,7 +16,6 @@ def poisson_jump_reject(key, x, rates):
     jump_nums = jr.poisson(key, rates)
     jump_target = jnp.argmax(jump_nums, axis=1)
 
-    # Assuming that the mask is S-1
     out = jnp.where((jnp.sum(jump_nums, axis=1) == 1), jump_target, x)
     return out
 
@@ -207,8 +206,8 @@ def backward_process_pc_tau_leaping(apply_fn, params, ts, config, xT, key, forwa
 
     x_hist = {
         "x": jnp.concatenate([out_1["x"], out_2["x"]]),
-        "rp": jnp.concatenate([out_1["rp"], out_2["rp"]]),
-        "rc": out_2["rc"]
+        # "rp": jnp.concatenate([out_1["rp"], out_2["rp"]]),
+        # "rc": out_2["rc"]
     }
     
     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)

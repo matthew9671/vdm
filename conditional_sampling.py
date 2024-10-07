@@ -158,8 +158,8 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
 
         out = {
             "x": x,
-            "rp": rp,
-            "rc": rc
+            # "rp": rp,
+            # "rc": rc
         }
         
         return (x, key), out
@@ -168,11 +168,12 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     (x, key), out_1 = jax.lax.scan(_p_step, (xT, key), t_ids[:start])
     (x, _), out_2 = jax.lax.scan(_pc_step, (x, key), t_ids[start:])
 
-    x_hist = {
-        "x": jnp.concatenate([out_1["x"], out_2["x"]]),
-        "rp": jnp.concatenate([out_1["rp"], out_2["rp"]]),
-        "rc": out_2["rc"]
-    }
+    x_hist = jnp.concatenate([out_1["x"], out_2["x"]])
+    # x_hist = {
+    #     "x": jnp.concatenate([out_1["x"], out_2["x"]]),
+    #     "rp": jnp.concatenate([out_1["rp"], out_2["rp"]]),
+    #     "rc": out_2["rc"]
+    # }
     
     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]

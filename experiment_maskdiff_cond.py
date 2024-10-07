@@ -351,17 +351,23 @@ class Experiment_MaskDiff_Conditional(Experiment):
   def _sample_and_compute_fid(self, fid, params, total_samples=10_000, 
     samples_per_label=10, save_imgs=False, sample_logdir=None):
 
+    S = config.data.codebook_size + 1
+
     image_id = 0
     rng = jax.random.PRNGKey(self.config.sampler.seed)
     all_acts = []
     all_images = []
+    mask_curves = []
 
     while image_id < total_samples:
       rng, curr_rng = jax.random.split(rng)
       # sample a batch of images
-      tokens, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
+      tokens_hist, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
                                       samples_per_label=jnp.ones((8,)) * samples_per_label,
                                       completed_samples=jnp.ones((8,)) * image_id)      
+      mask_curve = jnp.sum(tokens_hist != (S-1), axis=-1)
+      mask_curves.append(mask_curve)
+      
       samples = np.clip(samples, 0, 1)      
       uint8_images = (samples * 255).astype(np.uint8)
 
@@ -380,6 +386,22 @@ class Experiment_MaskDiff_Conditional(Experiment):
       all_acts.append(fid.compute_acts(uint8_images))
 
     if jax.process_index() == 0:
+
+      file_name = self.config.sampler.output_file_name or 'out'
+
+      # Plot the mask curve and save as an image
+      mask_curves = jnp.concatenate(mask_curves)
+      mean = jnp.mean(mask_curves, axis=0)
+      xs = jnp.arange(mean.shape[0])
+      plt.plot(xs, mean, color='blue')
+      plt.fill_between(x, jnp.min(mask_curves, axis=0), 
+                          jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
+      plt.xlabel('P steps')
+      plt.ylabel('Number of unmasked tokens')
+      plt.ylim((0, 256))
+      plt.savefig(f'{file_name}.png', dpi=300, bbox_inches='tight')
+      plt.close()
+
       logging.info("Finished saving samples and activations. Computing FID...")
       stats = fid.compute_stats(all_acts)
       # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
@@ -389,7 +411,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
       logging.info(f"FID score: {score}")
 
       if save_imgs:
-        file_name = self.config.sampler.output_file_name or 'out'
         jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', jnp.concatenate(all_images, axis=0))
 
       logging.info(f"======= Complete =======")
@@ -515,7 +536,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     xT_with_label = jnp.concatenate([label_arr, xT, label_arr])
     
     ts = jnp.linspace(max_t, min_t, num_steps)
-    tokens, _ = backward_process(self.state.apply_fn, params, ts, config, xT_with_label, rng, 
+    tokens, hist = backward_process(self.state.apply_fn, params, ts, config, xT_with_label, rng, 
       self.forward_process)
 
     output_tokens = jnp.reshape(tokens, [-1, 16, 16])
@@ -525,7 +546,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
               method=self.tokenizer_model.decode_from_indices,
               mutable=False)
 
-    return output_tokens, gen_images
+    return hist, gen_images
 
   def load_imagenet_decoder(self, checkpoint_path):
     # Assume that we've already downloaded the pretrained vqvae
