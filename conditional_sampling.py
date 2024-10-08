@@ -203,12 +203,7 @@ def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_pr
     S = config.data.codebook_size + 1
     D = config.data.seq_length
     
-    if config.sampler.update_type == "euler":
-        update_func = euler_update
-    elif config.sampler.update_type == "tau_leaping": 
-        update_func = poisson_jump_reject
-    else:
-        raise Exception(f"Unknown update type: {config.sampler.update_type}")
+    update_func = euler_update
 
     corrector = config.sampler.corrector
     start = int(len(ts) * (1 - config.sampler.corrector_entry_time))
