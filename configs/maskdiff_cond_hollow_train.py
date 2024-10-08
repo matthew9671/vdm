@@ -58,11 +58,11 @@ def get_config():
     max_samples=128,
     update_type="test_convergence", # "tau_leaping", "gillespies", "euler", "test_convergence"
     
-    output_file_name="1mpf_predictor_128psteps_test",
+    output_file_name="1fb_predictor_128psteps_test",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.02,
+    # corrector="mpf", corrector_step_size=.01,
     # corrector="barker", corrector_step_size=2.,
-    # corrector="forward_backward", corrector_step_size=2.,
+    corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.5,
     num_corrector_steps=1,
 
