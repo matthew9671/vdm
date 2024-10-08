@@ -56,9 +56,9 @@ def get_config():
     num_steps=128, # Cut the number of steps in half due to using correctors
     # max_samples=10_000,
     max_samples=128,
-    update_type="euler", # "tau_leaping", "gillespies", "euler"
+    update_type="test_convergence", # "tau_leaping", "gillespies", "euler", "test_convergence"
     
-    output_file_name="1mpf_scaled_predictor_128psteps",
+    output_file_name="1mpf_predictor_128psteps_test",
     # corrector=None,
     corrector="mpf", corrector_step_size=.02,
     # corrector="barker", corrector_step_size=2.,
@@ -66,9 +66,9 @@ def get_config():
     corrector_entry_time=0.5,
     num_corrector_steps=1,
 
-    # k-Gillespies
-    # k=1,
-    # corrector_step_cutoff=None,
+    # Testing corrector convergence
+    predictor_cutoff_time=0.25,
+    convergence_steps=100,
   )
 
   config.noise = d(

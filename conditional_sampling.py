@@ -149,14 +149,14 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
 
-        # beta feature: scaling the predictor rate to match the desired mask ratio
-        desired_mask_ratio_t = forward_process.mask_percentage(t)
-        desired_mask_ratio_nt = forward_process.mask_percentage(t-dt)
-        curr_mask_ratio = jnp.sum(x[1:-1] == (S-1)) / D
-        # ratio_adjustment = (curr_mask_ratio - desired_mask_ratio_nt) / (desired_mask_ratio_t - desired_mask_ratio_nt + 1e-6)
-        ratio_adjustment = curr_mask_ratio / desired_mask_ratio_t
-        ratio_adjustment = jnp.clip(ratio_adjustment, 0.1, 10)
-        rp *= ratio_adjustment
+        # # beta feature: scaling the predictor rate to match the desired mask ratio
+        # desired_mask_ratio_t = forward_process.mask_percentage(t)
+        # desired_mask_ratio_nt = forward_process.mask_percentage(t-dt)
+        # curr_mask_ratio = jnp.sum(x[1:-1] == (S-1)) / D
+        # # ratio_adjustment = (curr_mask_ratio - desired_mask_ratio_nt) / (desired_mask_ratio_t - desired_mask_ratio_nt + 1e-6)
+        # ratio_adjustment = curr_mask_ratio / desired_mask_ratio_t
+        # ratio_adjustment = jnp.clip(ratio_adjustment, 0.1, 10)
+        # rp *= ratio_adjustment
 
         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
 
@@ -212,7 +212,9 @@ def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_pr
 
     corrector = config.sampler.corrector
     start = int(len(ts) * (1 - config.sampler.corrector_entry_time))
-    
+    end = int(len(ts) * (1 - config.sampler.predictor_cutoff_time))
+    test_steps = config.sampler.convergence_steps
+
     if corrector == "barker":
         corrector_rate = barker_corrector
     elif corrector == "mpf":
@@ -235,11 +237,9 @@ def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_pr
         # Only update the data, do not update the label
         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
 
-        out = {
-            "x": x,
-            "rp": rp
+        out = {"x": x,
+            # "rp": rp
         }
-        
         return (x, key), out
     
     def _pc_step(carry, idx):
@@ -261,19 +261,33 @@ def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_pr
         rc = corrector_rate(res)
         x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
 
-        out = {
-            "x": x,
+        out = {"x": x,
             # "rp": rp,
             # "rc": rc
         }
-        
         return (x, key), out
 
-    out_3 = {}
+    def _c_step(carry, idx):
+        x, key = carry
+        key, c_key = jr.split(key)
+
+        t = config.sampler.predictor_cutoff_time
+        dt = 1 / config.sampler.num_steps
+
+        # Corrector
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        rc = corrector_rate(res)
+        x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
+
+        out = {"x": x,
+            # "rc": rc
+        }
+        return (x, key), out
 
     t_ids = jnp.arange(len(ts)-1)
     (x, key), out_1 = jax.lax.scan(_p_step, (xT, key), t_ids[:start])
-    (x, _), out_2 = jax.lax.scan(_pc_step, (x, key), t_ids[start:])
+    (x, _), out_2 = jax.lax.scan(_pc_step, (x, key), t_ids[start:end])
+    (x, _), out_3 = jax.lax.scan(_c_step, (x, key), jnp.arange(test_steps))
 
     x_hist = jnp.concatenate([out_1["x"], out_2["x"], out_3["x"]])
     

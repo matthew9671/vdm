@@ -27,7 +27,7 @@ import flax.jax_utils as flax_utils
 
 from vdm.conditional_sampling import backward_process_no_corrector, backward_process_pc_single, \
   backward_process_pc_multiple, backward_process_pc_k_gillespies, \
-  backward_process_pc_k_gillespies_euler
+  backward_process_pc_k_gillespies_euler, test_corrector_convergence
 
 import fidjax
 import pandas as pd
@@ -370,6 +370,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     expected_tokens = D * (1 - self.forward_process.mask_percentage(ts))
     plt.plot(xs, expected_tokens, color="orange")
 
+    expected_tokens_limit = D * (1 - self.forward_process.mask_percentage(config.sampler.predictor_cutoff_time))
+
     image_id = 0
     rng = jax.random.PRNGKey(self.config.sampler.seed)
     all_acts = []
@@ -411,9 +413,13 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # Plot the mask curve and save as an image
       mask_curves = jnp.concatenate(mask_curves, axis=0)
       mean = jnp.mean(mask_curves, axis=0)
+      xs = jnp.arange(mean.shape[0])
+
+      plt.hlines(expected_tokens_limit, 0, mean.shape[0]-1, colors='orange')
+
       plt.plot(xs, mean, color='blue')
       plt.fill_between(xs, jnp.min(mask_curves, axis=0), 
-                          jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
+                           jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
       plt.xlabel('P steps')
       plt.ylabel('Number of unmasked tokens')
       plt.ylim((0, 256))
@@ -532,6 +538,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
         backward_process = backward_process_pc_k_gillespies
       elif config.sampler.update_type == "gillespies_euler":
         backward_process = backward_process_pc_k_gillespies_euler
+      elif config.sampler.update_type == "test_convergence":
+        backward_process = test_corrector_convergence
       else: # tau-leaping or euler
         if config.sampler.num_corrector_steps == 1:
           backward_process = backward_process_pc_single
