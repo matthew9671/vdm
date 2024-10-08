@@ -564,7 +564,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
               method=self.tokenizer_model.decode_from_indices,
               mutable=False)
 
-    return hist, gen_images
+    return hist[...,1:-1], gen_images
 
   def load_imagenet_decoder(self, checkpoint_path):
     # Assume that we've already downloaded the pretrained vqvae

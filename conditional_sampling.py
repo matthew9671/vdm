@@ -98,6 +98,8 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     """
     t = ts[0]
     x = xT
+    S = config.data.codebook_size + 1
+    D = config.data.seq_length
     
     if config.sampler.update_type == "euler":
         update_func = euler_update
@@ -146,6 +148,15 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
+
+        # beta feature: scaling the predictor rate to match the desired mask ratio
+        desired_mask_ratio_t = forward_process.mask_percentage(t)
+        desired_mask_ratio_nt = forward_process.mask_percentage(t-dt)
+        curr_mask_ratio = jnp.sum(x.at[1:-1] == (S-1)) / D
+        ratio_adjustment = (curr_mask_ratio - desired_mask_ratio_nt) / (desired_mask_ratio_t - desired_mask_ratio_nt + 1e-6)
+        ratio_adjustment = jnp.clip(ratio_adjustment, 0.1, 10)
+        rp *= ratio_adjustment
+
         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
 
         # Change current time (!!)

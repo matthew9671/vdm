@@ -58,12 +58,12 @@ def get_config():
     max_samples=128,
     update_type="euler", # "tau_leaping", "gillespies", "euler"
     
-    output_file_name="1barker_flipped_128psteps",
+    output_file_name="1mpf_scaled_predictor_128psteps",
     # corrector=None,
-    # corrector="mpf", corrector_step_size=.02,
-    corrector="barker", corrector_step_size=2.,
+    corrector="mpf", corrector_step_size=.02,
+    # corrector="barker", corrector_step_size=2.,
     # corrector="forward_backward", corrector_step_size=2.,
-    corrector_entry_time=0.9,
+    corrector_entry_time=0.5,
     num_corrector_steps=1,
 
     # k-Gillespies

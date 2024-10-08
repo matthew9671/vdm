@@ -120,8 +120,7 @@ def mpf_corrector(res):
 def barker_corrector(res):
     coeff = res["Rt_eval_x"] + res["Rt_eval_y"]
     score = res["score"]
-    # Just checking that we didn't get the direction of Barker wrong...
-    return coeff * 1 / (1 + score)
+    return coeff * score / (1 + score)
 
 def forward_backward_corrector(res):
     return res["rates"] + res["Rt_eval_x"]
