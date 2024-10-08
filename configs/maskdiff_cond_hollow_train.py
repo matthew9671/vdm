@@ -54,21 +54,18 @@ def get_config():
   config.sampler = d(
     seed=42,
     num_steps=128, # Cut the number of steps in half due to using correctors
-    # max_samples=10_000,
-    max_samples=128,
-    update_type="test_convergence", # "tau_leaping", "gillespies", "euler", "test_convergence"
-    
-    output_file_name="1barker_predictor_128psteps_test_fixed",
+    max_samples=10_000, update_type="euler", # "tau_leaping", "gillespies", "euler", "test_convergence"
+    # max_samples=128, update_type="test_convergence",
+    output_file_name="1barker_128psteps",
     # corrector=None,
     # corrector="mpf", corrector_step_size=.01,
     corrector="barker", corrector_step_size=.5,
     # corrector="forward_backward", corrector_step_size=2.,
-    corrector_entry_time=0.5,
+    corrector_entry_time=0.9,
     num_corrector_steps=1,
 
     # Testing corrector convergence
-    predictor_cutoff_time=0.25,
-    convergence_steps=100,
+    predictor_cutoff_time=0.25, convergence_steps=100,
   )
 
   config.noise = d(

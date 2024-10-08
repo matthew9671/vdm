@@ -303,6 +303,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     Rt_eval_x = Rt[y]
     # st_eval_y represents "score from y"
     # We only care when y is not mask
+    # TODO: this is incorrect!
     score_to_y = jnp.where((y == mask), 1, st_eval_y[jnp.arange(D), y])
     score_entropy = jnp.sum(Rt_eval_y * y_mask * st_eval_y) \
         - jnp.sum(Rt_eval_x[:, mask] * jnp.log(score_to_y + eps)) # changed mean to sum
@@ -370,8 +371,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
     expected_tokens = D * (1 - self.forward_process.mask_percentage(ts))
     plt.plot(xs, expected_tokens, color="orange")
 
-    expected_tokens_limit = D * (1 - self.forward_process.mask_percentage(config.sampler.predictor_cutoff_time))
-
     image_id = 0
     rng = jax.random.PRNGKey(self.config.sampler.seed)
     all_acts = []
@@ -410,12 +409,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       file_name = self.config.sampler.output_file_name or 'out'
 
+      
       # Plot the mask curve and save as an image
       mask_curves = jnp.concatenate(mask_curves, axis=0)
       mean = jnp.mean(mask_curves, axis=0)
       xs = jnp.arange(mean.shape[0])
 
-      plt.hlines(expected_tokens_limit, 0, mean.shape[0]-1, colors='orange')
+      if self.config.sampler.update_type == "test_convergence":
+        expected_tokens_limit = D * (1 - self.forward_process.mask_percentage(config.sampler.predictor_cutoff_time))
+        plt.hlines(expected_tokens_limit, 0, mean.shape[0]-1, colors='orange')
 
       plt.plot(xs, mean, color='blue')
       plt.fill_between(xs, jnp.min(mask_curves, axis=0), 

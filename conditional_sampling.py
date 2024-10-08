@@ -33,14 +33,10 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     
     # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
     p0t_eval_y = softmax(x0_logits, axis=-1)
-    # Manually append a 0 column, since it corresponds to the mask token
-    # p0t_eval_y = jnp.concatenate((p0t_eval_y, jnp.zeros((D, 1))), axis=1)
     
     # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
-    
-    # qt0_eval_y = qt0[:,y].T + eps
-    # This might be the change that fixes everything.
-    # Unfortunately things still don't quite work yet.
+    # However, now each dimension is assumed to be a mask token
+    # This is the change that fixes everything!
     qt0_eval_y = qt0[:,mask][None] + eps 
 
     st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
@@ -51,12 +47,6 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
     # On mask dimensions this is dividing by 1, on non-mask it offsets the score function to be centered on y
     st_eval_y /= backward_score_to_curr[:,None]
-
-    # # Change the score such that the score for the non-masked dimensions are inverted
-    # # This only works for absorbing (masking diffusion ofcourse)
-    # backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
-    # forward_score_from_curr = jnp.concatenate([jnp.zeros((D, S-1)), 1 / backward_score_to_curr[:, None]], axis=1)
-    # score = jnp.where((y != mask)[:,None], forward_score_from_curr, st_eval_y)
 
     # (D, S) float array that masks out y[d] for each d index
     y_mask = jnp.ones((D, S))
@@ -160,15 +150,6 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
 
-        # # beta feature: scaling the predictor rate to match the desired mask ratio
-        # desired_mask_ratio_t = forward_process.mask_percentage(t)
-        # desired_mask_ratio_nt = forward_process.mask_percentage(t-dt)
-        # curr_mask_ratio = jnp.sum(x[1:-1] == (S-1)) / D
-        # # ratio_adjustment = (curr_mask_ratio - desired_mask_ratio_nt) / (desired_mask_ratio_t - desired_mask_ratio_nt + 1e-6)
-        # ratio_adjustment = curr_mask_ratio / desired_mask_ratio_t
-        # ratio_adjustment = jnp.clip(ratio_adjustment, 0.1, 10)
-        # rp *= ratio_adjustment
-
         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
 
         # Change current time (!!)
@@ -192,11 +173,6 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     (x, _), out_2 = jax.lax.scan(_pc_step, (x, key), t_ids[start:])
 
     x_hist = jnp.concatenate([out_1["x"], out_2["x"]])
-    # x_hist = {
-    #     "x": jnp.concatenate([out_1["x"], out_2["x"]]),
-    #     "rp": jnp.concatenate([out_1["rp"], out_2["rp"]]),
-    #     "rc": out_2["rc"]
-    # }
     
     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
