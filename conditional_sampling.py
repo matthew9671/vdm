@@ -46,18 +46,24 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
                            precision=jax.lax.Precision.HIGHEST)
 
-    # Change the score such that the score for the non-masked dimensions are inverted
-    # This only works for absorbing (masking diffusion ofcourse)
+    # Since every dimension considers itself as the mask, we set the ratio to 1
+    st_eval_y = st_eval_y.at[:, mask].set(1.0)
     backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
-    forward_score_from_curr = jnp.concatenate([jnp.zeros((D, S-1)), 1 / backward_score_to_curr[:, None]], axis=1)
-    score = jnp.where((y != mask)[:,None], forward_score_from_curr, st_eval_y)
+    # On mask dimensions this is dividing by 1, on non-mask it offsets the score function to be centered on y
+    st_eval_y /= backward_score_to_curr[None]
+
+    # # Change the score such that the score for the non-masked dimensions are inverted
+    # # This only works for absorbing (masking diffusion ofcourse)
+    # backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
+    # forward_score_from_curr = jnp.concatenate([jnp.zeros((D, S-1)), 1 / backward_score_to_curr[:, None]], axis=1)
+    # score = jnp.where((y != mask)[:,None], forward_score_from_curr, st_eval_y)
 
     # (D, S) float array that masks out y[d] for each d index
     y_mask = jnp.ones((D, S))
     y_mask = y_mask.at[jnp.arange(D), y].set(0.0)
     
     results = {
-        "score": score,
+        "score": st_eval_y,
         "rates": (st_eval_y * Rt_eval_y) * y_mask,
         "x0_logits": x0_logits,
         "Rt_eval_y": Rt_eval_y,
