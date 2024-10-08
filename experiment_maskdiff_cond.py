@@ -383,7 +383,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
       tokens_hist, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
                                       samples_per_label=jnp.ones((8,)) * samples_per_label,
                                       completed_samples=jnp.ones((8,)) * image_id)
-      logging.info(f"{tokens_hist.shape}")
       mask_curve = jnp.sum(tokens_hist != (S-1), axis=-1)
       mask_curve = jnp.reshape(mask_curve, (128, -1))
       mask_curves.append(mask_curve)
