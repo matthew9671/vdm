@@ -50,7 +50,7 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     st_eval_y = st_eval_y.at[:, mask].set(1.0)
     backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
     # On mask dimensions this is dividing by 1, on non-mask it offsets the score function to be centered on y
-    st_eval_y /= backward_score_to_curr[None]
+    st_eval_y /= backward_score_to_curr[:,None]
 
     # # Change the score such that the score for the non-masked dimensions are inverted
     # # This only works for absorbing (masking diffusion ofcourse)
