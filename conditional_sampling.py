@@ -37,7 +37,9 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     # p0t_eval_y = jnp.concatenate((p0t_eval_y, jnp.zeros((D, 1))), axis=1)
     
     # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
-    qt0_eval_y = qt0[:,y].T + eps
+    # This might be the change that fixes everything.
+    # qt0_eval_y = qt0[:,y].T + eps
+    qt0_eval_y = qt0[:,mask][None] + eps
     st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
                            precision=jax.lax.Precision.HIGHEST)
 
