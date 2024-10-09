@@ -6,7 +6,7 @@ from tqdm import trange
 from functools import partial
 
 from vdm.sampling import poisson_jump_reject, euler_update, mpf_corrector, barker_corrector, \
-    forward_backward_corrector, k_gillespies_update
+    forward_backward_corrector, k_gillespies_update, mpf_corrector_full
 
 def compute_backward(y_with_label, t, apply_fn, params, config, forward_process):
     y_with_label = y_with_label.flatten()
