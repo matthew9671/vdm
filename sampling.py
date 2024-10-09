@@ -117,6 +117,11 @@ def mpf_corrector(res):
     score = res["score"]
     return coeff * jnp.sqrt(score)
 
+def mpf_corrector_full(res):
+    coeff = 1#res["Rt_eval_x"] + res["Rt_eval_y"]
+    score = res["score"]
+    return coeff * jnp.sqrt(score)
+
 def barker_corrector(res):
     coeff = res["Rt_eval_x"] + res["Rt_eval_y"]
     score = res["score"]

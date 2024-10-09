@@ -200,7 +200,8 @@ def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_pr
     if corrector == "barker":
         corrector_rate = barker_corrector
     elif corrector == "mpf":
-        corrector_rate = mpf_corrector
+        # corrector_rate = mpf_corrector
+        corrector_rate = mpf_corrector_full
     elif corrector == "forward_backward":
         corrector_rate = forward_backward_corrector
     else:
