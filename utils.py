@@ -44,7 +44,9 @@ def get_file_name(config):
   ct = cfg.corrector_entry_time
   ss = cfg.corrector_step_size
 
-  tag = "_" + tag if tag != ""
+  if tag != "":
+    tag = "_" + tag
+    
   if ct <= .5:
     ct = "_late_entry"
   else:
