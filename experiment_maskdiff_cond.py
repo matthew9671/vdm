@@ -467,12 +467,19 @@ class Experiment_MaskDiff_Conditional(Experiment):
         df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
           'cstep_size', 'num_pstep', 'corrector', 'fid'])
 
+    # methods = ["euler"]
+    # num_csteps = [1, 2]
+    # entry_times = [.9, .5, .3]
+    # cstep_sizes = [2., 1., 5.] # divide by 100 for mpf stepsizes
+    # num_psteps = [16, 32, 64, 128]
+    # correctors = ["forward_backward", "mpf", "barker"]
+
     methods = ["euler"]
     num_csteps = [1, 2]
-    entry_times = [.9, .5, .3]
-    cstep_sizes = [2., 1., 5.] # divide by 100 for mpf stepsizes
+    entry_times = [.9, .5]
+    cstep_sizes = [0.5, 1., 2., 4., 8.] # divide by 100 for mpf stepsizes
     num_psteps = [16, 32, 64, 128]
-    correctors = ["forward_backward", "mpf", "barker"]
+    correctors = ["mpf", "barker", "mpf_full", "barker_full"]
 
     no_corrector_experiments = itertools.product(
       methods[:1], num_csteps[:1], entry_times[:1], 

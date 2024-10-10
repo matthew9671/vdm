@@ -77,7 +77,8 @@ def compute_backward(y, t, apply_fn, params, config, forward_process):
         "rates": (st_eval_y * Rt_eval_y) * y_mask,
         "x0_logits": x0_logits,
         "Rt_eval_y": Rt_eval_y,
-        "Rt_eval_x": Rt[y]
+        "Rt_eval_x": Rt[y],
+        "rate_scalar": forward_process._rate_scalar(t)
     }
     return results
     
@@ -120,12 +121,17 @@ def mpf_corrector(res):
     return coeff * jnp.sqrt(score)
 
 def mpf_corrector_full(res):
-    coeff = 1#res["Rt_eval_x"] + res["Rt_eval_y"]
+    coeff = res["rate_scalar"]
     score = res["score"]
     return coeff * jnp.sqrt(score)
 
 def barker_corrector(res):
     coeff = res["Rt_eval_x"] + res["Rt_eval_y"]
+    score = res["score"]
+    return coeff * score / (1 + score)
+
+def barker_corrector_full(res):
+    coeff = res["rate_scalar"]
     score = res["score"]
     return coeff * score / (1 + score)
 
