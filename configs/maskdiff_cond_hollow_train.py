@@ -58,7 +58,7 @@ def get_config():
     # max_samples=128, update_type="test_convergence",
     output_file_name="1mpf_full_32psteps",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.05,
+    corrector="mpf_full", corrector_step_size=.05,
     # corrector="barker", corrector_step_size=5.,
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.5,
