@@ -406,25 +406,25 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     if jax.process_index() == 0:
 
-      file_name = self.config.sampler.output_file_name or 'out'
+      file_name = utils.get_file_name(self.config) #self.config.sampler.output_file_name or 'out'
 
-      # # Plot the mask curve and save as an image
-      # mask_curves = jnp.concatenate(mask_curves, axis=0)
-      # mean = jnp.mean(mask_curves, axis=0)
-      # xs = jnp.arange(mean.shape[0])
+      # Plot the mask curve and save as an image
+      mask_curves = jnp.concatenate(mask_curves, axis=0)
+      mean = jnp.mean(mask_curves, axis=0)
+      xs = jnp.arange(mean.shape[0])
 
-      # if self.config.sampler.update_type == "test_convergence":
-      #   expected_tokens_limit = D * (1 - self.forward_process.mask_percentage(config.sampler.predictor_cutoff_time))
-      #   plt.hlines(expected_tokens_limit, 0, mean.shape[0]-1, colors='orange')
+      if self.config.sampler.update_type == "test_convergence":
+        expected_tokens_limit = D * (1 - self.forward_process.mask_percentage(config.sampler.predictor_cutoff_time))
+        plt.hlines(expected_tokens_limit, 0, mean.shape[0]-1, colors='orange')
 
-      # plt.plot(xs, mean, color='blue')
-      # plt.fill_between(xs, jnp.min(mask_curves, axis=0), 
-      #                      jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
-      # plt.xlabel('P steps')
-      # plt.ylabel('Number of unmasked tokens')
-      # plt.ylim((0, 256))
-      # plt.savefig(f'{file_name}.png', dpi=300, bbox_inches='tight')
-      # plt.close()
+      plt.plot(xs, mean, color='blue')
+      plt.fill_between(xs, jnp.min(mask_curves, axis=0), 
+                           jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
+      plt.xlabel('P steps')
+      plt.ylabel('Number of unmasked tokens')
+      plt.ylim((0, 256))
+      plt.savefig(f'{file_name}.png', dpi=300, bbox_inches='tight')
+      plt.close()
 
       logging.info("Finished saving samples and activations. Computing FID...")
       stats = fid.compute_stats(all_acts)

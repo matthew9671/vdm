@@ -34,6 +34,23 @@ import jax.numpy as jnp
 import numpy as np
 from pprint import pformat
 
+def get_file_name(config):
+  cfg = config.sampler
+
+  p = cfg.num_steps
+  tag = cfg.tag
+  c = cfg.corrector
+  cs = cfg.num_corrector_steps
+  ct = cfg.corrector_entry_time
+  ss = cfg.corrector_step_size
+
+  tag = "_" + tag if tag != ""
+  if ct <= .5:
+    ct = "_late_entry"
+  else:
+    ct = ""
+
+  return f"{p}psteps_{cs}{c}_size={ss}{ct}{tag}"
 
 def get_workdir():
   argv = sys.argv
