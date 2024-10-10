@@ -61,7 +61,7 @@ def get_config():
     corrector="mpf_full", corrector_step_size=.002,
     # corrector="barker_full", corrector_step_size=.001,
     # corrector="forward_backward", corrector_step_size=2.,
-    corrector_entry_time=0.5,
+    corrector_entry_time=0.9,
     num_corrector_steps=1,
 
     # Testing corrector convergence
