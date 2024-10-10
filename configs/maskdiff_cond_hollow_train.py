@@ -59,7 +59,7 @@ def get_config():
     output_file_name="1barker_full_32psteps",
     # corrector=None,
     # corrector="mpf_full", corrector_step_size=.005,
-    corrector="barker_full", corrector_step_size=.5,
+    corrector="barker_full", corrector_step_size=.005,
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.9,
     num_corrector_steps=1,
