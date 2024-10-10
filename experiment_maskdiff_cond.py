@@ -408,23 +408,23 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       file_name = self.config.sampler.output_file_name or 'out'
 
-      # Plot the mask curve and save as an image
-      mask_curves = jnp.concatenate(mask_curves, axis=0)
-      mean = jnp.mean(mask_curves, axis=0)
-      xs = jnp.arange(mean.shape[0])
+      # # Plot the mask curve and save as an image
+      # mask_curves = jnp.concatenate(mask_curves, axis=0)
+      # mean = jnp.mean(mask_curves, axis=0)
+      # xs = jnp.arange(mean.shape[0])
 
-      if self.config.sampler.update_type == "test_convergence":
-        expected_tokens_limit = D * (1 - self.forward_process.mask_percentage(config.sampler.predictor_cutoff_time))
-        plt.hlines(expected_tokens_limit, 0, mean.shape[0]-1, colors='orange')
+      # if self.config.sampler.update_type == "test_convergence":
+      #   expected_tokens_limit = D * (1 - self.forward_process.mask_percentage(config.sampler.predictor_cutoff_time))
+      #   plt.hlines(expected_tokens_limit, 0, mean.shape[0]-1, colors='orange')
 
-      plt.plot(xs, mean, color='blue')
-      plt.fill_between(xs, jnp.min(mask_curves, axis=0), 
-                           jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
-      plt.xlabel('P steps')
-      plt.ylabel('Number of unmasked tokens')
-      plt.ylim((0, 256))
-      plt.savefig(f'{file_name}.png', dpi=300, bbox_inches='tight')
-      plt.close()
+      # plt.plot(xs, mean, color='blue')
+      # plt.fill_between(xs, jnp.min(mask_curves, axis=0), 
+      #                      jnp.max(mask_curves, axis=0), color='lightblue', alpha=0.5)
+      # plt.xlabel('P steps')
+      # plt.ylabel('Number of unmasked tokens')
+      # plt.ylim((0, 256))
+      # plt.savefig(f'{file_name}.png', dpi=300, bbox_inches='tight')
+      # plt.close()
 
       logging.info("Finished saving samples and activations. Computing FID...")
       stats = fid.compute_stats(all_acts)
@@ -457,7 +457,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results.csv"
+    file_name = "updated_results_10_9.csv"
     csv_file = os.path.join(logdir, file_name)
 
     if jax.process_index() == 0:
@@ -478,7 +478,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     num_csteps = [1, 2]
     entry_times = [.9, .5]
     cstep_sizes = [0.5, 1., 2., 4., 8.] # divide by 100 for mpf stepsizes
-    num_psteps = [16, 32, 64, 128]
+    num_psteps = [8, 16, 32, 64]
     correctors = ["mpf", "barker", "mpf_full", "barker_full"]
 
     no_corrector_experiments = itertools.product(
@@ -494,7 +494,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     for method, num_cstep, entry_time, cstep_size, num_pstep, corrector in params_combination:
       # Adjust mpf stepsize
-      if corrector == "mpf":
+      if "mpf" in corrector:
+        cstep_size /= 100
+      elif "barker_full" in corrector: # Seems like barker with full connection is also problematic...???
         cstep_size /= 100
 
       cfg.num_steps = num_pstep
