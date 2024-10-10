@@ -57,7 +57,8 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
         "rates": (st_eval_y * Rt_eval_y) * y_mask,
         "x0_logits": x0_logits,
         "Rt_eval_y": Rt_eval_y,
-        "Rt_eval_x": Rt[y]
+        "Rt_eval_x": Rt[y],
+        "rate_scalar": forward_process._rate_scalar(t)
     }
     return results
     
@@ -114,7 +115,11 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     
     if corrector == "barker":
         corrector_rate = barker_corrector
+    elif corrector == "barker_full":
+        corrector_rate = barker_corrector_full
     elif corrector == "mpf":
+        corrector_rate = mpf_corrector
+    elif corrector == "mpf_full":
         corrector_rate = mpf_corrector_full
     elif corrector == "forward_backward":
         corrector_rate = forward_backward_corrector
@@ -199,8 +204,11 @@ def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_pr
 
     if corrector == "barker":
         corrector_rate = barker_corrector
+    elif corrector == "barker_full":
+        corrector_rate = barker_corrector_full
     elif corrector == "mpf":
-        # corrector_rate = mpf_corrector
+        corrector_rate = mpf_corrector
+    elif corrector == "mpf_full":
         corrector_rate = mpf_corrector_full
     elif corrector == "forward_backward":
         corrector_rate = forward_backward_corrector
@@ -300,8 +308,12 @@ def backward_process_pc_multiple(apply_fn, params, ts, config, xT, key, forward_
     
     if corrector == "barker":
         corrector_rate = barker_corrector
+    elif corrector == "barker_full":
+        corrector_rate = barker_corrector_full
     elif corrector == "mpf":
         corrector_rate = mpf_corrector
+    elif corrector == "mpf_full":
+        corrector_rate = mpf_corrector_full
     elif corrector == "forward_backward":
         corrector_rate = forward_backward_corrector
     else:

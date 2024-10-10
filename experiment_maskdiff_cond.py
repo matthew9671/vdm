@@ -408,7 +408,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       file_name = self.config.sampler.output_file_name or 'out'
 
-      
       # Plot the mask curve and save as an image
       mask_curves = jnp.concatenate(mask_curves, axis=0)
       mean = jnp.mean(mask_curves, axis=0)
