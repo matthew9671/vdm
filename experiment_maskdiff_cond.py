@@ -457,7 +457,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "updated_results_10_9.csv"
+    file_name = "updated_results_10_10.csv"
     csv_file = os.path.join(logdir, file_name)
 
     if jax.process_index() == 0:
@@ -483,9 +483,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     methods = ["euler"]
     num_csteps = [1, 2]
-    entry_times = [.9]
-    cstep_sizes = [0.0005, .001, .002, .003, .004]
-    num_psteps = [32]
+    entry_times = [.9, .5]
+    cstep_sizes = [0.0002, 0.0005, .001, .002, .004,]
+    num_psteps = [8, 16]
     correctors = ["mpf_full", "barker_full"]
 
     no_corrector_experiments = itertools.product(
@@ -505,6 +505,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
       #   cstep_size /= 100
       # elif "barker_full" in corrector: # Seems like barker with full connection is also problematic...???
       #   cstep_size /= 100
+
+      # Keep the absolute stepsize constant
+      cstep_size *= num_pstep / 32
 
       cfg.num_steps = num_pstep
       cfg.update_type = method
