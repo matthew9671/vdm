@@ -265,17 +265,26 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # Also removing the label that gets added to the first and last position
     # Finally note that only the first S dimensions is used in the output.
     x0_logits = x0_logits[0, 1:-1, :S]
+    # Set the mask prob to 0
+    x0_logits = x0_logits.at[:, mask].set(-jnp.inf)
     
     # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
     p0t_eval_y = softmax(x0_logits, axis=-1)
 
     # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
-    qt0_eval_y = qt0[:,y].T + eps
+    # qt0_eval_y = qt0[:,y].T + eps
+    qt0_eval_y = qt0[:,mask][None] + eps # Because each dimension sees itself as a mask!
 
     # s_t^{\theta}^{*1}(y, *2): (D, S) float array of marginal likelihood ratios predicted by the model
     # Also known as the "concrete score" in (Lou et al. 2023)
     st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
                            precision=jax.lax.Precision.HIGHEST)
+
+    # # Since every dimension considers itself as the mask, we set the ratio to 1
+    # st_eval_y = st_eval_y.at[:, mask].set(1.0)
+    # backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
+    # # On mask dimensions this is dividing by 1, on non-mask it offsets the score function to be centered on y
+    # st_eval_y /= backward_score_to_curr[:,None]
 
     # -------------------------------------------------------------
     # 4. Evaluate the likelihood ratios at t conditioned on data
@@ -303,7 +312,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
     Rt_eval_x = Rt[y]
     # st_eval_y represents "score from y"
     # We only care when y is not mask
-    # TODO: this is incorrect!
     score_to_y = jnp.where((y == mask), 1, st_eval_y[jnp.arange(D), y])
     score_entropy = jnp.sum(Rt_eval_y * y_mask * st_eval_y) \
         - jnp.sum(Rt_eval_x[:, mask] * jnp.log(score_to_y + eps)) # changed mean to sum
@@ -314,14 +322,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
     x0_nll = - jnp.sum(x0_one_hot * logits) # changed mean to sum
 
     loss = score_entropy + nll_weight * x0_nll
-    
-    # Sample from q_T to estimate the elbo
-    # (S,) float array of the logits of the stationary distribution
-    # pi_logits = forward_process.target_logits()
-    # xT = jr.categorical(key_T, logits=pi_logits, shape=(D,))
-    # log_pi_eval_xT = jnp.sum(pi_logits[xT])
-    # This elbo is probably not meaningful at all
-    # elbo = jnp.sum(- score_entropy + Rt_eval_y * y_mask) + log_pi_eval_xT
 
     scalar_dict = {
         "loss": loss,

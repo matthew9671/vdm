@@ -26,8 +26,8 @@ def get_config():
   config = ml_collections.ConfigDict()
   config.exp_name = "exp_vdm"
   config.model_type = "model_transformer"
-  config.ckpt_restore_dir = 'None'
-  # config.ckpt_restore_dir = 'gs://maskdiff/cond_hollow/240928/checkpoints-0/'
+  # config.ckpt_restore_dir = 'None'
+  config.ckpt_restore_dir = 'gs://maskdiff/cond_hollow/240929/checkpoints-0/'
 
   config.use_hollow_transformer = True
   
@@ -53,15 +53,15 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=16, # Cut the number of steps in half due to using correctors
+    num_steps=128, # Cut the number of steps in half due to using correctors
     max_samples=10_000, update_type="euler", # "tau_leaping", "gillespies", "euler", "test_convergence"
     # max_samples=128, update_type="test_convergence",
     tag="",
     # corrector=None,
-    corrector="mpf_full", corrector_step_size=.001,
+    # corrector="mpf_full", corrector_step_size=.001,
     # corrector="barker_full", corrector_step_size=.001,
-    # corrector="forward_backward", corrector_step_size=2.,
-    corrector_entry_time=0.5,
+    corrector="forward_backward", corrector_step_size=2.,
+    corrector_entry_time=0.9,
     num_corrector_steps=1,
 
     # Testing corrector convergence
@@ -83,7 +83,7 @@ def get_config():
       seed=1,
       substeps=1,
       num_steps_lr_warmup=100,
-      num_steps_train=700_000, #100_000_000,
+      num_steps_train=1_200_000, #100_000_000,
       num_steps_eval=100,
       batch_size_train=768, #1024 in paper version
       batch_size_eval=1024,

@@ -63,6 +63,7 @@ def compute_backward(y, t, apply_fn, params, config, forward_process):
 
     # Change the score such that the score for the non-masked dimensions are inverted
     # This only works for absorbing (masking) diffusion ofcourse
+    # TODO: this is incorrect!
     mask_token = S - 1
     backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
     forward_score_from_curr = jnp.concatenate([jnp.zeros((D, S-1)), 1 / backward_score_to_curr[:, None]], axis=1)
