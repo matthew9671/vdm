@@ -58,7 +58,7 @@ def get_config():
     # max_samples=128, update_type="test_convergence",
     tag="",
     # corrector=None,
-    corrector="mpf_full", corrector_step_size=.001,
+    corrector="mpf_full", corrector_step_size=.0002,
     # corrector="barker_full", corrector_step_size=.001,
     # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.9,
