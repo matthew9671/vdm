@@ -102,6 +102,8 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     x = xT
     S = config.data.codebook_size + 1
     D = config.data.seq_length
+
+    mask = S-1
     
     if config.sampler.update_type == "euler":
         update_func = euler_update
@@ -182,7 +184,9 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
 
-    x0_pred = jnp.argmax(x0_logits, axis=1)
+    # x0_pred = jnp.argmax(x0_logits, axis=1)
+    # Instead of potentially updating every position, update only the masks
+    x0_pred = jnp.where(x == mask, jnp.argmax(x0_logits, axis=1), x)
 
     return x0_pred, x_hist
 
