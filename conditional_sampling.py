@@ -186,7 +186,7 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
 
     # x0_pred = jnp.argmax(x0_logits, axis=1)
     # Instead of potentially updating every position, update only the masks
-    x0_pred = jnp.where(x == mask, jnp.argmax(x0_logits, axis=1), x)
+    x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
 
     return x0_pred, x_hist
 
