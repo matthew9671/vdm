@@ -457,7 +457,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "updated_results_10_10.csv"
+    file_name = "updated_results_10_14.csv"
     csv_file = os.path.join(logdir, file_name)
 
     if jax.process_index() == 0:
@@ -467,12 +467,12 @@ class Experiment_MaskDiff_Conditional(Experiment):
         df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
           'cstep_size', 'num_pstep', 'corrector', 'fid'])
 
-    # methods = ["euler"]
-    # num_csteps = [1, 2]
-    # entry_times = [.9, .5, .3]
-    # cstep_sizes = [2., 1., 5.] # divide by 100 for mpf stepsizes
-    # num_psteps = [16, 32, 64, 128]
-    # correctors = ["forward_backward", "mpf", "barker"]
+    methods = ["euler"]
+    num_csteps = [1, 2]
+    entry_times = [.9, .5]
+    cstep_sizes = [.5, 1., 2., 4., 8.] # divide by 100 for mpf stepsizes
+    num_psteps = [8, 16, 32, 64, 128]
+    correctors = ["forward_backward", "mpf", "barker"]
 
     # methods = ["euler"]
     # num_csteps = [1, 2]
@@ -481,12 +481,12 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # num_psteps = [8, 16, 32, 64]
     # correctors = ["mpf", "barker", "mpf_full", "barker_full"]
 
-    methods = ["euler"]
-    num_csteps = [1, 2]
-    entry_times = [.9, .5]
-    cstep_sizes = [0.0002, 0.0005, .001, .002, .004,]
-    num_psteps = [8, 16]
-    correctors = ["mpf_full", "barker_full"]
+    # methods = ["euler"]
+    # num_csteps = [1, 2]
+    # entry_times = [.9, .5]
+    # cstep_sizes = [0.0002, 0.0005, .001, .002, .004,]
+    # num_psteps = [8, 16]
+    # correctors = ["mpf_full", "barker_full"]
 
     no_corrector_experiments = itertools.product(
       methods[:1], num_csteps[:1], entry_times[:1], 
@@ -494,20 +494,21 @@ class Experiment_MaskDiff_Conditional(Experiment):
     params_combination = itertools.product(methods, num_csteps, entry_times, 
       cstep_sizes, num_psteps, correctors)
 
-    # params_combination = itertools.chain(no_corrector_experiments, 
-    #   params_combination)
+    params_combination = itertools.chain(no_corrector_experiments, 
+      params_combination)
 
     cfg = self.config.sampler
 
     for method, num_cstep, entry_time, cstep_size, num_pstep, corrector in params_combination:
-      # # Adjust mpf stepsize
-      # if "mpf" in corrector:
-      #   cstep_size /= 100
+      # Adjust mpf stepsize
+      if corrector == "mpf":
+        cstep_size /= 100
       # elif "barker_full" in corrector: # Seems like barker with full connection is also problematic...???
       #   cstep_size /= 100
 
-      # Keep the absolute stepsize constant
-      cstep_size *= num_pstep / 32
+      # if "full" in corrector:
+      #   # Keep the absolute stepsize constant
+      #   cstep_size *= num_pstep / 32
 
       cfg.num_steps = num_pstep
       cfg.update_type = method
