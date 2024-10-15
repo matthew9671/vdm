@@ -59,8 +59,8 @@ def get_config():
     tag="restricted",
     # corrector=None,
     # corrector="mpf_full", corrector_step_size=.001,
-    # corrector="barker", corrector_step_size=2.,
-    corrector="forward_backward", corrector_step_size=2.,
+    corrector="barker", corrector_step_size=2.,
+    # corrector="forward_backward", corrector_step_size=2.,
     corrector_entry_time=0.9,
     num_corrector_steps=1,
 
