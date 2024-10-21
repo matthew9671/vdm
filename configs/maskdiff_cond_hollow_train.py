@@ -53,19 +53,21 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=32, # Cut the number of steps in half due to using correctors
+    num_steps=128, # Cut the number of steps in half due to using correctors
     max_samples=10_000, update_type="euler", # "tau_leaping", "gillespies", "euler", "test_convergence"
     # max_samples=128, update_type="test_convergence",
     tag="restricted",
     # corrector=None,
-    corrector="mpf_full", corrector_step_size=.001,
+    # corrector="mpf_full", corrector_step_size=.001,
     # corrector="barker", corrector_step_size=2.,
-    # corrector="forward_backward", corrector_step_size=2.,
+    corrector="forward_backward", corrector_step_size=4.,
     corrector_entry_time=0.9,
     num_corrector_steps=1,
 
     # Testing corrector convergence
     predictor_cutoff_time=0.25, convergence_steps=100,
+    # Only update masked tokens at the last argmax step
+    restricted=True
   )
 
   config.noise = d(

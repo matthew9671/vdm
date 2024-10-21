@@ -184,9 +184,11 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
 
-    x0_pred = jnp.argmax(x0_logits, axis=1)
-    # Instead of potentially updating every position, update only the masks
-    # x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
+    if not config.sampler.restricted:
+        x0_pred = jnp.argmax(x0_logits, axis=1)
+    else:
+        # Instead of potentially updating every position, update only the masks
+        x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
 
     return x0_pred, x_hist
 
