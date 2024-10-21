@@ -58,7 +58,7 @@ def get_config():
     # max_samples=128, update_type="test_convergence",
     tag="restricted",
     # corrector=None,
-    corrector="mpf", corrector_step_size=.04,
+    corrector="mpf", corrector_step_size=.02,
     # corrector="barker", corrector_step_size=4.,
     # corrector="forward_backward", corrector_step_size=4.,
     corrector_entry_time=0.5,
@@ -67,7 +67,7 @@ def get_config():
     # Testing corrector convergence
     predictor_cutoff_time=0.25, convergence_steps=100,
     # Only update masked tokens at the last argmax step
-    restricted=True
+    restricted=False,#True
   )
 
   config.noise = d(
