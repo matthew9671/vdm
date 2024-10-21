@@ -37,7 +37,10 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
     # However, now each dimension is assumed to be a mask token
     # This is the change that fixes everything!
-    qt0_eval_y = qt0[:,mask][None] + eps 
+    # qt0_eval_y = qt0[:,mask][None] + eps
+
+    # TODO: we're reverting this fix to test if mpf still goes well for low pstep count 
+    qt0_eval_y = qt0[:,y].T + eps
 
     st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
                            precision=jax.lax.Precision.HIGHEST)
