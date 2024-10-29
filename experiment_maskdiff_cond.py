@@ -27,7 +27,8 @@ import flax.jax_utils as flax_utils
 
 from vdm.conditional_sampling import backward_process_no_corrector, backward_process_pc_single, \
   backward_process_pc_multiple, backward_process_pc_k_gillespies, \
-  backward_process_pc_k_gillespies_euler, test_corrector_convergence
+  backward_process_pc_k_gillespies_euler, test_corrector_convergence, \
+  backward_process_gibbs
 
 import fidjax
 import pandas as pd
@@ -560,6 +561,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
         backward_process = backward_process_pc_k_gillespies_euler
       elif config.sampler.update_type == "test_convergence":
         backward_process = test_corrector_convergence
+      elif config.sampler.update_type == "gibbs":
+        backward_process = backward_process_gibbs
       else: # tau-leaping or euler
         if config.sampler.num_corrector_steps == 1:
           backward_process = backward_process_pc_single

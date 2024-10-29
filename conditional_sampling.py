@@ -193,6 +193,57 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
 
     return x0_pred, x_hist
 
+def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_process):
+
+    S = config.data.codebook_size + 1
+    D = config.data.seq_length
+    mask = S - 1
+    k = config.sampler.k
+    t = ts[0]
+    x = xT
+    
+    update_func = euler_update
+
+    def _step(carry, idx):
+        x, key = carry
+        p_key, c_key, key = jr.split(key, 3)
+        t = ts[idx]
+        dt = t - ts[idx+1]
+
+        # Predictor
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        rp = res["rates"]
+        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+
+        # Corrector
+        res = compute_backward(x, t-dt, apply_fn, params, config, forward_process)
+        logits = res["x0_logits"].at[:, mask].set(-jnp.inf)
+        # Sample a bunch of new values according to denoising model
+        corrected = jr.categorical(c_key, logits).astype(jnp.int32)
+        # Figure out locations with the lowest score
+        # Since the score is proportional to the denoising prob anyways, we're just gonna use the logits again
+        scores = res["x0_logits"][jnp.arange(D), x[1:-1]].T
+        scores = jnp.where(x[1:-1] == mask, jnp.inf, scores)
+        # Trick: sort and then find the kth smallest
+        thres = jnp.sort(scores, axis=-1)[k-1]
+        x = x.at[1:-1].set(jnp.where((scores <= thres) & (x[1:-1] != mask), corrected, x[1:-1]))
+        
+        out = { "x": x, }
+        
+        return (x, key), out
+
+    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
+    res = compute_backward(x, t, apply_fn, params, config, forward_process)
+    x0_logits = res["x0_logits"]
+
+    if not config.sampler.restricted:
+        x0_pred = jnp.argmax(x0_logits, axis=1)
+    else:
+        # Instead of potentially updating every position, update only the masks
+        x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
+
+    return x0_pred, x_hist
+
 def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_process):
     """
     We assume that 1 corrector step is always used after each predictor step 
