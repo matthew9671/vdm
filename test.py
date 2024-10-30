@@ -5,8 +5,8 @@ import jax
 
 print("Imported jax successfully")
 
-# # The total number of TPU cores in the Pod
-# device_count = jax.device_count()
+# The total number of TPU cores in the Pod
+device_count = jax.device_count()
 
 # # The number of TPU cores attached to this host
 # local_device_count = jax.local_device_count()
