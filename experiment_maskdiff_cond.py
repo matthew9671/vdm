@@ -433,6 +433,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
       stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
       ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
+      logging.info("put the stats onto the cpu")
       score = fid.compute_score(stats_cpu, ref_cpu)
       logging.info(f"FID score: {score}")
 
