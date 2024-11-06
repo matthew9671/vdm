@@ -11,3 +11,4 @@ tensorflow-datasets
 tensorflow-probability
 optax
 ipython
+pandas

@@ -429,6 +429,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       logging.info("Finished saving samples and activations. Computing FID...")
       stats = fid.compute_stats(all_acts)
+      logging.info("Computed stats")
       # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
       stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
       ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
