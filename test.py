@@ -1,10 +1,6 @@
-print("Hello world!")
-
 # The following code snippet will be run on all TPU hosts
 import jax
 import socket
-
-print("Imported jax successfully")
 
 # # The total number of TPU cores in the Pod
 # device_count = jax.device_count()
@@ -17,21 +13,19 @@ print("Imported jax successfully")
 # r = jax.pmap(lambda x: jax.lax.psum(x, 'i'), axis_name='i')(xs)
 
 # # Print from a single host to avoid duplicated output
-# if jax.process_index() == 0:
-#     print('global device count:', jax.device_count())
-#     print('local device count:', jax.local_device_count())
-#     print('pmap result:', r)
-    
-#     print("Worker " + socket.gethostname() + " has process id 0.")
 
 import fidjax
-print("Imported fidjax successfully")
-
 import jax.numpy as jnp
+
+print("Imported fidjax successfully")
 
 if jax.process_index() == 0:
 
-    print("Process id = 0")
+    print('global device count:', jax.device_count())
+    print('local device count:', jax.local_device_count())
+    print('pmap result:', r)
+    
+    print("Worker " + socket.gethostname() + " has process id 0.")
 
     weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
