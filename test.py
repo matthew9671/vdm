@@ -26,20 +26,20 @@ if jax.process_index() == 0:
     
     print("Worker " + socket.gethostname() + " has process id 0.")
 
-    # weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
-    # reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
-    # fid = fidjax.FID(weights, reference)
+    weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
+    reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
+    fid = fidjax.FID(weights, reference)
       
-    # all_acts = jnp.load("/home/yixiuz/logs/samples/16psteps_1mpf_size=0.04_late_entry_acts.npy", allow_pickle=True)      
-    # print("Loaded activations")
+    all_acts = jnp.load("/home/yixiuz/logs/samples/16psteps_1mpf_size=0.04_late_entry_acts.npy", allow_pickle=True)      
+    print("Loaded activations")
     
-    # stats = fid.compute_stats(all_acts[:1000])
-    # print("Computed stats")
+    stats = fid.compute_stats(all_acts[:1000])
+    print("Computed stats")
     
-    # # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
-    # stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
-    # ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
-    # print("Put the arrays on the cpu")
+    # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
+    stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
+    ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
+    print("Put the arrays on the cpu")
     
-    # score = fid.compute_score(stats_cpu, ref_cpu)
-    # print(f"FID score: {score}")
+    score = fid.compute_score(stats_cpu, ref_cpu)
+    print(f"FID score: {score}")
