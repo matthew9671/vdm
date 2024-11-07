@@ -27,6 +27,8 @@
 import jax
 import fidjax
 
+import jax.numpy as jnp
+
 if jax.process_index() == 0:
     weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
