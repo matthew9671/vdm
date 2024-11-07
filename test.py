@@ -41,5 +41,16 @@ if jax.process_index() == 0:
     ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
     print("Put the arrays on the cpu")
     
-    score = fid.compute_score(stats_cpu, ref_cpu)
+    # score = fid.compute_score(stats_cpu, ref_cpu)
+
+    mu1, sigma1 = stats_cpu
+    mu2, sigma2 = ref_cpu
+    diff = mu1 - mu2
+    offset = jnp.eye(sigma1.shape[0]) * 1e-6
+    print("Computing sqrtm")
+    covmean = jax.scipy.linalg.sqrtm((sigma1 + offset) @ (sigma2 + offset))
+    print("Finished computing sqrtm")
+    covmean = jnp.real(covmean)
+    score = diff @ diff + jnp.trace(sigma1 + sigma2 - 2 * covmean)
+
     print(f"FID score: {score}")
