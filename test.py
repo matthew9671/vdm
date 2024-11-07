@@ -5,6 +5,9 @@ import fidjax
 import jax.numpy as jnp
 from absl import logging
 
+import scipy
+import numpy as np
+
 # The total number of TPU cores in the Pod
 device_count = jax.device_count()
 
@@ -48,9 +51,9 @@ if jax.process_index() == 0:
     diff = mu1 - mu2
     offset = jnp.eye(sigma1.shape[0]) * 1e-6
     print("Computing sqrtm")
-    covmean = jax.scipy.linalg.sqrtm((sigma1 + offset) @ (sigma2 + offset))
+    covmean = scipy.linalg.sqrtm((sigma1 + offset) @ (sigma2 + offset))
     print("Finished computing sqrtm")
-    covmean = jnp.real(covmean)
-    score = diff @ diff + jnp.trace(sigma1 + sigma2 - 2 * covmean)
+    covmean = np.real(covmean)
+    score = diff @ diff + np.trace(sigma1 + sigma2 - 2 * covmean)
 
     print(f"FID score: {score}")
