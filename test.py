@@ -17,7 +17,7 @@ r = jax.pmap(lambda x: jax.lax.psum(x, 'i'), axis_name='i')(xs)
 import fidjax
 import jax.numpy as jnp
 
-print("Imported fidjax successfully")
+# print("Imported fidjax successfully")
 
 if jax.process_index() == 0:
 
