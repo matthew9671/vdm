@@ -36,10 +36,10 @@ if jax.process_index() == 0:
     stats = fid.compute_stats(all_acts[:1000])
     print("Computed stats")
     
-    # # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
-    # stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
-    # ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
-    # print("Put the arrays on the cpu")
+    # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
+    stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
+    ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
+    print("Put the arrays on the cpu")
     
     # score = fid.compute_score(stats_cpu, ref_cpu)
     # print(f"FID score: {score}")
