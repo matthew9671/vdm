@@ -1,10 +1,10 @@
-# print("Hello world!")
+print("Hello world!")
 
-# # The following code snippet will be run on all TPU hosts
-# import jax
-# import socket
+# The following code snippet will be run on all TPU hosts
+import jax
+import socket
 
-# print("Imported jax successfully")
+print("Imported jax successfully")
 
 # # The total number of TPU cores in the Pod
 # device_count = jax.device_count()
@@ -24,8 +24,8 @@
     
 #     print("Worker " + socket.gethostname() + " has process id 0.")
 
-import jax
 import fidjax
+print("Imported fidjax successfully")
 
 import jax.numpy as jnp
 
