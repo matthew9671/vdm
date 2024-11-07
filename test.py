@@ -36,10 +36,12 @@ if jax.process_index() == 0:
       
     all_acts = jnp.load("/home/yixiuz/logs/samples/16psteps_1mpf_size=0.04_late_entry_acts.npy", allow_pickle=True)      
     stats = fid.compute_stats(all_acts)
+
+    print("Loaded activations")
     # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
     stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
     ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
-      
+    print("Put the arrays on the cpu")
     
     score = fid.compute_score(stats_cpu, ref_cpu)
     print(f"FID score: {score}")
