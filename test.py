@@ -30,6 +30,9 @@ print("Imported fidjax successfully")
 import jax.numpy as jnp
 
 if jax.process_index() == 0:
+
+    print("Process id = 0")
+
     weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
