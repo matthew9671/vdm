@@ -33,8 +33,8 @@ if jax.process_index() == 0:
     all_acts = jnp.load("/home/yixiuz/logs/samples/16psteps_1mpf_size=0.04_late_entry_acts.npy", allow_pickle=True)      
     print("Loaded activations")
     
-    # stats = fid.compute_stats(all_acts[:1000])
-    # print("Computed stats")
+    stats = fid.compute_stats(all_acts[:1000])
+    print("Computed stats")
     
     # # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
     # stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
