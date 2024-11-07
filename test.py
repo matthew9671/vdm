@@ -26,12 +26,12 @@ if jax.process_index() == 0:
     
     print("Worker " + socket.gethostname() + " has process id 0.")
 
-    # weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
-    # reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
+    weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
+    reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     # fid = fidjax.FID(weights, reference)
       
-    # all_acts = jnp.load("/home/yixiuz/logs/samples/16psteps_1mpf_size=0.04_late_entry_acts.npy", allow_pickle=True)      
-    # print("Loaded activations")
+    all_acts = jnp.load("/home/yixiuz/logs/samples/16psteps_1mpf_size=0.04_late_entry_acts.npy", allow_pickle=True)      
+    print("Loaded activations")
     
     # stats = fid.compute_stats(all_acts[:1000])
     # print("Computed stats")
