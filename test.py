@@ -41,5 +41,5 @@ if jax.process_index() == 0:
     ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
     print("Put the arrays on the cpu")
     
-    # score = fid.compute_score(stats_cpu, ref_cpu)
-    # print(f"FID score: {score}")
+    score = fid.compute_score(stats_cpu, ref_cpu)
+    print(f"FID score: {score}")
