@@ -16,6 +16,7 @@ xs = jax.numpy.ones(jax.local_device_count())
 r = jax.pmap(lambda x: jax.lax.psum(x, 'i'), axis_name='i')(xs)
 
 # Print from a single host to avoid duplicated output
+print(f"What is going on? Says process {jax.process_index()}")
 
 if jax.process_index() == 0:
 
