@@ -1,4 +1,6 @@
 import numpy as np
+import scipy
+
 import jax.numpy as jnp
 import jax.random as jr
 from jax._src.random import PRNGKey
@@ -429,20 +431,25 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       logging.info("Finished saving samples and activations. Computing FID...")
       stats = fid.compute_stats(all_acts)
-      logging.info("Computed stats")
       # We have to move these to the cpu since matrix sqrt is not supported by tpus yet
       stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
       ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
-      logging.info("put the stats onto the cpu")
-      
+    
+      # score = fid.compute_score(stats_cpu, ref_cpu)
+      mu1, sigma1 = stats_cpu
+      mu2, sigma2 = ref_cpu
+      diff = mu1 - mu2
+      offset = jnp.eye(sigma1.shape[0]) * 1e-6
+      covmean = scipy.linalg.sqrtm((sigma1 + offset) @ (sigma2 + offset))
+      covmean = np.real(covmean)
+      score = diff @ diff + np.trace(sigma1 + sigma2 - 2 * covmean)
+
+      logging.info(f"FID score: {score}")
 
       if save_imgs:
         jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(all_acts, axis=0))
         jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', jnp.concatenate(all_images, axis=0))
-        logging.info("saved activations and images")
-
-      score = fid.compute_score(stats_cpu, ref_cpu)
-      logging.info(f"FID score: {score}")
+        logging.info("Saved activations and images")
 
       logging.info(f"======= Complete =======")
 
