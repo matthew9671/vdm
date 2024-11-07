@@ -434,11 +434,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
       stats_cpu = jax.device_put(stats, device=jax.devices("cpu")[0])
       ref_cpu = jax.device_put(fid.ref, device=jax.devices("cpu")[0])
       logging.info("put the stats onto the cpu")
-      score = fid.compute_score(stats_cpu, ref_cpu)
-      logging.info(f"FID score: {score}")
+      
 
       if save_imgs:
+        jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(all_acts, axis=0))
         jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', jnp.concatenate(all_images, axis=0))
+        logging.info("saved activations and images")
+
+      score = fid.compute_score(stats_cpu, ref_cpu)
+      logging.info(f"FID score: {score}")
 
       logging.info(f"======= Complete =======")
 
