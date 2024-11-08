@@ -59,7 +59,7 @@ def get_config():
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
     tag="gibbs",
-    corrector=None,
+    corrector="gibbs",
     # corrector="mpf", corrector_step_size=.04,
     # corrector="barker", corrector_step_size=4.,
     # corrector="forward_backward", corrector_step_size=4.,
