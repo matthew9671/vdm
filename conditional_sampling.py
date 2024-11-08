@@ -204,19 +204,12 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     
     update_func = euler_update
 
-    def _step(carry, idx):
-        x, key = carry
-        p_key, c_key, key = jr.split(key, 3)
-        t = ts[idx]
-        dt = t - ts[idx+1]
-
-        # Predictor
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
-        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+    def _c_step(i, carry):
+        x, key, t = carry
+        key, c_key = jr.split(key, 2)
 
         # Corrector
-        res = compute_backward(x, t-dt, apply_fn, params, config, forward_process)
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
         logits = res["x0_logits"].at[:, mask].set(-jnp.inf)
         # Sample a bunch of new values according to denoising model
         corrected = jr.categorical(c_key, logits).astype(jnp.int32)
@@ -227,7 +220,27 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         # Trick: sort and then find the kth smallest
         thres = jnp.sort(scores, axis=-1)[k-1]
         x = x.at[1:-1].set(jnp.where((scores <= thres) & (x[1:-1] != mask), corrected, x[1:-1]))
-        
+
+        return (x, key, t)
+    
+    def _step(carry, idx):
+        x, key = carry
+        key, p_key, c_key = jr.split(key, 3)
+
+        t = ts[idx]
+        dt = t - ts[idx+1]
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        rp = res["rates"]
+        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+
+        # Change current time (!!)
+        t -= dt
+
+        # Corrector
+        x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
+                        lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t))[0],
+                        lambda x: x, x) 
+
         out = { "x": x, }
         
         return (x, key), out
