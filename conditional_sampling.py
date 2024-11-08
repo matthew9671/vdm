@@ -242,7 +242,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         # Instead of potentially updating every position, update only the masks
         x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
 
-    return x0_pred, x_hist
+    return x0_pred, x_hist["x"]
 
 def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_process):
     """
