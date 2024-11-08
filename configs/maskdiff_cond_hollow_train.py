@@ -70,7 +70,7 @@ def get_config():
     predictor_cutoff_time=0.25, convergence_steps=100,
     # Only update masked tokens at the last argmax step
     restricted=False,#True
-    k = 12,
+    k = 16,
   )
 
   config.noise = d(
