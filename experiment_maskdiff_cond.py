@@ -479,7 +479,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
         df = pd.read_csv(csv_file)
       else:
         df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
-          'cstep_size', 'num_pstep', 'corrector', 'fid'])
+          'cstep_size', 'num_pstep', 'corrector', 'fid', 'k'])
 
     methods = ["euler"]
     num_csteps = [1,]
@@ -562,7 +562,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
         'cstep_size': [cstep_size], 
         'num_pstep': [num_pstep], 
         'corrector': [corrector], 
-        'fid': [fid_score]
+        'fid': [fid_score],
+        'k': [k]
       }
 
       if jax.process_index() == 0:
