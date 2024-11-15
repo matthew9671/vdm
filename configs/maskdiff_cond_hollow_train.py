@@ -55,8 +55,8 @@ def get_config():
     seed=42,
     num_steps=8, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
-    # "tau_leaping", "gillespies", "euler", "test_convergence", "gibbs"
-    update_type="gibbs", 
+    # "tau_leaping", "gillespies", "euler", "test_convergence"
+    update_type="euler", 
     # max_samples=128, update_type="test_convergence",
     tag="gibbs",
     corrector="gibbs", corrector_step_size=0,

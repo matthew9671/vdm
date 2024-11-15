@@ -471,7 +471,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "updated_results_10_14.csv"
+    file_name = "gibbs_results_11_14.csv"
     csv_file = os.path.join(logdir, file_name)
 
     if jax.process_index() == 0:
@@ -482,11 +482,19 @@ class Experiment_MaskDiff_Conditional(Experiment):
           'cstep_size', 'num_pstep', 'corrector', 'fid'])
 
     methods = ["euler"]
-    num_csteps = [1, 2]
+    num_csteps = [1,]
     entry_times = [.9, .5]
-    cstep_sizes = [.5, 1., 2., 4., 8.] # divide by 100 for mpf stepsizes
+    cstep_sizes = [0] # divide by 100 for mpf stepsizes
     num_psteps = [8, 16, 32, 64, 128]
-    correctors = ["forward_backward", "mpf", "barker"]
+    ks = [1, 2, 4, 8, 16]
+    correctors = ["gibbs"]
+
+    # methods = ["euler"]
+    # num_csteps = [1, 2]
+    # entry_times = [.9, .5]
+    # cstep_sizes = [.5, 1., 2., 4., 8.] # divide by 100 for mpf stepsizes
+    # num_psteps = [8, 16, 32, 64, 128]
+    # correctors = ["forward_backward", "mpf", "barker"]
 
     # methods = ["euler"]
     # num_csteps = [1, 2]
@@ -506,17 +514,19 @@ class Experiment_MaskDiff_Conditional(Experiment):
       methods[:1], num_csteps[:1], entry_times[:1], 
       cstep_sizes[:1], num_psteps, [None])
     params_combination = itertools.product(methods, num_csteps, entry_times, 
-      cstep_sizes, num_psteps, correctors)
+      cstep_sizes, num_psteps, correctors, 
+      # Gibbs only
+      ks)
 
-    params_combination = itertools.chain(no_corrector_experiments, 
-      params_combination)
+    # params_combination = itertools.chain(no_corrector_experiments, 
+    #   params_combination)
 
     cfg = self.config.sampler
 
-    for method, num_cstep, entry_time, cstep_size, num_pstep, corrector in params_combination:
-      # Adjust mpf stepsize
-      if corrector == "mpf":
-        cstep_size /= 100
+    for method, num_cstep, entry_time, cstep_size, num_pstep, corrector, k in params_combination:
+      # # Adjust mpf stepsize
+      # if corrector == "mpf":
+      #   cstep_size /= 100
       # elif "barker_full" in corrector: # Seems like barker with full connection is also problematic...???
       #   cstep_size /= 100
 
@@ -530,6 +540,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       cfg.corrector_step_size = cstep_size
       cfg.corrector_entry_time = entry_time
       cfg.num_corrector_steps = num_cstep
+      # Only for k-Gibbs/Gilespies
+      cfg.k = k
 
       # Redefine the sample function now that we have changed configs
       self.p_sample = partial(self.sample_fn, dummy_inputs=None)
@@ -574,7 +586,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
         backward_process = backward_process_pc_k_gillespies_euler
       elif config.sampler.update_type == "test_convergence":
         backward_process = test_corrector_convergence
-      elif config.sampler.update_type == "gibbs":
+      elif config.sampler.corrector == "gibbs":
         backward_process = backward_process_gibbs
       else: # tau-leaping or euler
         if config.sampler.num_corrector_steps == 1:

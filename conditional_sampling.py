@@ -202,7 +202,12 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     t = ts[0]
     x = xT
     
-    update_func = euler_update
+    if config.sampler.update_type == "euler":
+        update_func = euler_update
+    elif config.sampler.update_type == "tau_leaping": 
+        update_func = poisson_jump_reject
+    else:
+        raise Exception(f"Unknown update type: {config.sampler.update_type}")
 
     def _c_step(i, carry):
         x, key, t = carry
