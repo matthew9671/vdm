@@ -193,6 +193,52 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
 
     return x0_pred, x_hist
 
+def mask_conditional_k_gillespies_update(key, x, rates, mask=1024, k=1):
+    eps = 1e-6
+    key_exp, key_cat = jr.split(key)
+    
+    # Get holding times for each dimension
+    D = x.shape[0]
+
+    rates = rates.at[jnp.arange(D), x].set(0)
+    rates = rates.at[jnp.arange(D), mask].set(0)
+            
+    # Compute total rate (D,)
+    rates_sum = jnp.sum(rates, axis=-1)
+    # Sample a holding time (D,)
+    taus = jr.exponential(key, shape=(D,)) / (rates_sum + eps)
+    taus = jnp.where(x == mask, jnp.inf, taus)
+    # Find which locations each dimension would transition to conditioning on a transition
+    jump_target = jr.categorical(key_cat, jnp.log(rates + eps)).astype(jnp.int32)
+
+    taus_sorted = jnp.sort(taus, axis=-1)
+    # Obtains cut off threshold given the number of updates.
+    cutoff = taus_sorted[k-1]
+
+    # TODO: add safety that prevents updates if rates_sum is lower than some threshold
+    out = jnp.where((taus <= cutoff) & (x != mask), jump_target, x)
+    return out
+
+def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024):
+    D = x.shape[0]
+
+    logits = x0_logits.at[:, mask].set(-jnp.inf)
+    # Sample a bunch of new values according to denoising model
+    corrected = jr.categorical(key, logits).astype(jnp.int32)
+    # Figure out locations with the lowest score
+    # Since the score is proportional to the denoising prob anyways, we're just gonna use the logits again
+    scores = x0_logits[jnp.arange(D), x].T
+    scores = jnp.where(x == mask, jnp.inf, scores)
+    # Trick: sort and then find the kth smallest
+    thres = jnp.sort(scores, axis=-1)[k-1]
+    out = jnp.where((scores <= thres) & (x != mask), corrected, x)
+    return out
+
+def gibbs_corrector(res):
+    # Just return the denoising logits
+    # Should only be used with the gibbs_update function
+    return res["x0_logits"]
+
 def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_process):
 
     S = config.data.codebook_size + 1
@@ -202,30 +248,33 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     t = ts[0]
     x = xT
     
-    if config.sampler.update_type == "euler":
-        update_func = euler_update
-    elif config.sampler.update_type == "tau_leaping": 
-        update_func = poisson_jump_reject
+    # Always use the euler update for the predictor
+    update_func = euler_update
+
+    if corrector == "gibbs":
+        corrector_rate = gibbs_corrector
+        corrector_update = mask_conditonal_gibbs_update
     else:
-        raise Exception(f"Unknown update type: {config.sampler.update_type}")
+        # Always use the full corrector because we allow transition between non-masks
+        if "barker" in corrector:
+            corrector_rate = barker_corrector_full
+        elif "mpf" in corrector:
+            corrector_rate = mpf_corrector_full
+        else:
+            raise Exception(f"Invalid corrector for Gibbs: {corrector}")
+        corrector_update = mask_conditional_k_gillespies_update
 
     def _c_step(i, carry):
         x, key, t = carry
         key, c_key = jr.split(key, 2)
-
-        # Corrector
+        
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        logits = res["x0_logits"].at[:, mask].set(-jnp.inf)
-        # Sample a bunch of new values according to denoising model
-        corrected = jr.categorical(c_key, logits).astype(jnp.int32)
-        # Figure out locations with the lowest score
-        # Since the score is proportional to the denoising prob anyways, we're just gonna use the logits again
-        scores = res["x0_logits"][jnp.arange(D), x[1:-1]].T
-        scores = jnp.where(x[1:-1] == mask, jnp.inf, scores)
-        # Trick: sort and then find the kth smallest
-        thres = jnp.sort(scores, axis=-1)[k-1]
-        x = x.at[1:-1].set(jnp.where((scores <= thres) & (x[1:-1] != mask), corrected, x[1:-1]))
+        rc = corrector_rate(res)
 
+        x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask)
+
+        x = x.at[1:-1].set(x_update)
+        
         return (x, key, t)
     
     def _step(carry, idx):

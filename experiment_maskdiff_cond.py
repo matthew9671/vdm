@@ -587,7 +587,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
         backward_process = backward_process_pc_k_gillespies_euler
       elif config.sampler.update_type == "test_convergence":
         backward_process = test_corrector_convergence
-      elif config.sampler.corrector == "gibbs":
+      elif config.sampler.update_type == "gibbs":
         backward_process = backward_process_gibbs
       else: # tau-leaping or euler
         if config.sampler.num_corrector_steps == 1:

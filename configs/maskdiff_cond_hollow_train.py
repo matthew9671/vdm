@@ -55,22 +55,22 @@ def get_config():
     seed=42,
     num_steps=8, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
-    # "tau_leaping", "gillespies", "euler", "test_convergence"
-    update_type="euler", 
+    # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
+    update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
-    tag="gibbs",
-    corrector="gibbs", corrector_step_size=0,
-    # corrector="mpf", corrector_step_size=.04,
+    tag="gibbs_Gillespies",
+    # corrector="gibbs", corrector_step_size=0,
+    corrector="mpf", corrector_step_size=0,
     # corrector="barker", corrector_step_size=4.,
     # corrector="forward_backward", corrector_step_size=4.,
-    corrector_entry_time=0.7,
+    corrector_entry_time=0.9,
     num_corrector_steps=1,
 
     # Testing corrector convergence
     predictor_cutoff_time=0.25, convergence_steps=100,
     # Only update masked tokens at the last argmax step
     restricted=False,#True
-    k = 16,
+    k = 8,
   )
 
   config.noise = d(
