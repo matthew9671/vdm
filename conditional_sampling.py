@@ -234,6 +234,21 @@ def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024):
     out = jnp.where((scores <= thres) & (x != mask), corrected, x)
     return out
 
+def mask_conditonal_gibbs_update_uninformed(key, x, x0_logits, k=1, mask=1024):
+    D = x.shape[0]
+
+    key_dim, key_cat = jr.split(key)
+
+    logits = x0_logits.at[:, mask].set(-jnp.inf)
+    # Sample a bunch of new values according to denoising model
+    corrected = jr.categorical(key_cat, logits).astype(jnp.int32)
+    # For random choice we just sample from uniform as the score
+    scores = jr.uniform(key_dim, shape=(D,))
+    # Trick: sort and then find the kth smallest
+    thres = jnp.sort(scores, axis=-1)[k-1]
+    out = jnp.where((scores <= thres) & (x != mask), corrected, x)
+    return out
+
 def gibbs_corrector(res):
     # Just return the denoising logits
     # Should only be used with the gibbs_update function
@@ -255,6 +270,9 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     if corrector == "gibbs":
         corrector_rate = gibbs_corrector
         corrector_update = mask_conditonal_gibbs_update
+    elif corrector == "gibbs_uninformed":
+        corrector_rate = gibbs_corrector
+        corrector_update = mask_conditonal_gibbs_update_uninformed
     else:
         # Always use the full corrector because we allow transition between non-masks
         if "barker" in corrector:
