@@ -251,6 +251,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     # Always use the euler update for the predictor
     update_func = euler_update
 
+    corrector = config.sampler.corrector
     if corrector == "gibbs":
         corrector_rate = gibbs_corrector
         corrector_update = mask_conditonal_gibbs_update
