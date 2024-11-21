@@ -219,6 +219,45 @@ def mask_conditional_k_gillespies_update(key, x, rates, mask=1024, k=1):
     out = jnp.where((taus <= cutoff) & (x != mask), jump_target, x)
     return out
 
+def mask_conditional_k_gillespies_update_mpf(key, x, x0_logits, mask=1024, k=1):
+    """
+    Compute MPF rates directly from logits
+    """
+    eps = 1e-6
+    key_exp, key_cat = jr.split(key)
+    
+    D = x.shape[0]
+
+    def _mpf_rates(logits):
+
+        curr_logits = logits[jnp.arange(D), x]
+        log_score = logits - curr_logits[:, None]
+
+        rates = jnp.exp(log_score * 0.5)
+        return rates
+
+    rates = _mpf_rates(x0_logits)
+
+    # Get holding times for each dimension
+    rates = rates.at[jnp.arange(D), x].set(0)
+    rates = rates.at[jnp.arange(D), mask].set(0)
+            
+    # Compute total rate (D,)
+    rates_sum = jnp.sum(rates, axis=-1)
+    # Sample a holding time (D,)
+    taus = jr.exponential(key, shape=(D,)) / (rates_sum + eps)
+    taus = jnp.where(x == mask, jnp.inf, taus)
+    # Find which locations each dimension would transition to conditioning on a transition
+    jump_target = jr.categorical(key_cat, jnp.log(rates + eps)).astype(jnp.int32)
+
+    taus_sorted = jnp.sort(taus, axis=-1)
+    # Obtains cut off threshold given the number of updates.
+    cutoff = taus_sorted[k-1]
+
+    # TODO: add safety that prevents updates if rates_sum is lower than some threshold
+    out = jnp.where((taus <= cutoff) & (x != mask), jump_target, x)
+    return out
+
 def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024):
     D = x.shape[0]
 
@@ -273,6 +312,9 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     elif corrector == "gibbs_uninformed":
         corrector_rate = gibbs_corrector
         corrector_update = mask_conditonal_gibbs_update_uninformed
+    elif corrector == "alt_mpf":
+        corrector_rate = gibbs_corrector
+        corrector_update = mask_conditional_k_gillespies_update_mpf
     else:
         # Always use the full corrector because we allow transition between non-masks
         if "barker" in corrector:
