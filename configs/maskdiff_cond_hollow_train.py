@@ -58,9 +58,9 @@ def get_config():
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
-    tag="gibbs_Gillespies",
-    # corrector="gibbs", corrector_step_size=0,
-    corrector="mpf", corrector_step_size=0,
+    tag="",
+    corrector="gibbs_uninformed", corrector_step_size=0,
+    # corrector="mpf", corrector_step_size=0,
     # corrector="barker", corrector_step_size=4.,
     # corrector="forward_backward", corrector_step_size=4.,
     corrector_entry_time=0.9,
