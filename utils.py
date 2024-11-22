@@ -43,6 +43,7 @@ def get_file_name(config):
   cs = cfg.num_corrector_steps
   ct = cfg.corrector_entry_time
   ss = cfg.corrector_step_size
+  k = cfg.k
 
   if tag != "":
     tag = "_" + tag
@@ -52,7 +53,10 @@ def get_file_name(config):
   else:
     ct = ""
 
-  return f"{p}psteps_{cs}{c}_size={ss}{ct}{tag}"
+  size_info = "" if ss == 0 else f"_size={ss}"
+  k_info = "" if k == 0 else f"_k={k}"
+
+  return f"{p}psteps_{cs}{c}{size_info}{k_info}{ct}{tag}"
 
 def get_workdir():
   argv = sys.argv

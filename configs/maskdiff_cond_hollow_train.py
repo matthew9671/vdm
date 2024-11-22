@@ -58,9 +58,9 @@ def get_config():
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
-    tag="k=4",
-    corrector="gibbs_uninformed", corrector_step_size=0,
-    # corrector="alt_mpf", corrector_step_size=0,
+    tag="mpf_modified_gibbs",
+    # corrector="gibbs_uninformed", corrector_step_size=0,
+    corrector="alt_mpf", corrector_step_size=0,
     # corrector="mpf", corrector_step_size=0,
     # corrector="barker", corrector_step_size=4.,
     # corrector="forward_backward", corrector_step_size=4.,
@@ -71,7 +71,7 @@ def get_config():
     predictor_cutoff_time=0.25, convergence_steps=100,
     # Only update masked tokens at the last argmax step
     restricted=False,#True
-    k = 4,
+    k = 2,
   )
 
   config.noise = d(
