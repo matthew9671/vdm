@@ -233,10 +233,13 @@ def mask_conditional_k_gillespies_update_mpf(key, x, x0_logits, mask=1024, k=1):
         curr_logits = logits[jnp.arange(D), x]
         log_score = logits - curr_logits[:, None]
 
-        rates = jnp.exp(log_score * 0.5)
-        return rates
+        log_mpf = log_score * 0.5
+        log_mpf = log_mpf.at[jnp.arange(D), mask].set(-jnp.inf)
 
-    rates = _mpf_rates(x0_logits)
+        rates = jnp.exp(log_mpf)
+        return log_mpf, rates
+
+    log_rates, rates = _mpf_rates(x0_logits)
 
     # Get holding times for each dimension
     rates = rates.at[jnp.arange(D), x].set(0)
@@ -248,7 +251,7 @@ def mask_conditional_k_gillespies_update_mpf(key, x, x0_logits, mask=1024, k=1):
     taus = jr.exponential(key, shape=(D,)) / (rates_sum + eps)
     taus = jnp.where(x == mask, jnp.inf, taus)
     # Find which locations each dimension would transition to conditioning on a transition
-    jump_target = jr.categorical(key_cat, jnp.log(rates + eps)).astype(jnp.int32)
+    jump_target = jr.categorical(key_cat, log_rates).astype(jnp.int32)
 
     taus_sorted = jnp.sort(taus, axis=-1)
     # Obtains cut off threshold given the number of updates.
