@@ -253,6 +253,7 @@ def mask_conditional_k_gillespies_update_mpf(key, x, x0_logits, mask=1024, k=1):
     # Find which locations each dimension would transition to conditioning on a transition
     # It seems that it doesn't matter whether we include the self-transition or not
     # jump_target = jr.categorical(key_cat, jnp.log(rates + eps)).astype(jnp.int32)
+    logits = x0_logits.at[:, mask].set(-jnp.inf)
     jump_target = jr.categorical(key_cat, logits).astype(jnp.int32)
 
     taus_sorted = jnp.sort(taus, axis=-1)
