@@ -471,7 +471,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "gibbs_results_11_14.csv"
+    file_name = "random_gibbs_results_11_28.csv"
     csv_file = os.path.join(logdir, file_name)
 
     if jax.process_index() == 0:
@@ -481,13 +481,23 @@ class Experiment_MaskDiff_Conditional(Experiment):
         df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
           'cstep_size', 'num_pstep', 'corrector', 'fid', 'k'])
 
-    methods = ["euler"]
+    # From this point we added temperature so that 
+    # top k choice in gibbs is randomized
+    methods = ["gibbs"]
     num_csteps = [1,]
     entry_times = [.9, .5]
     cstep_sizes = [0] # divide by 100 for mpf stepsizes
     num_psteps = [8, 16, 32, 64, 128]
     ks = [1, 2, 4, 8, 16]
-    correctors = ["gibbs"]
+    correctors = ["gibbs_mpf", "gibbs_uninformed", "gibbs"]
+
+    # methods = ["gibbs"]
+    # num_csteps = [1,]
+    # entry_times = [.9, .5]
+    # cstep_sizes = [0] # divide by 100 for mpf stepsizes
+    # num_psteps = [8, 16, 32, 64, 128]
+    # ks = [1, 2, 4, 8, 16]
+    # correctors = ["gibbs"]
 
     # methods = ["euler"]
     # num_csteps = [1, 2]
