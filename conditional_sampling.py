@@ -264,19 +264,24 @@ def mask_conditional_k_gillespies_update_mpf(key, x, x0_logits, mask=1024, k=1):
     out = jnp.where((taus <= cutoff) & (x != mask), jump_target, x)
     return out
 
-def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024):
+def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024, temperature=0):
     D = x.shape[0]
+
+    key1, key2 = jr.split(key)
 
     logits = x0_logits.at[:, mask].set(-jnp.inf)
     # Sample a bunch of new values according to denoising model
-    corrected = jr.categorical(key, logits).astype(jnp.int32)
+    jump_target = jr.categorical(key1, logits).astype(jnp.int32)
     # Figure out locations with the lowest score
     # Since the score is proportional to the denoising prob anyways, we're just gonna use the logits again
     scores = x0_logits[jnp.arange(D), x].T
+    # Add temperature annealing
+    scores += temperature * jr.gumbel(key2, shape=(D,))
+
     scores = jnp.where(x == mask, jnp.inf, scores)
     # Trick: sort and then find the kth smallest
     thres = jnp.sort(scores, axis=-1)[k-1]
-    out = jnp.where((scores <= thres) & (x != mask), corrected, x)
+    out = jnp.where((scores <= thres) & (x != mask), jump_target, x)
     return out
 
 def mask_conditonal_gibbs_update_uninformed(key, x, x0_logits, k=1, mask=1024):
@@ -286,12 +291,15 @@ def mask_conditonal_gibbs_update_uninformed(key, x, x0_logits, k=1, mask=1024):
 
     logits = x0_logits.at[:, mask].set(-jnp.inf)
     # Sample a bunch of new values according to denoising model
-    corrected = jr.categorical(key_cat, logits).astype(jnp.int32)
+    jump_target = jr.categorical(key_cat, logits).astype(jnp.int32)
     # For random choice we just sample from uniform as the score
     scores = jr.uniform(key_dim, shape=(D,))
+    # We don't want to choose the masked dimensions
+    scores = scores.at[x == mask].set(jnp.inf)
+
     # Trick: sort and then find the kth smallest
     thres = jnp.sort(scores, axis=-1)[k-1]
-    out = jnp.where((scores <= thres) & (x != mask), corrected, x)
+    out = jnp.where((scores <= thres) & (x != mask), jump_target, x)
     return out
 
 def gibbs_corrector(res):
@@ -314,11 +322,14 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     corrector = config.sampler.corrector
     if corrector == "gibbs":
         corrector_rate = gibbs_corrector
-        corrector_update = mask_conditonal_gibbs_update
+        # k-Gibbs with temperature similar in MaskGIT
+        # Note that the MaskGIT implementation doesn't do annealing
+        corrector_update = partial(mask_conditonal_gibbs_update, 
+            temperature=config.sampler.top_k_temperature)
     elif corrector == "gibbs_uninformed":
         corrector_rate = gibbs_corrector
         corrector_update = mask_conditonal_gibbs_update_uninformed
-    elif corrector == "alt_mpf":
+    elif corrector == "gibbs_mpf":
         corrector_rate = gibbs_corrector
         corrector_update = mask_conditional_k_gillespies_update_mpf
     else:
