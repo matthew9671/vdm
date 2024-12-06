@@ -73,7 +73,7 @@ def get_config():
     # Only update masked tokens at the last argmax step
     restricted=False,#True
     k = 16,
-    top_k_temperature=10.
+    top_k_temperature=100.
   )
 
   config.noise = d(
