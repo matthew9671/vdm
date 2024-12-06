@@ -56,13 +56,13 @@ def get_config():
     num_steps=8, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
-    update_type="gibbs", 
+    update_type="euler", 
     # max_samples=128, update_type="test_convergence",
-    tag="test_small_temperature",
-    corrector="gibbs", corrector_step_size=0,
+    tag="test_log_score",
+    # corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
     # corrector="gibbs_mpf", corrector_step_size=0,
-    # corrector="mpf", corrector_step_size=0,
+    corrector="mpf", corrector_step_size=0.005,
     # corrector="barker", corrector_step_size=4.,
     # corrector="forward_backward", corrector_step_size=4.,
     corrector_entry_time=0.9,

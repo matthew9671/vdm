@@ -121,6 +121,10 @@ def mpf_corrector(res):
     score = res["score"]
     return coeff * jnp.sqrt(score)
 
+def mpf_corrector_log(res):
+    coeff = res["Rt_eval_x"] + res["Rt_eval_y"]
+    return coeff * jnp.exp(res["log_score"] * 0.5)
+
 def mpf_corrector_full(res):
     coeff = res["rate_scalar"]
     score = res["score"]

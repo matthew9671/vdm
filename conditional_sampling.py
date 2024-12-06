@@ -6,7 +6,8 @@ from tqdm import trange
 from functools import partial
 
 from vdm.sampling import poisson_jump_reject, euler_update, mpf_corrector, barker_corrector, \
-    forward_backward_corrector, k_gillespies_update, mpf_corrector_full, barker_corrector_full
+    forward_backward_corrector, k_gillespies_update, mpf_corrector_full, barker_corrector_full, \
+    mpf_corrector_log
 
 def compute_backward(y_with_label, t, apply_fn, params, config, forward_process):
     y_with_label = y_with_label.flatten()
@@ -26,11 +27,17 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     
     # Set corresponding values to mask 
     y_with_label = jnp.where((y_with_label == (S-1)), mask, y_with_label)
+    y = y_with_label[1:-1]
     x0_logits = apply_fn({"params": params}, y_with_label[None], t, 
         deterministic=True)
     # Only take the valid parts of the output
     x0_logits = x0_logits[0,1:-1,:S]
     
+    # # Set mask logits to minus infinity and normalize
+    # x0_logits = jnp.where(y == mask, -jnp.inf, x0_logits)
+    # x0_logits -= jax.scipy.special.logsumexp(x0_logits, axis=-1, 
+    #     keepdims=True)
+
     # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
     p0t_eval_y = softmax(x0_logits, axis=-1)
     
@@ -49,12 +56,16 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     # On mask dimensions this is dividing by 1, on non-mask it offsets the score function to be centered on y
     st_eval_y /= backward_score_to_curr[:,None]
 
+    # log score is easier to compute
+    log_score = x0_logits - x0_logits[jnp.arange(D), y:y+1]
+
     # (D, S) float array that masks out y[d] for each d index
     y_mask = jnp.ones((D, S))
     y_mask = y_mask.at[jnp.arange(D), y].set(0.0)
     
     results = {
         "score": st_eval_y,
+        "log_score": log_score,
         "rates": (st_eval_y * Rt_eval_y) * y_mask,
         "x0_logits": x0_logits,
         "Rt_eval_y": Rt_eval_y,
@@ -121,7 +132,8 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     elif corrector == "barker_full":
         corrector_rate = barker_corrector_full
     elif corrector == "mpf":
-        corrector_rate = mpf_corrector
+        # corrector_rate = mpf_corrector
+        corrector_rate = mpf_corrector_log
     elif corrector == "mpf_full":
         corrector_rate = mpf_corrector_full
     elif corrector == "forward_backward":
