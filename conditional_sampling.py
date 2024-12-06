@@ -57,7 +57,9 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     st_eval_y /= backward_score_to_curr[:,None]
 
     # log score is easier to compute
-    log_score = x0_logits - x0_logits[jnp.arange(D), y][:, None]
+    log_score = x0_logits
+    log_score = log_score.at[:, mask].set(0)
+    log_score = log_score - log_score[jnp.arange(D), y][:, None]
 
     # (D, S) float array that masks out y[d] for each d index
     y_mask = jnp.ones((D, S))
