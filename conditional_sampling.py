@@ -33,8 +33,8 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     # Only take the valid parts of the output
     x0_logits = x0_logits[0,1:-1,:S]
     
-    # # Set mask logits to minus infinity and normalize
-    x0_logits = jnp.where(y == mask, -jnp.inf, x0_logits)
+    # Set mask logits to minus infinity and normalize
+    x0_logits = x0_logits.at[:, mask].set(-jnp.inf)
     x0_logits -= jax.scipy.special.logsumexp(x0_logits, axis=-1, 
         keepdims=True)
 
