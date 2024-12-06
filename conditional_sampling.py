@@ -134,8 +134,8 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     elif corrector == "barker_full":
         corrector_rate = barker_corrector_full
     elif corrector == "mpf":
-        # corrector_rate = mpf_corrector
-        corrector_rate = mpf_corrector_log
+        corrector_rate = mpf_corrector
+        # corrector_rate = mpf_corrector_log
     elif corrector == "mpf_full":
         corrector_rate = mpf_corrector_full
     elif corrector == "forward_backward":
