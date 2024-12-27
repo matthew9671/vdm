@@ -52,12 +52,13 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
 
     # Since every dimension considers itself as the mask, we set the ratio to 1
     st_eval_y = st_eval_y.at[:, mask].set(1.0)
-    backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
+    backward_score_to_curr = st_eval_y[jnp.arange(D), y] #+ eps
     # On mask dimensions this is dividing by 1, on non-mask it offsets the score function to be centered on y
     st_eval_y /= backward_score_to_curr[:,None]
 
     # log score is easier to compute
-    log_score = x0_logits
+    alpha = qt0[0,0]
+    log_score = x0_logits + jnp.log(alpha) - jnp.log(1-alpha)
     log_score = log_score.at[:, mask].set(0)
     log_score = log_score - log_score[jnp.arange(D), y][:, None]
 
@@ -134,8 +135,8 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
     elif corrector == "barker_full":
         corrector_rate = barker_corrector_full
     elif corrector == "mpf":
-        corrector_rate = mpf_corrector
-        # corrector_rate = mpf_corrector_log
+        # corrector_rate = mpf_corrector
+        corrector_rate = mpf_corrector_log
     elif corrector == "mpf_full":
         corrector_rate = mpf_corrector_full
     elif corrector == "forward_backward":
