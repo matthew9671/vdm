@@ -270,9 +270,17 @@ class Experiment_MaskDiff_Conditional(Experiment):
     x0_logits = x0_logits[0, 1:-1, :S]
     # Set the mask prob to 0
     x0_logits = x0_logits.at[:, mask].set(-jnp.inf)
-    
+
     # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
     p0t_eval_y = softmax(x0_logits, axis=-1)
+    # Normalize x0 logits
+    log_p0t_eval_y = x0_logits - jax.scipy.special.logsumexp(x0_logits, axis=-1, 
+        keepdims=True)
+
+    alpha = qt0[0,0]
+    log_score = log_p0t_eval_y + jnp.log(alpha) - jnp.log(1-alpha)
+    log_score = log_score.at[:, mask].set(0)
+    log_score = log_score - log_score[jnp.arange(D), y][:, None]
 
     # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
     # qt0_eval_y = qt0[:,y].T + eps
@@ -315,9 +323,13 @@ class Experiment_MaskDiff_Conditional(Experiment):
     Rt_eval_x = Rt[y]
     # st_eval_y represents "score from y"
     # We only care when y is not mask
-    score_to_y = jnp.where((y == mask), 1, st_eval_y[jnp.arange(D), y])
-    score_entropy = jnp.sum(Rt_eval_y * y_mask * st_eval_y) \
-        - jnp.sum(Rt_eval_x[:, mask] * jnp.log(score_to_y + eps)) # changed mean to sum
+    # score_to_y = jnp.where((y == mask), 1, st_eval_y[jnp.arange(D), y])
+    # score_entropy = jnp.sum(Rt_eval_y * y_mask * st_eval_y) \
+    #     - jnp.sum(Rt_eval_x[:, mask] * jnp.log(score_to_y + eps)) # changed mean to sum
+
+    log_score_to_y = log_score[jnp.arange(D), y]
+    score_entropy = jnp.sum(Rt_eval_y * y_mask * jnp.exp(log_score)) \
+        - jnp.sum(Rt_eval_x[:, mask] * log_score_to_y) # changed mean to sum
     
     # Compute the cross entropy between prediction and data
     x0_one_hot = jax.nn.one_hot(x0, S)
@@ -628,7 +640,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
     label_arr = jnp.array([label + S], dtype=jnp.int32)
     xT_with_label = jnp.concatenate([label_arr, xT, label_arr])
     
-    ts = jnp.linspace(max_t, min_t, num_steps)
+    # We want the length of the sequence to be num_steps + 1
+    # Since we stop immediately after hitting min_t
+    ts = jnp.linspace(max_t, min_t, num_steps + 1)
     tokens, hist = backward_process(self.state.apply_fn, params, ts, config, xT_with_label, rng, 
       self.forward_process)
 

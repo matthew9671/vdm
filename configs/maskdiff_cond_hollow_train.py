@@ -58,11 +58,11 @@ def get_config():
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
     update_type="euler", 
     # max_samples=128, update_type="test_convergence",
-    tag="test_log_score",
-    # corrector="gibbs", corrector_step_size=0,
+    tag="zero_min_t",
+    corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
     # corrector="gibbs_mpf", corrector_step_size=0,
-    corrector="mpf", corrector_step_size=0.005,
+    # corrector="mpf", corrector_step_size=0.005,
     # corrector="barker", corrector_step_size=4.,
     # corrector="forward_backward", corrector_step_size=4.,
     corrector_entry_time=0.9,
@@ -72,8 +72,8 @@ def get_config():
     # predictor_cutoff_time=0.25, convergence_steps=100,
     # Only update masked tokens at the last argmax step
     restricted=False,#True
-    k = 0,
-    top_k_temperature=1.
+    k = 16,
+    top_k_temperature=0.
   )
 
   config.noise = d(
@@ -83,7 +83,8 @@ def get_config():
 
   config.training = d(
 
-      min_t=0.01,
+      # !!
+      min_t=0.0,
       max_t=1.,
       eps=1e-6,
       nll_weight=0.0,
