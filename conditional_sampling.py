@@ -368,7 +368,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 
         x = x.at[1:-1].set(x_update)
         
-        return (x, key, t)
+        return (x, key, t, k)
     
     def _step(carry, idx):
         x, key, k = carry
