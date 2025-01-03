@@ -364,6 +364,8 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         rc = corrector_rate(res)
 
         x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask)
+        # This is just to test how changing k messes with recompilation
+        k += 1
 
         x = x.at[1:-1].set(x_update)
         
