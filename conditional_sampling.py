@@ -357,7 +357,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         corrector_update = mask_conditional_k_gillespies_update
 
     def _c_step(i, carry):
-        x, key, t = carry
+        x, key, t, k = carry
         key, c_key = jr.split(key, 2)
         
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
@@ -365,14 +365,13 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 
         x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask)
         # This is just to test how changing k messes with recompilation
-        k += 1
 
         x = x.at[1:-1].set(x_update)
         
         return (x, key, t)
     
     def _step(carry, idx):
-        x, key = carry
+        x, key, k = carry
         key, p_key, c_key = jr.split(key, 3)
 
         t = ts[idx]
@@ -386,14 +385,14 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 
         # Corrector
         x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
-                        lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t))[0],
-                        lambda x: x, x) 
+                        lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
+                        lambda x: x, x)
 
         out = { "x": x, }
         
-        return (x, key), out
+        return (x, key, k+1), out
 
-    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
+    (x, _), x_hist = jax.lax.scan(_step, (xT, key, k), jnp.arange(len(ts)-1))
     res = compute_backward(x, t, apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
 
