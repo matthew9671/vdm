@@ -392,7 +392,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         
         return (x, key, k+1), out
 
-    (x, _), x_hist = jax.lax.scan(_step, (xT, key, k), jnp.arange(len(ts)-1))
+    (x, _, _), x_hist = jax.lax.scan(_step, (xT, key, k), jnp.arange(len(ts)-1))
     res = compute_backward(x, t, apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
 
