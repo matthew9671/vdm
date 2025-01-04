@@ -371,14 +371,17 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         return (x, key, t, k)
     
     def _step(carry, idx):
-        x, key, k = carry
+        x, key = carry
         key, p_key, c_key = jr.split(key, 3)
 
         t = ts[idx]
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
-        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+        update = update_func(p_key, x[1:-1], rp * dt)
+        # Figure out the number of updates
+        k = jnp.sum(x[1:-1] != update) // 2
+        x = x.at[1:-1].set(update)
 
         # Change current time (!!)
         t -= dt
@@ -390,9 +393,9 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 
         out = { "x": x, }
         
-        return (x, key, k+1), out
+        return (x, key), out
 
-    (x, _, _), x_hist = jax.lax.scan(_step, (xT, key, k), jnp.arange(len(ts)-1))
+    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
     res = compute_backward(x, t, apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
 
