@@ -379,8 +379,8 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
         update = update_func(p_key, x[1:-1], rp * dt)
-        # Figure out the number of updates
-        k = jnp.sum(x[1:-1] != update) // 2
+        # Figure out the number of changed dimension and setting k accordingly
+        k = jnp.floor(jnp.sum(x[1:-1] != update) * 0.3).astype(int)
         x = x.at[1:-1].set(update)
 
         # Change current time (!!)
