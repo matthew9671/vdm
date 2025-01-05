@@ -379,10 +379,12 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
         update = update_func(p_key, x[1:-1], rp * dt)
-        # Figure out the number of changed dimension and setting k accordingly
-        k = jnp.round(jnp.sum(x[1:-1] != update)).astype(int)
-        # cap k
-        k = jnp.minimum(k, 16)
+
+        # We're not using adaptive k at this time
+        # # Figure out the number of changed dimension and setting k accordingly
+        # k = jnp.round(jnp.sum(x[1:-1] != update)).astype(int)
+        # # cap k
+        # k = jnp.minimum(k, 16)
         x = x.at[1:-1].set(update)
 
         # Change current time (!!)
@@ -409,148 +411,36 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 
     return x0_pred, x_hist["x"]
 
-def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_process):
-    """
-    We assume that 1 corrector step is always used after each predictor step 
-    """
-    t = ts[0]
-    x = xT
+def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024):
+    D = x.shape[0]
+
+    key_dim, key_cat = jr.split(key)
+
+    logits = x0_logits.at[:, mask].set(-jnp.inf)
+    # Sample a bunch of new values according to denoising model
+    jump_target = jr.categorical(key1, logits).astype(jnp.int32)
+    # Compute the confidence score on each dimensions
+    confidence = x0_logits[jnp.arange(D), jump_target].T
+    # Add temperature annealing
+    confidence += temperature * jr.gumbel(key2, shape=(D,))
+    # Only update masks, set confidence for non-masks to 0
+    confidence = jnp.where(x != mask, -jnp.inf, confidence)
+    # Trick: sort and then find the kth largest
+    thres = -jnp.sort(-confidence, axis=-1)[k-1]
+    out = jnp.where((confidence >= thres), jump_target, x)
+    return out
+
+def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_process):
+
     S = config.data.codebook_size + 1
     D = config.data.seq_length
-    
-    update_func = euler_update
-
-    corrector = config.sampler.corrector
-    start = int(len(ts) * (1 - config.sampler.corrector_entry_time))
-    end = int(len(ts) * (1 - config.sampler.predictor_cutoff_time))
-    test_steps = config.sampler.convergence_steps
-
-    if corrector == "barker":
-        corrector_rate = barker_corrector
-    elif corrector == "barker_full":
-        corrector_rate = barker_corrector_full
-    elif corrector == "mpf":
-        corrector_rate = mpf_corrector
-    elif corrector == "mpf_full":
-        corrector_rate = mpf_corrector_full
-    elif corrector == "forward_backward":
-        corrector_rate = forward_backward_corrector
-    else:
-        raise Exception(f"Unknown corrector: {corrector}")
-
-    corrector_step_size = config.sampler.corrector_step_size
-
-    def _p_step(carry, idx):
-        x, key = carry
-        key, p_key, c_key = jr.split(key, 3)
-
-        t = ts[idx]
-        dt = t - ts[idx+1]
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
-        # Only update the data, do not update the label
-        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
-
-        out = {"x": x,
-            # "rp": rp
-        }
-        return (x, key), out
-    
-    def _pc_step(carry, idx):
-        x, key = carry
-        key, p_key, c_key = jr.split(key, 3)
-
-        t = ts[idx]
-        dt = t - ts[idx+1]
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
-
-        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
-
-        # Change current time (!!)
-        t -= dt
-
-        # Corrector
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rc = corrector_rate(res)
-        x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
-
-        out = {"x": x,
-            # "rp": rp,
-            # "rc": rc
-        }
-        return (x, key), out
-
-    def _c_step(carry, idx):
-        x, key = carry
-        key, c_key = jr.split(key)
-
-        t = config.sampler.predictor_cutoff_time
-        dt = 1 / config.sampler.num_steps
-
-        # Corrector
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rc = corrector_rate(res)
-        x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
-
-        out = {"x": x,
-            # "rc": rc
-        }
-        return (x, key), out
-
-    t_ids = jnp.arange(len(ts)-1)
-    (x, key), out_1 = jax.lax.scan(_p_step, (xT, key), t_ids[:start])
-    (x, _), out_2 = jax.lax.scan(_pc_step, (x, key), t_ids[start:end])
-    (x, _), out_3 = jax.lax.scan(_c_step, (x, key), jnp.arange(test_steps))
-
-    x_hist = jnp.concatenate([out_1["x"], out_2["x"], out_3["x"]])
-    
-    res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
-    x0_logits = res["x0_logits"]
-
-    x0_pred = jnp.argmax(x0_logits, axis=1)
-
-    return x0_pred, x_hist
-
-def backward_process_pc_multiple(apply_fn, params, ts, config, xT, key, forward_process):
-    """
-    We assume that multiple corrector steps are used after each predictor step 
-    """
+    mask = S - 1
+    k = config.sampler.k
     t = ts[0]
     x = xT
 
-    corrector = config.sampler.corrector
-    corrector_step_size = 1 / config.sampler.num_steps * config.sampler.corrector_step_size
-    
-    if config.sampler.update_type == "euler":
-        update_func = euler_update
-    elif config.sampler.update_type == "tau_leaping": 
-        update_func = poisson_jump_reject
-    else:
-        raise Exception(f"Unknown update type: {config.sampler.update_type}")
-    
-    if corrector == "barker":
-        corrector_rate = barker_corrector
-    elif corrector == "barker_full":
-        corrector_rate = barker_corrector_full
-    elif corrector == "mpf":
-        corrector_rate = mpf_corrector
-    elif corrector == "mpf_full":
-        corrector_rate = mpf_corrector_full
-    elif corrector == "forward_backward":
-        corrector_rate = forward_backward_corrector
-    else:
-        raise Exception(f"Unknown corrector: {corrector}")
-
-    def _c_step(i, carry):
-        x, key, t = carry
-        key, c_key = jr.split(key, 2)
-        
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rc = corrector_rate(res)
-        x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * corrector_step_size))
-        
-        return (x, key, t)
+    update = partial(maskgit_predictor_update, 
+            temperature=config.sampler.top_k_temperature)
     
     def _step(carry, idx):
         x, key = carry
@@ -559,113 +449,291 @@ def backward_process_pc_multiple(apply_fn, params, ts, config, xT, key, forward_
         t = ts[idx]
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
-        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
 
-        # Change current time (!!)
-        t -= dt
+        # Figure out how many dimensions need to be unmasked
+        dm = forward_process.mask_percentage(t) - forward_process.mask_percentage(t-dt)
+        k = jnp.round(dm * D).astype(int)
 
-        # Corrector
-        x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
-                        lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t))[0],
-                        lambda x: x, x) 
+        x_update = corrector_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask)
 
-        return (x, key), x
+        x = x.at[1:-1].set(x_update)
 
-    t_ids = jnp.arange(len(ts)-1)
-    (x, key), x_hist = jax.lax.scan(_step, (xT, key), t_ids)
-    
-    res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
+        out = { "x": x, }
+        
+        return (x, key), out
+
+    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
+    res = compute_backward(x, t, apply_fn, params, config, forward_process)
     x0_logits = res["x0_logits"]
 
-    x0_pred = jnp.argmax(x0_logits, axis=1)
+    if not config.sampler.restricted:
+        x0_pred = jnp.argmax(x0_logits, axis=1)
+    else:
+        # Instead of potentially updating every position, update only the masks
+        x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
 
-    return x0_pred, x_hist
+    return x0_pred, x_hist["x"]
+
+# ---------------------------------------------------
+# These are pretty much obsolete
+
+def test_corrector_convergence(apply_fn, params, ts, config, xT, key, forward_process):
+#     """
+#     We assume that 1 corrector step is always used after each predictor step 
+#     """
+#     t = ts[0]
+#     x = xT
+#     S = config.data.codebook_size + 1
+#     D = config.data.seq_length
+    
+#     update_func = euler_update
+
+#     corrector = config.sampler.corrector
+#     start = int(len(ts) * (1 - config.sampler.corrector_entry_time))
+#     end = int(len(ts) * (1 - config.sampler.predictor_cutoff_time))
+#     test_steps = config.sampler.convergence_steps
+
+#     if corrector == "barker":
+#         corrector_rate = barker_corrector
+#     elif corrector == "barker_full":
+#         corrector_rate = barker_corrector_full
+#     elif corrector == "mpf":
+#         corrector_rate = mpf_corrector
+#     elif corrector == "mpf_full":
+#         corrector_rate = mpf_corrector_full
+#     elif corrector == "forward_backward":
+#         corrector_rate = forward_backward_corrector
+#     else:
+#         raise Exception(f"Unknown corrector: {corrector}")
+
+#     corrector_step_size = config.sampler.corrector_step_size
+
+#     def _p_step(carry, idx):
+#         x, key = carry
+#         key, p_key, c_key = jr.split(key, 3)
+
+#         t = ts[idx]
+#         dt = t - ts[idx+1]
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rp = res["rates"]
+#         # Only update the data, do not update the label
+#         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+
+#         out = {"x": x,
+#             # "rp": rp
+#         }
+#         return (x, key), out
+    
+#     def _pc_step(carry, idx):
+#         x, key = carry
+#         key, p_key, c_key = jr.split(key, 3)
+
+#         t = ts[idx]
+#         dt = t - ts[idx+1]
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rp = res["rates"]
+
+#         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+
+#         # Change current time (!!)
+#         t -= dt
+
+#         # Corrector
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rc = corrector_rate(res)
+#         x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
+
+#         out = {"x": x,
+#             # "rp": rp,
+#             # "rc": rc
+#         }
+#         return (x, key), out
+
+#     def _c_step(carry, idx):
+#         x, key = carry
+#         key, c_key = jr.split(key)
+
+#         t = config.sampler.predictor_cutoff_time
+#         dt = 1 / config.sampler.num_steps
+
+#         # Corrector
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rc = corrector_rate(res)
+#         x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * dt * corrector_step_size))
+
+#         out = {"x": x,
+#             # "rc": rc
+#         }
+#         return (x, key), out
+
+#     t_ids = jnp.arange(len(ts)-1)
+#     (x, key), out_1 = jax.lax.scan(_p_step, (xT, key), t_ids[:start])
+#     (x, _), out_2 = jax.lax.scan(_pc_step, (x, key), t_ids[start:end])
+#     (x, _), out_3 = jax.lax.scan(_c_step, (x, key), jnp.arange(test_steps))
+
+#     x_hist = jnp.concatenate([out_1["x"], out_2["x"], out_3["x"]])
+    
+#     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
+#     x0_logits = res["x0_logits"]
+
+#     x0_pred = jnp.argmax(x0_logits, axis=1)
+
+#     return x0_pred, x_hist
+
+def backward_process_pc_multiple(apply_fn, params, ts, config, xT, key, forward_process):
+#     """
+#     We assume that multiple corrector steps are used after each predictor step 
+#     """
+#     t = ts[0]
+#     x = xT
+
+#     corrector = config.sampler.corrector
+#     corrector_step_size = 1 / config.sampler.num_steps * config.sampler.corrector_step_size
+    
+#     if config.sampler.update_type == "euler":
+#         update_func = euler_update
+#     elif config.sampler.update_type == "tau_leaping": 
+#         update_func = poisson_jump_reject
+#     else:
+#         raise Exception(f"Unknown update type: {config.sampler.update_type}")
+    
+#     if corrector == "barker":
+#         corrector_rate = barker_corrector
+#     elif corrector == "barker_full":
+#         corrector_rate = barker_corrector_full
+#     elif corrector == "mpf":
+#         corrector_rate = mpf_corrector
+#     elif corrector == "mpf_full":
+#         corrector_rate = mpf_corrector_full
+#     elif corrector == "forward_backward":
+#         corrector_rate = forward_backward_corrector
+#     else:
+#         raise Exception(f"Unknown corrector: {corrector}")
+
+#     def _c_step(i, carry):
+#         x, key, t = carry
+#         key, c_key = jr.split(key, 2)
+        
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rc = corrector_rate(res)
+#         x = x.at[1:-1].set(update_func(c_key, x[1:-1], rc * corrector_step_size))
+        
+#         return (x, key, t)
+    
+#     def _step(carry, idx):
+#         x, key = carry
+#         key, p_key, c_key = jr.split(key, 3)
+
+#         t = ts[idx]
+#         dt = t - ts[idx+1]
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rp = res["rates"]
+#         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+
+#         # Change current time (!!)
+#         t -= dt
+
+#         # Corrector
+#         x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
+#                         lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t))[0],
+#                         lambda x: x, x) 
+
+#         return (x, key), x
+
+#     t_ids = jnp.arange(len(ts)-1)
+#     (x, key), x_hist = jax.lax.scan(_step, (xT, key), t_ids)
+    
+#     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
+#     x0_logits = res["x0_logits"]
+
+#     x0_pred = jnp.argmax(x0_logits, axis=1)
+
+#     return x0_pred, x_hist
 
 def backward_process_pc_k_gillespies(apply_fn, params, ts, config, xT, key, forward_process):
-    """
-    We assume that 1 corrector step is always used after each predictor step 
-    """
-    # Assuming 1D data
-    D = config.data.seq_length
-    S = config.data.codebook_size
-    corrector = config.sampler.corrector
-    k = config.sampler.k
-    corrector_entry_time = config.sampler.corrector_entry_time
-    corrector_cutoff = config.sampler.corrector_step_cutoff
+#     """
+#     We assume that 1 corrector step is always used after each predictor step 
+#     """
+#     # Assuming 1D data
+#     D = config.data.seq_length
+#     S = config.data.codebook_size
+#     corrector = config.sampler.corrector
+#     k = config.sampler.k
+#     corrector_entry_time = config.sampler.corrector_entry_time
+#     corrector_cutoff = config.sampler.corrector_step_cutoff
     
-    t = ts[0]
-    x = xT
+#     t = ts[0]
+#     x = xT
 
-    update_func = poisson_jump_reject
+#     update_func = poisson_jump_reject
     
-    if corrector == "barker":
-        corrector_rate = barker_corrector
-    elif corrector == "mpf":
-        corrector_rate = mpf_corrector
-    elif corrector == "forward_backward":
-        corrector_rate = forward_backward_corrector
-    else:
-        raise Exception(f"Unknown corrector: {corrector}")
+#     if corrector == "barker":
+#         corrector_rate = barker_corrector
+#     elif corrector == "mpf":
+#         corrector_rate = mpf_corrector
+#     elif corrector == "forward_backward":
+#         corrector_rate = forward_backward_corrector
+#     else:
+#         raise Exception(f"Unknown corrector: {corrector}")
 
-    def _corrector_entry_cond(state):
-        _, x, t, _ = state
-        no_corrector = (jnp.sum(x == (S-1)) / D) > corrector_entry_time
-        not_at_end = t > ts[-1]
-        return jnp.logical_and(no_corrector, not_at_end)
+#     def _corrector_entry_cond(state):
+#         _, x, t, _ = state
+#         no_corrector = (jnp.sum(x == (S-1)) / D) > corrector_entry_time
+#         not_at_end = t > ts[-1]
+#         return jnp.logical_and(no_corrector, not_at_end)
     
-    def _end_cond(state):
-        key, x, t, i = state
-        not_at_end = t > ts[-1]
-        return not_at_end
+#     def _end_cond(state):
+#         key, x, t, i = state
+#         not_at_end = t > ts[-1]
+#         return not_at_end
 
-    def _p_step(state):
-        key, x, t, nfe = state
-        key, p_key, c_key = jr.split(key, 3)
+#     def _p_step(state):
+#         key, x, t, nfe = state
+#         key, p_key, c_key = jr.split(key, 3)
 
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
-        x_update, dt = k_gillespies_update(p_key, x[1:-1], rp, k=k)
-        x = x.at[1:-1].set(x_update)
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rp = res["rates"]
+#         x_update, dt = k_gillespies_update(p_key, x[1:-1], rp, k=k)
+#         x = x.at[1:-1].set(x_update)
 
-        t -= dt 
+#         t -= dt 
         
-        return (key, x, t, nfe+1)
+#         return (key, x, t, nfe+1)
     
-    def _pc_step(state):
-        key, x, t, nfe = state
-        key, p_key, c_key = jr.split(key, 3)
+#     def _pc_step(state):
+#         key, x, t, nfe = state
+#         key, p_key, c_key = jr.split(key, 3)
 
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
-        x_update, dt = k_gillespies_update(p_key, x[1:-1], rp, k=k)
-        x = x.at[1:-1].set(x_update)
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rp = res["rates"]
+#         x_update, dt = k_gillespies_update(p_key, x[1:-1], rp, k=k)
+#         x = x.at[1:-1].set(x_update)
 
-        t -= dt 
+#         t -= dt 
         
-        # Corrector
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rc = corrector_rate(res)
-        x_update, _ = k_gillespies_update(c_key, x[1:-1], rc, cutoff=corrector_cutoff)
-        x = x.at[1:-1].set(x_update)
+#         # Corrector
+#         res = compute_backward(x, t, apply_fn, params, config, forward_process)
+#         rc = corrector_rate(res)
+#         x_update, _ = k_gillespies_update(c_key, x[1:-1], rc, cutoff=corrector_cutoff)
+#         x = x.at[1:-1].set(x_update)
 
-        return (key, x, t, nfe+2)
+#         return (key, x, t, nfe+2)
 
-    key, x, t, nfe = jax.lax.while_loop(_corrector_entry_cond, _p_step, (key, xT, t, 0))
-    _, x, t, nfe = jax.lax.while_loop(_end_cond, _pc_step, (key, x, t, nfe))
+#     key, x, t, nfe = jax.lax.while_loop(_corrector_entry_cond, _p_step, (key, xT, t, 0))
+#     _, x, t, nfe = jax.lax.while_loop(_end_cond, _pc_step, (key, x, t, nfe))
     
-    x_hist = {
-        "t": t,
-        "nfe": nfe,
-        "mask_count": jnp.sum(x == (S-1))
-    }
+#     x_hist = {
+#         "t": t,
+#         "nfe": nfe,
+#         "mask_count": jnp.sum(x == (S-1))
+#     }
 
-    res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
-    x0_logits = res["x0_logits"]
+#     res = compute_backward(x, ts[-1], apply_fn, params, config, forward_process)
+#     x0_logits = res["x0_logits"]
 
-    x0_pred = jnp.argmax(x0_logits, axis=1)
+#     x0_pred = jnp.argmax(x0_logits, axis=1)
 
-    return x0_pred, x_hist
+#     return x0_pred, x_hist
 
 def backward_process_pc_k_gillespies_euler(apply_fn, params, ts, config, xT, key, forward_process):
     """

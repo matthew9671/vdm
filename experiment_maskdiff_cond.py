@@ -30,7 +30,7 @@ import flax.jax_utils as flax_utils
 from vdm.conditional_sampling import backward_process_no_corrector, backward_process_pc_single, \
   backward_process_pc_multiple, backward_process_pc_k_gillespies, \
   backward_process_pc_k_gillespies_euler, test_corrector_convergence, \
-  backward_process_gibbs
+  backward_process_gibbs, backward_process_maskgit
 
 import fidjax
 import pandas as pd
@@ -611,7 +611,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
     config = self.config
 
     if config.sampler.corrector:
-      if config.sampler.update_type == "gillespies":
+      if config.sampler.update_type == "maskgit":
+        backward_process = backward_process_maskgit
+      elif config.sampler.update_type == "gillespies":
         backward_process = backward_process_pc_k_gillespies
       elif config.sampler.update_type == "gillespies_euler":
         backward_process = backward_process_pc_k_gillespies_euler
