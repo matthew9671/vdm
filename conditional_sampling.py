@@ -497,14 +497,15 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
 
         x = x.at[1:-1].set(x_update)
 
-        # Change current time (!!)
-        t -= dt
+        if corrector_update is not None:
+            # Change current time (!!)
+            t -= dt
 
-        # Corrector
-        k = config.sampler.k
-        x = jax.lax.cond(t <= config.sampler.corrector_entry_time and corrector_update is not None,
-                        lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
-                        lambda x: x, x)
+            # Corrector
+            k = config.sampler.k
+            x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
+                            lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
+                            lambda x: x, x)
 
         out = { "x": x, }
         
