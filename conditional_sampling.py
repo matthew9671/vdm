@@ -547,7 +547,7 @@ def maskgit(apply_fn, params, ts, config, xT, key, forward_process):
            start_iter=0,
            choice_temperature=config.sampler.maskgit_temperature,
            mask_scheduling_method="cosine")
-    return x_hist[0, -1]
+    return x_hist[0, -1], x_hist[0]
 
 # ---------------------------------------------------
 # These are pretty much obsolete
