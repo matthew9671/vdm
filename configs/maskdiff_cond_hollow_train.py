@@ -53,13 +53,14 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=8, # Cut the number of steps in half due to using correctors
+    num_steps=16, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
-    update_type="maskgit", 
+    update_type="maskgit_original", 
     # max_samples=128, update_type="test_convergence",
-    tag="maskgit",
-    corrector="gibbs", corrector_step_size=0,
+    tag="maskgit_original",
+    corrector="", corrector_step_size=0,
+    # corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
     # corrector="gibbs_mpf", corrector_step_size=0,
     # corrector="mpf", corrector_step_size=0.005,

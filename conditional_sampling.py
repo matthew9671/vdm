@@ -9,6 +9,8 @@ from vdm.sampling import poisson_jump_reject, euler_update, mpf_corrector, barke
     forward_backward_corrector, k_gillespies_update, mpf_corrector_full, barker_corrector_full, \
     mpf_corrector_log
 
+from vdm.parallel_decode import decode
+
 def compute_backward(y_with_label, t, apply_fn, params, config, forward_process):
     y_with_label = y_with_label.flatten()
     y = y_with_label[1:-1]
@@ -522,6 +524,30 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
         x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
 
     return x0_pred, x_hist["x"]
+
+def maskgit(apply_fn, params, ts, config, xT, key, forward_process):
+
+    S = config.data.codebook_size + 1
+    mask = -1
+
+    def tokens_to_logits(y): 
+        x0_logits = apply_fn({"params": params}, y, t=0, deterministic=True)
+        # We keep the label dimensions because they won't be updated anyway
+        return x0_logits[:,:S]
+
+    # Add batch dimension
+    inputs = jnp.where((xT == (S-1)), mask, xT)[None]
+    rng = key
+
+    x_hist = decode(inputs,
+           rng,
+           tokens_to_logits,
+           mask_token_id=mask,
+           num_iter=config.sampler.num_steps,
+           start_iter=0,
+           choice_temperature=config.sampler.maskgit_temperature,
+           mask_scheduling_method="cosine")
+    return x_hist[0, -1]
 
 # ---------------------------------------------------
 # These are pretty much obsolete
