@@ -69,7 +69,7 @@ class State:
 
 def state_init(init_indices, rng, num_iter, start_iter=0):
   """Initializes the decoding state data structure."""
-  cur_index0 = jnp.Array(start_iter)
+  cur_index0 = jnp.array(start_iter)
   cur_seqs0 = init_indices
   final_seqs0 = jnp.expand_dims(init_indices, 1)
   final_seqs0 = jnp.tile(final_seqs0, (1, num_iter, 1))
