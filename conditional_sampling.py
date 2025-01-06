@@ -418,11 +418,11 @@ def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024, temperature=0):
 
     logits = x0_logits.at[:, mask].set(-jnp.inf)
     # Sample a bunch of new values according to denoising model
-    jump_target = jr.categorical(key1, logits).astype(jnp.int32)
+    jump_target = jr.categorical(key_cat, logits).astype(jnp.int32)
     # Compute the confidence score on each dimensions
     confidence = x0_logits[jnp.arange(D), jump_target].T
     # Add temperature annealing
-    confidence += temperature * jr.gumbel(key2, shape=(D,))
+    confidence += temperature * jr.gumbel(key_dim, shape=(D,))
     # Only update masks, set confidence for non-masks to 0
     confidence = jnp.where(x != mask, -jnp.inf, confidence)
     # Trick: sort and then find the kth largest
