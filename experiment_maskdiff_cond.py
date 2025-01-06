@@ -629,7 +629,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
       logging.info(f"Using sampling strategy: {config.sampler.update_type}")
       logging.info(f"Using corrector: {config.sampler.corrector}")
     else:
-      backward_process = backward_process_no_corrector
+      if config.sampler.update_type == "maskgit":
+        backward_process = backward_process_maskgit
+      else:
+        backward_process = backward_process_no_corrector
 
     S = config.data.codebook_size + 1
     D = config.data.seq_length
