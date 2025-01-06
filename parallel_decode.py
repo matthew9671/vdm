@@ -60,16 +60,16 @@ def mask_by_random_topk(rng, mask_len, probs, temperature=1.0):
 class State:
   """Holds decoding state data."""
   # The position of the decoding loop in the length dimension.
-  cur_index: jnp.Array  # scalar int32: current decoded length index
+  cur_index: jax.Array  # scalar int32: current decoded length index
   # The active sequence log probabilities and finished sequence scores.
-  cur_seqs: jnp.Array  # int32 [batch, seq_len]
-  rng: jnp.Array  # Sampling random state.
-  final_seqs: jnp.Array  # int32 [batch, num_iter, seq_len]
+  cur_seqs: jax.Array  # int32 [batch, seq_len]
+  rng: jax.Array  # Sampling random state.
+  final_seqs: jax.Array  # int32 [batch, num_iter, seq_len]
 
 
 def state_init(init_indices, rng, num_iter, start_iter=0):
   """Initializes the decoding state data structure."""
-  cur_index0 = jnp.array(start_iter)
+  cur_index0 = jax.Array(start_iter)
   cur_seqs0 = init_indices
   final_seqs0 = jnp.expand_dims(init_indices, 1)
   final_seqs0 = jnp.tile(final_seqs0, (1, num_iter, 1))
@@ -89,7 +89,7 @@ def decode(inputs,
   Args:
     inputs: int32 array: [batch_size, seq_length] input sequence of masked
       tokens, where the masking tokens is defined by mask_token_id.
-    rng: jnp.Array: sampling random state.
+    rng: jax.Array: sampling random state.
     tokens_to_logits: decoder function taking single token slices and cache and
       returning logits and updated cache.
     mask_token_id: int: [Mask] token id.
