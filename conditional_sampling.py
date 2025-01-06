@@ -439,7 +439,7 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
     t = ts[0]
     x = xT
 
-    update = partial(maskgit_predictor_update, 
+    predictor_update = partial(maskgit_predictor_update, 
             temperature=config.sampler.top_k_temperature)
     
     def _step(carry, idx):
@@ -454,7 +454,7 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
         dm = forward_process.mask_percentage(t) - forward_process.mask_percentage(t-dt)
         k = jnp.round(dm * D).astype(int)
 
-        x_update = corrector_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask)
+        x_update = predictor_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask)
 
         x = x.at[1:-1].set(x_update)
 
