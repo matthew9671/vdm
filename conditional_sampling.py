@@ -411,7 +411,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 
     return x0_pred, x_hist["x"]
 
-def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024):
+def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024, temperature=0):
     D = x.shape[0]
 
     key_dim, key_cat = jr.split(key)
