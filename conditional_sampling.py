@@ -440,8 +440,47 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
     x = xT
 
     predictor_update = partial(maskgit_predictor_update, 
-            temperature=config.sampler.top_k_temperature)
+            temperature=config.sampler.maskgit_temperature)
     
+    corrector = config.sampler.corrector
+    if corrector == "gibbs":
+        corrector_rate = gibbs_corrector
+        # k-Gibbs with temperature similar in MaskGIT
+        # Note that the MaskGIT implementation doesn't do annealing
+        corrector_update = partial(mask_conditonal_gibbs_update, 
+            temperature=config.sampler.top_k_temperature)
+    elif corrector == "gibbs_uninformed":
+        corrector_rate = gibbs_corrector
+        corrector_update = mask_conditonal_gibbs_update_uninformed
+    elif corrector == "gibbs_mpf":
+        corrector_rate = gibbs_corrector
+        corrector_update = mask_conditional_k_gillespies_update_mpf
+    elif corrector == "":
+        corrector_update = None
+    else:
+        # Always use the full corrector because we allow transition between non-masks
+        if "barker" in corrector:
+            corrector_rate = barker_corrector_full
+        elif "mpf" in corrector:
+            corrector_rate = mpf_corrector_full
+        else:
+            raise Exception(f"Invalid corrector for Gibbs: {corrector}")
+        corrector_update = mask_conditional_k_gillespies_update
+
+    def _c_step(i, carry):
+        x, key, t, k = carry
+        key, c_key = jr.split(key, 2)
+        
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        rc = corrector_rate(res)
+
+        x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask)
+        # This is just to test how changing k messes with recompilation
+
+        x = x.at[1:-1].set(x_update)
+        
+        return (x, key, t, k)
+
     def _step(carry, idx):
         x, key = carry
         key, p_key, c_key = jr.split(key, 3)
@@ -457,6 +496,15 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
         x_update = predictor_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask)
 
         x = x.at[1:-1].set(x_update)
+
+        # Change current time (!!)
+        t -= dt
+
+        # Corrector
+        k = config.sampler.k
+        x = jax.lax.cond(t <= config.sampler.corrector_entry_time and corrector_update is not None,
+                        lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
+                        lambda x: x, x)
 
         out = { "x": x, }
         
