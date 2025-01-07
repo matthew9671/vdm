@@ -58,7 +58,7 @@ def get_config():
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
     update_type="maskgit", 
     # max_samples=128, update_type="test_convergence",
-    tag="maskgit_hollow",
+    tag="maskgit_test",
     corrector="", corrector_step_size=0,
     # corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
@@ -75,7 +75,7 @@ def get_config():
     restricted=False,
     k = 0,
     top_k_temperature=0.,
-    maskgit_temperature=2.75,
+    maskgit_temperature=4.5,
   )
 
   config.noise = d(

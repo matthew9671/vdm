@@ -452,8 +452,8 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
 
     predictor_update = partial(maskgit_predictor_update, 
             temperature=config.sampler.maskgit_temperature,
-            # Testing hollow maskgit
-            hollow=True)
+            # "Hollow maskgit" doesn't work yet
+            hollow=False)
     
     corrector = config.sampler.corrector
     if corrector == "gibbs":
@@ -504,8 +504,10 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
 
         # Figure out how many dimensions need to be unmasked
         dm = forward_process.mask_percentage(t) - forward_process.mask_percentage(t-dt)
-        k = jnp.round(dm * D).astype(int)
+        k = jnp.floor(dm * D).astype(int)
+        k = jnp.maximum(1, k)
 
+        # TODO: also implement temperature annealing (instead of constant temperature)
         x_update = predictor_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask)
 
         x = x.at[1:-1].set(x_update)
