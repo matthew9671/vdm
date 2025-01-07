@@ -450,8 +450,7 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
     t = ts[0]
     x = xT
 
-    predictor_update = partial(maskgit_predictor_update, 
-            temperature=config.sampler.maskgit_temperature,
+    predictor_update = partial(maskgit_predictor_update,
             # "Hollow maskgit" doesn't work yet
             hollow=False)
     
@@ -508,7 +507,8 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
         k = jnp.maximum(1, k)
 
         # TODO: also implement temperature annealing (instead of constant temperature)
-        x_update = predictor_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask)
+        x_update = predictor_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask,
+            temperature=config.sampler.maskgit_temperature * t)
 
         x = x.at[1:-1].set(x_update)
 
