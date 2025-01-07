@@ -75,7 +75,7 @@ def get_config():
     restricted=False,
     k = 0,
     top_k_temperature=0.,
-    maskgit_temperature=.5,
+    maskgit_temperature=3.,
   )
 
   config.noise = d(
