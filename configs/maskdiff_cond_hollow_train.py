@@ -56,9 +56,9 @@ def get_config():
     num_steps=16, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
-    update_type="maskgit_original", 
+    update_type="maskgit", 
     # max_samples=128, update_type="test_convergence",
-    tag="maskgit_original_unrestricted",
+    tag="maskgit_hollow",
     corrector="", corrector_step_size=0,
     # corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
@@ -71,9 +71,9 @@ def get_config():
 
     # Testing corrector convergence
     # predictor_cutoff_time=0.25, convergence_steps=100,
-    # Only update masked tokens at the last argmax step
-    restricted=False, # True
-    k = 4,
+    # If set to true, only update masked tokens at the last argmax step
+    restricted=False,
+    k = 0,
     top_k_temperature=0.,
     maskgit_temperature=4.5,
   )

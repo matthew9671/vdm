@@ -413,7 +413,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 
     return x0_pred, x_hist["x"]
 
-def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024, temperature=0):
+def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024, temperature=0, hollow=False):
     D = x.shape[0]
 
     key_dim, key_cat = jr.split(key)
@@ -425,11 +425,20 @@ def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024, temperature=0):
     confidence = x0_logits[jnp.arange(D), jump_target].T
     # Add temperature annealing
     confidence += temperature * jr.gumbel(key_dim, shape=(D,))
-    # Only update masks, set confidence for non-masks to 0
-    confidence = jnp.where(x != mask, -jnp.inf, confidence)
-    # Trick: sort and then find the kth largest
-    thres = -jnp.sort(-confidence, axis=-1)[k-1]
-    out = jnp.where((confidence >= thres), jump_target, x)
+    if not hollow:
+        # This should be the original maskgit
+        # Only update masks, set confidence for non-masks to 0
+        confidence = jnp.where(x != mask, -jnp.inf, confidence)
+        # Trick: sort and then find the kth largest
+        thres = -jnp.sort(-confidence, axis=-1)[k-1]
+        out = jnp.where((confidence >= thres), jump_target, x)
+    else:
+        # We don't care about the generated tokens
+        k += jnp.sum(x != mask).astype(int)
+        k = jnp.minimum(k, D)
+
+        thres = -jnp.sort(-confidence, axis=-1)[k-1]
+        out = jnp.where((confidence >= thres), jump_target, mask)
     return out
 
 def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_process):
@@ -442,7 +451,9 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
     x = xT
 
     predictor_update = partial(maskgit_predictor_update, 
-            temperature=config.sampler.maskgit_temperature)
+            temperature=config.sampler.maskgit_temperature,
+            # Testing hollow maskgit
+            hollow=True)
     
     corrector = config.sampler.corrector
     if corrector == "gibbs":
