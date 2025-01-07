@@ -56,7 +56,7 @@ def get_config():
     num_steps=16, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
-    update_type="maskgit_original", 
+    update_type="maskgit_original_unrestricted", 
     # max_samples=128, update_type="test_convergence",
     tag="maskgit_original",
     corrector="", corrector_step_size=0,

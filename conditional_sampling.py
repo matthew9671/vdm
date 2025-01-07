@@ -547,8 +547,19 @@ def maskgit(apply_fn, params, ts, config, xT, key, forward_process):
            start_iter=0,
            choice_temperature=config.sampler.maskgit_temperature,
            mask_scheduling_method="cosine")
-           
-    return x_hist[0, -1, 1:-1], x_hist[0]
+
+    x = x_hist[0, -1]
+
+    res = compute_backward(x, 0, apply_fn, params, config, forward_process)
+    x0_logits = res["x0_logits"]
+
+    if not config.sampler.restricted:
+        x0_pred = jnp.argmax(x0_logits, axis=1)
+    else:
+        # Instead of potentially updating every position, update only the masks
+        x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
+
+    return x0_pred, x_hist[0]
 
 # ---------------------------------------------------
 # These are pretty much obsolete
