@@ -533,7 +533,7 @@ def maskgit(apply_fn, params, ts, config, xT, key, forward_process):
     def tokens_to_logits(y): 
         x0_logits = apply_fn({"params": params}, y, t=0, deterministic=True)
         # We keep the label dimensions because they won't be updated anyway
-        return x0_logits[:,:S]
+        return x0_logits[...,:S]
 
     # Add batch dimension
     inputs = jnp.where((xT == (S-1)), mask, xT)[None]
@@ -547,6 +547,7 @@ def maskgit(apply_fn, params, ts, config, xT, key, forward_process):
            start_iter=0,
            choice_temperature=config.sampler.maskgit_temperature,
            mask_scheduling_method="cosine")
+           
     return x_hist[0, -1, 1:-1], x_hist[0]
 
 # ---------------------------------------------------
