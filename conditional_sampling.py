@@ -339,9 +339,9 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     if corrector == "gibbs":
         corrector_rate = gibbs_corrector
         # k-Gibbs with temperature similar in MaskGIT
-        # Note that the MaskGIT implementation doesn't do annealing
-        corrector_update = partial(mask_conditonal_gibbs_update, 
-            temperature=config.sampler.top_k_temperature)
+        # corrector_update = partial(mask_conditonal_gibbs_update, 
+        #     temperature=config.sampler.top_k_temperature)
+        corrector_update = mask_conditonal_gibbs_update
     elif corrector == "gibbs_uninformed":
         corrector_rate = gibbs_corrector
         corrector_update = mask_conditonal_gibbs_update_uninformed
@@ -365,8 +365,9 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
 
-        x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask)
-        # This is just to test how changing k messes with recompilation
+        # TODO: this now only works for temperature annealed Gibbs
+        x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask,
+            temperature=config.sampler.top_k_temperature * t)
 
         x = x.at[1:-1].set(x_update)
         
@@ -506,8 +507,8 @@ def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_proc
         k = jnp.floor(dm * D).astype(int)
         k = jnp.maximum(1, k)
 
-        # TODO: also implement temperature annealing (instead of constant temperature)
         x_update = predictor_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask,
+        # TODO: This temperature annealing actually makes performance worse...?
             temperature=config.sampler.maskgit_temperature * t)
 
         x = x.at[1:-1].set(x_update)
