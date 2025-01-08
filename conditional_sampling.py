@@ -407,7 +407,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         m1 = forward_process.mask_percentage(t)
         m2 = forward_process.mask_percentage(t-dt)
         unmask_prob = (m1 - m2) / m1
-        update = md4_predictor_update(p_key, x[1:-1], unmask_prob, mask=mask)
+        update = md4_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, mask=mask)
 
         # We're not using adaptive k at this time
         # # Figure out the number of changed dimension and setting k accordingly
