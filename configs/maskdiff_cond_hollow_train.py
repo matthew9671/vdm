@@ -58,7 +58,7 @@ def get_config():
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
-    tag="annealing_test",
+    tag="md4_predictor",
     # corrector="", corrector_step_size=0,
     corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
@@ -74,7 +74,7 @@ def get_config():
     # If set to true, only update masked tokens at the last argmax step
     restricted=False,
     k = 16,
-    top_k_temperature=1.,
+    top_k_temperature=0.,
     maskgit_temperature=6,
   )
 

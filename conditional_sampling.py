@@ -11,6 +11,9 @@ from vdm.sampling import poisson_jump_reject, euler_update, mpf_corrector, barke
 
 from vdm.parallel_decode import decode
 
+import tensorflow_probability.substrates.jax as tfp
+tfd = tfp.distributions
+
 def compute_backward(y_with_label, t, apply_fn, params, config, forward_process):
     y_with_label = y_with_label.flatten()
     y = y_with_label[1:-1]
@@ -323,6 +326,22 @@ def gibbs_corrector(res):
     # Should only be used with the gibbs_update function
     return res["x0_logits"]
 
+def md4_predictor_update(key, x, x0_logits, unmask_prob, mask=1024):
+    """
+    Given model predicted denoising probabilities, 
+    compute and update transition probabilities from mask schedule
+    """
+    D = x.shape[0]
+    denoising_probs = softmax(x0_logits, axis=-1)
+    probs_vocab = unmask_prob * denoising_probs
+    probs_mask = jnp.ones((D,)) * (1 - unmask_prob)
+
+    probs = jnp.concatenate([probs_vocab, probs_mask], axis=-1)
+
+    to_unmask = tfd.Categorical(probs=probs).sample(seed=key)
+    out = jnp.where(x == mask, to_unmask, x)
+    return out
+
 def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_process):
 
     S = config.data.codebook_size + 1
@@ -380,8 +399,15 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         t = ts[idx]
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
-        update = update_func(p_key, x[1:-1], rp * dt)
+        
+        # Changing update function from euler to MD4 (closed form?)
+        # This means that we no longer need rates
+        # rp = res["rates"]
+        # update = update_func(p_key, x[1:-1], rp * dt)
+        m1 = forward_process.mask_percentage(t)
+        m2 = forward_process.mask_percentage(t-dt)
+        unmask_prob = (m1 - m2) / m1
+        update = md4_predictor_update(p_key, x[1:-1], unmask_prob, mask=mask)
 
         # We're not using adaptive k at this time
         # # Figure out the number of changed dimension and setting k accordingly
@@ -413,11 +439,6 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
 
     return x0_pred, x_hist["x"]
-
-# def md4_predictor_update(key, x, x0_logits, mask=1024):
-#     """
-
-#     """
 
 def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024, temperature=0, hollow=False):
     D = x.shape[0]
