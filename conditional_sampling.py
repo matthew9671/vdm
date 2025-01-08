@@ -333,10 +333,8 @@ def md4_predictor_update(key, x, x0_logits, unmask_prob, mask=1024):
     """
     D = x.shape[0]
     denoising_probs = softmax(x0_logits, axis=-1)
-    probs_vocab = unmask_prob * denoising_probs
-    probs_mask = jnp.ones((D,)) * (1 - unmask_prob)
-
-    probs = jnp.concatenate([probs_vocab, probs_mask], axis=-1)
+    probs = unmask_prob * denoising_probs
+    probs = probs.at[:,mask].set(1 - unmask_prob)
 
     to_unmask = tfd.Categorical(probs=probs).sample(seed=key)
     out = jnp.where(x == mask, to_unmask, x)
