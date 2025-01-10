@@ -68,16 +68,30 @@ class AbsorbingRateCosine():
     return logits.at[-1].set(0)
           
   def mask_percentage(self, t):
-    return jnp.cos(jnp.pi / 2 * (1 - t * (1 - self.eps)))
+    return 1 - self.alpha
+
+  def alpha(self, t):
+    """
+    Survival probability of a token at time t
+    """
+    b = 1 - self.eps
+    theta = jnp.pi / 2 * (1 - t * b)
+    return 1 - jnp.cos(theta)
+
+  def dalpha(self, t):
+    """
+    Time derivative of alpha_t (the survival probability of a token at time t)
+    """
+    b = 1 - self.eps
+    theta = jnp.pi / 2 * (1 - t * b)
+    return - b * jnp.pi / 2 * jnp.sin(theta)
 
   def _integral_rate_scalar(self, t):
     # This is -log of (1-m(t)) where m(t) is the desired mask percentage at time t.
-    return - jnp.log(1 - self.mask_percentage(t))
+    return - jnp.log(self.alpha(t))
 
   def _rate_scalar(self, t):
-    b = 1 - self.eps
-    theta = jnp.pi / 2 * (1 - t * b)
-    return b * jnp.pi / 2 * jnp.sin(theta) / (1 - jnp.cos(theta))
+    return - self.dalpha(t) / self.alpha(t)
       
   def rate(self, t):
     return self._rate_scalar(t) * self.base_rate
@@ -192,15 +206,27 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
   def loss_fn(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
     batch_size = inputs["data"].shape[0]
-    loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size))
-    metrics = jax.tree_map(lambda x: x.mean(axis=0), metrics)
 
+    # Antithetic sampling evenly spaces out t across the batch
+    # Reference: https://github.com/google-deepmind/md4/blob/main/md4/models/diffusion/md4.py#L243
+    if self.config.train.antithetic_time_sampling:
+      rng, rng_t = jr.split(rng)
+      t0 = jr.uniform(rng_t)
+      t = jnp.mod(t0 + jnp.arange(0.0, 1.0, step=1.0 / batch_size), 1.0)
+      loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size, t))
+    else:
+      loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train, t=None))(inputs, jr.split(rng, batch_size))
+
+    metrics = jax.tree_map(lambda x: x.mean(axis=0), metrics)
     loss = jnp.mean(loss)
     return loss, metrics
 
-  def loss_single(self, params, inputs, rng, is_train) -> Tuple[float, Any]:
+  def loss_single(self, params, inputs, rng, is_train, t) -> Tuple[float, Any]:
     """
-    key: a jax PRNGKey.
+    Computes the diffusion loss which is a combination of the MD4 loss (uses the masked dimensions) 
+    and our loss (uses the non-masked dimensions).
+
+    rng: a jax PRNGKey.
     data: (H, W, C) int array, each value should be in [0, S)
     """
     config = self.config
@@ -211,11 +237,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     mask = -1
     D = x0.shape[0]
 
-    forward_process = self.forward_process #config["forward_process"]
-    min_t = config.training.min_t # config["min_t"]
-    max_t = config.training.max_t # config["max_t"]
-    eps = config.training.eps # config["eps"]
-    nll_weight = config.training.nll_weight # config["nll_weight"]
+    forward_process = self.forward_process 
+    min_t = config.training.min_t 
+    max_t = config.training.max_t 
+    eps = config.training.eps
 
     key_t, key_T, key_y = jr.split(rng, 3)
 
@@ -225,123 +250,54 @@ class Experiment_MaskDiff_Conditional(Experiment):
       key_y, key_dropout = jr.split(key_y)
       rngs["dropout"] = key_dropout
 
-    # --------------------------------------------------------------
-    # 1. Sample a random t
-    # --------------------------------------------------------------
-
-    t = jr.uniform(key_t, minval=min_t, maxval=max_t)
+    if t is None:
+      t = jr.uniform(key_t, minval=min_t, maxval=max_t)
 
     # q^d_{t|0}(*2|*1): (S, S) float array of finite-time transition probabilities
     # for a single dimension
     qt0 = forward_process.transition(t)
-    # R^d_t(*1,*2): (S, S) float array of instantenous transition rates
-    # for a single dimension
-    Rt = forward_process.rate(t)
-
-    # --------------------------------------------------------------
-    # 2. Sample y from q(x_t | x_0)
-    # --------------------------------------------------------------
 
     # q^{*1}_{t|0}(*2|x0): (D, S) float array of probabilities
     qt0_eval_x0 = qt0[x0, :]
-    log_qt0_eval_x0 = jnp.log(qt0_eval_x0 + eps)
     # (D,) int array
-    y = jr.categorical(key_y, logits=log_qt0_eval_x0)
+    y = jr.categorical(key_y, logits=jnp.log(qt0_eval_x0))
     # Turn all occurences of S into the mask token (-1)
     # This doesn't affect indexing because python
     y = jnp.where((y == (S-1)), mask, y)
 
-    # --------------------------------------------------------------
-    # 3. Evaluate the likelihood ratio predicted by the model
-    # --------------------------------------------------------------
-
     # Shift the label and turn it into an array
     label_arr = jnp.array([label + S], dtype=jnp.int32)
     y_with_label = jnp.concatenate([label_arr, y, label_arr])
+
+    # Feed it to the model to get the denoising logits
     x0_logits = self.state.apply_fn(
         {"params": params}, y_with_label[None], t,  # Assume that our model takes in a batch dimension (t is not used at the moment)
-        rngs=rngs,
-        deterministic=not is_train,
-    )
+        rngs=rngs, deterministic=not is_train)
 
     # Assuming our model auto-adds a batch dimension
     # Also removing the label that gets added to the first and last position
-    # Finally note that only the first S dimensions is used in the output.
+    # Only the first S dimensions is used in the output.
     x0_logits = x0_logits[0, 1:-1, :S]
     # Set the mask prob to 0
     x0_logits = x0_logits.at[:, mask].set(-jnp.inf)
 
-    # p^{*1}_{0|t}(*2|y): (D, S) float array of marginal likelihoods for each dimension predicted by the model
-    p0t_eval_y = softmax(x0_logits, axis=-1)
     # Normalize x0 logits
     log_p0t_eval_y = x0_logits - jax.scipy.special.logsumexp(x0_logits, axis=-1, 
         keepdims=True)
 
-    alpha = qt0[0,0]
-    log_score = log_p0t_eval_y + jnp.log(alpha) - jnp.log(1-alpha)
-    log_score = log_score.at[:, mask].set(0)
-    log_score = log_score - log_score[jnp.arange(D), y][:, None]
+    # Compute the weights for each dimension
+    # Note that when t = 1, alpha is close to but not equal to 0
+    # when t = 0, 1 - alpha = 0, but min_t > 0 so we never encounter this case
+    alpha = forward_process.alpha(t)
+    dalpha = forward_process.dalpha(t)
+    weights = jnp.where((y == mask), dalpha / (1 - alpha), dalpha / alpha)
 
-    # q^{*1}_{t|0}(y^d|*2): (D, S) float array of transition probabilities to y
-    # qt0_eval_y = qt0[:,y].T + eps
-    qt0_eval_y = qt0[:,mask][None] + eps # Because each dimension sees itself as a mask!
+    score_entropy = 0.5 * jnp.sum(weights * log_p0t_eval_y[jnp.arange(D), x0])
 
-    # s_t^{\theta}^{*1}(y, *2): (D, S) float array of marginal likelihood ratios predicted by the model
-    # Also known as the "concrete score" in (Lou et al. 2023)
-    st_eval_y = jnp.einsum("0x,d0->dx", qt0, p0t_eval_y / qt0_eval_y, 
-                           precision=jax.lax.Precision.HIGHEST)
-
-    # # Since every dimension considers itself as the mask, we set the ratio to 1
-    # st_eval_y = st_eval_y.at[:, mask].set(1.0)
-    # backward_score_to_curr = st_eval_y[jnp.arange(D), y] + eps
-    # # On mask dimensions this is dividing by 1, on non-mask it offsets the score function to be centered on y
-    # st_eval_y /= backward_score_to_curr[:,None]
-
-    # -------------------------------------------------------------
-    # 4. Evaluate the likelihood ratios at t conditioned on data
-    # -------------------------------------------------------------
-
-    # # q_{t|0}^{*1}(y^d, x_0^d): (D,) float array of sample probabilities in the forward process
-    # qt0_eval_y_x0 = qt0_eval_x0[jnp.arange(D), y] + eps
-    # # The likelihood ratio
-    # qt0_x_over_y = qt0_eval_x0 / qt0_eval_y_x0[:, None]
-
-    # -------------------------------------------------------------
-    # 5. Tying it all together
-    # -------------------------------------------------------------
-
-    # R^{*1}_t(*2,y^d): (D, S) float array of transition rates to y
-    # for each dimension
-    Rt_eval_y = Rt[:, y].T
-
-    # (D, S) float array that masks out y[d] for each d index
-    y_mask = jnp.ones((D, S))
-    y_mask = y_mask.at[jnp.arange(D), y].set(0.0)
-
-    # (D, S) float array, with each entry corresponding to a choice of (d, x^d)
-    # the cases where x^d = y^d are removed via masking
-    Rt_eval_x = Rt[y]
-    # st_eval_y represents "score from y"
-    # We only care when y is not mask
-    # score_to_y = jnp.where((y == mask), 1, st_eval_y[jnp.arange(D), y])
-    # score_entropy = jnp.sum(Rt_eval_y * y_mask * st_eval_y) \
-    #     - jnp.sum(Rt_eval_x[:, mask] * jnp.log(score_to_y + eps)) # changed mean to sum
-
-    log_score_to_y = log_score[jnp.arange(D), y]
-    score_entropy = jnp.sum(Rt_eval_y * y_mask * jnp.exp(log_score)) \
-        - jnp.sum(Rt_eval_x[:, mask] * log_score_to_y) # changed mean to sum
-    
-    # Compute the cross entropy between prediction and data
-    x0_one_hot = jax.nn.one_hot(x0, S)
-    logits = log_softmax(x0_logits, axis=-1)
-    x0_nll = - jnp.sum(x0_one_hot * logits) # changed mean to sum
-
-    loss = score_entropy + nll_weight * x0_nll
+    loss = score_entropy
 
     scalar_dict = {
         "loss": loss,
-        # "elbo": elbo / D,
-        "nll": x0_nll
     }
 
     img_dict = {}
@@ -638,8 +594,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     S = config.data.codebook_size + 1
     D = config.data.seq_length
-    min_t = config.training.min_t
-    max_t = config.training.max_t
+    # Drop min_t to 0
+    min_t = 0 #config.training.min_t
+    max_t = 1 #config.training.max_t
     num_steps = config.sampler.num_steps
     
     # Initialize the all-mask state

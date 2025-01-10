@@ -85,8 +85,9 @@ def get_config():
 
   config.training = d(
 
-      # !!
-      min_t=0.0,
+      antithetic_time_sampling=True,
+
+      min_t=0.01,
       max_t=1.,
       eps=1e-6,
       nll_weight=0.0,
@@ -94,9 +95,9 @@ def get_config():
       seed=1,
       substeps=1,
       num_steps_lr_warmup=100,
-      num_steps_train=1_200_000, #100_000_000,
+      num_steps_train=2_000_000, #100_000_000,
       num_steps_eval=100,
-      batch_size_train=768, #1024 in paper version
+      batch_size_train=512, #1024 in paper version
       batch_size_eval=1024,
       steps_per_logging=100,
       steps_per_eval=1_000,
