@@ -68,7 +68,7 @@ class AbsorbingRateCosine():
     return logits.at[-1].set(0)
           
   def mask_percentage(self, t):
-    return 1 - self.alpha
+    return 1 - self.alpha(t)
 
   def alpha(self, t):
     """
