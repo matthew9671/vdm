@@ -170,7 +170,7 @@ class Experiment(ABC):
 
   def train_and_evaluate(self, workdir: str):
     logging.warning('=== Experiment.train_and_evaluate() ===')
-    logging.info('Workdir: '+workdir)
+    logging.info('Workdir: ' + workdir)
 
     if jax.process_index() == 0:
      if not tf.io.gfile.exists(workdir):
@@ -187,12 +187,7 @@ class Experiment(ABC):
     ckpt = checkpoint.MultihostCheckpoint(checkpoint_dir, max_to_keep=5)
     checkpoint_to_restore = ckpt.get_latest_checkpoint_to_restore_from()
     if checkpoint_to_restore:
-      # init_state = ckpt.restore_or_initialize(state, checkpoint_to_restore)
       state = ckpt.restore_or_initialize(state, checkpoint_to_restore)
-
-    # # If we're not restoring a checkpoint for training
-    # if self.config.get('ckpt_restore_dir', 'None') is None:
-    #   state = init_state
 
     initial_step = int(state.step)
 
