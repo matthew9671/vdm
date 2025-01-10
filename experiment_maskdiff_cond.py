@@ -221,7 +221,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     loss = jnp.mean(loss)
     return loss, metrics
 
-  def loss_single(self, params, inputs, rng, is_train, t) -> Tuple[float, Any]:
+  def loss_single(self, params, inputs, rng, t, is_train) -> Tuple[float, Any]:
     """
     Computes the diffusion loss which is a combination of the MD4 loss (uses the masked dimensions) 
     and our loss (uses the non-masked dimensions).
