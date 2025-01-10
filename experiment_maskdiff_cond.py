@@ -213,7 +213,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       rng, rng_t = jr.split(rng)
       t0 = jr.uniform(rng_t)
       t = jnp.mod(t0 + jnp.arange(0.0, 1.0, step=1.0 / batch_size), 1.0)
-      loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size, t))
+      loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train))(inputs, jr.split(rng, batch_size), t)
     else:
       loss, metrics = jax.vmap(partial(self.loss_single, params, is_train=is_train, t=None))(inputs, jr.split(rng, batch_size))
 
