@@ -209,7 +209,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     # Antithetic sampling evenly spaces out t across the batch
     # Reference: https://github.com/google-deepmind/md4/blob/main/md4/models/diffusion/md4.py#L243
-    if self.config.train.antithetic_time_sampling:
+    if self.config.training.antithetic_time_sampling:
       rng, rng_t = jr.split(rng)
       t0 = jr.uniform(rng_t)
       t = jnp.mod(t0 + jnp.arange(0.0, 1.0, step=1.0 / batch_size), 1.0)
