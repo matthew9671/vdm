@@ -187,6 +187,7 @@ class Experiment(ABC):
     ckpt = checkpoint.MultihostCheckpoint(checkpoint_dir, max_to_keep=5)
     checkpoint_to_restore = ckpt.get_latest_checkpoint_to_restore_from()
     if checkpoint_to_restore:
+      logging.info('Restoring checkpoint from the current workdir')
       state = ckpt.restore_or_initialize(state, checkpoint_to_restore)
 
     initial_step = int(state.step)

@@ -67,7 +67,7 @@ def main(argv):
     experiment.train_and_evaluate(workdir)
   elif FLAGS.mode == "train_continue":
     logging.info("Continuing training at workdir: "+FLAGS.workdir)
-    experiment.train_and_evaluate(workdir)
+    experiment.train_and_evaluate(FLAGS.workdir)
   elif FLAGS.mode == "eval":
     experiment.evaluate(FLAGS.workdir, FLAGS.checkpoint)
   elif FLAGS.mode == "sample":
