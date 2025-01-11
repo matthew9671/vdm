@@ -186,9 +186,12 @@ class Experiment(ABC):
     checkpoint_dir = os.path.join(workdir, 'checkpoints')
     ckpt = checkpoint.MultihostCheckpoint(checkpoint_dir, max_to_keep=5)
     checkpoint_to_restore = ckpt.get_latest_checkpoint_to_restore_from()
-    if checkpoint_to_restore:
-      logging.info('Restoring checkpoint from the current workdir')
-      state = ckpt.restore_or_initialize(state)
+    
+    # I don't know how to deal with the discrepancy issue between works
+    # so here we disable this line
+    # if checkpoint_to_restore:
+    #   logging.info('Restoring checkpoint from the current workdir')
+    #   state = ckpt.restore_or_initialize(state)
 
     initial_step = int(state.step)
 
