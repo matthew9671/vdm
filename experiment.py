@@ -188,7 +188,7 @@ class Experiment(ABC):
     checkpoint_to_restore = ckpt.get_latest_checkpoint_to_restore_from()
     if checkpoint_to_restore:
       logging.info('Restoring checkpoint from the current workdir')
-      state = ckpt.restore_or_initialize(state, checkpoint_to_restore)
+      state = ckpt.restore_or_initialize(state)
 
     initial_step = int(state.step)
 
