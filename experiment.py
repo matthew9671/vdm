@@ -217,9 +217,6 @@ class Experiment(ABC):
     step = initial_step
     substeps = config.substeps
 
-    # TODO: remove this testing flag
-    eval_next = True
-
     with metric_writers.ensure_flushes(writer):
       logging.info('=== Start of training ===')
       # the step count starts from 1 to num_steps_train
@@ -252,7 +249,7 @@ class Experiment(ABC):
           writer.write_scalars(step, metrics)
 
         # We're getting rid of eval for now
-        if step % config.steps_per_eval == 0 or is_last_step or step == 1 or eval_next:
+        if step % config.steps_per_eval == 0 or is_last_step or step == 1:
           logging.debug('=== Running eval ===')
           eval_next = False
           with report_progress.timed('eval'):
@@ -279,6 +276,7 @@ class Experiment(ABC):
         if step % config.steps_per_save == 0 or step == 1:
           weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
           reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
+          import fidjax
           fid = fidjax.FID(weights, reference)
           fid_score = self._sample_and_compute_fid(fid, state.ema_params, 
             total_samples=self.config.sampler.max_samples,

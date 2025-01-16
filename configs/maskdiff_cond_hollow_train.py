@@ -42,13 +42,13 @@ def get_config():
     # tpu-v3 has less memory, use smaller network?
     vocab_size=1024 + 1000 + 1, # 1024 tokens, 1000 labels, 1 mask
     hidden_size=768,
-    num_hidden_layers=24, # 24
+    num_hidden_layers=16, # 24
     num_attention_heads=16,
-    intermediate_size=3072 // 3,
+    intermediate_size=3072,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
-    num_layers_per_mixed=24,
+    num_layers_per_mixed=2,
   )
 
   config.sampler = d(
