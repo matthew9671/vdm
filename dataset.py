@@ -99,7 +99,7 @@ def create_dataset(config, data_rng):
           '/home/yixiuz/tokenized_imagenet/256x256_val.npy',
           '/home/yixiuz/tokenized_imagenet/256x256_labels_val.npy',
           config.training.batch_size_eval,
-          config.training.substeps,
+          0, # No substeps
           rng2,
           None)
 
@@ -151,14 +151,19 @@ def create_custom_train_dataset(
   train_ds = apply_split_with_sharding(train_ds)
 
   # Shuffle, batch, and prefetch
-  batch_dims = [jax.local_device_count(), substeps, per_device_batch_size]
+  if substeps > 0:
+    batch_dims = [jax.local_device_count(), substeps, per_device_batch_size]
+  else:
+    batch_dims = [jax.local_device_count(), per_device_batch_size]
   train_ds = train_ds.shuffle(buffer_size=len(data))
 
   train_ds = train_ds.repeat(None) # Repeat infinitely
 
   train_ds = train_ds.batch(batch_dims[-1], drop_remainder=True)
   train_ds = train_ds.batch(batch_dims[-2], drop_remainder=True)
-  train_ds = train_ds.batch(batch_dims[-3], drop_remainder=True)
+
+  if substeps > 0:
+    train_ds = train_ds.batch(batch_dims[-3], drop_remainder=True)
 
   train_ds = train_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
