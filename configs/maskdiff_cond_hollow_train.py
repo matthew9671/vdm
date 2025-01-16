@@ -96,12 +96,12 @@ def get_config():
       substeps=1,
       num_steps_lr_warmup=100,
       num_steps_train=2_000_000, #100_000_000,
-      num_steps_eval=100,
+      num_steps_eval=2500, # 1 full epoch
       batch_size_train=512, #1024 in paper version
-      batch_size_eval=1024,
+      batch_size_eval=512,
       steps_per_logging=100,
-      steps_per_eval=1_000,
-      steps_per_save=10_000,
+      steps_per_eval=100, # 512 * 100 ~ 50k val images
+      steps_per_save=50_000,
       profile=False,
   )
 

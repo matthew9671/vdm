@@ -95,7 +95,13 @@ def create_dataset(config, data_rng):
           rng1,
           None)
 
-      eval_ds = train_ds
+      _, eval_ds = create_custom_train_dataset(
+          '/home/yixiuz/tokenized_imagenet/256x256_val.npy',
+          '/home/yixiuz/tokenized_imagenet/256x256_labels_val.npy',
+          config.training.batch_size_eval,
+          config.training.substeps,
+          rng2,
+          None)
 
     else:
       raise Exception("Unrecognized config.data.dataset")

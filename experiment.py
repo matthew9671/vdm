@@ -217,6 +217,9 @@ class Experiment(ABC):
     step = initial_step
     substeps = config.substeps
 
+    # TODO: remove this testing flag
+    eval_next = True
+
     with metric_writers.ensure_flushes(writer):
       logging.info('=== Start of training ===')
       # the step count starts from 1 to num_steps_train
@@ -249,35 +252,31 @@ class Experiment(ABC):
           writer.write_scalars(step, metrics)
 
         # We're getting rid of eval for now
-        if step % config.steps_per_eval == 0 or is_last_step or step == 10 or step == 1:
+        if step % config.steps_per_eval == 0 or is_last_step or step == 1 or eval_next:
           logging.debug('=== Running eval ===')
+          eval_next = False
           with report_progress.timed('eval'):
-        #     eval_metrics = []
-        #     for eval_step in range(config.num_steps_eval):
-        #       batch = self.eval_iter.next()
-        #       batch = jax.tree_map(jnp.asarray, batch)
-        #       metrics = self.p_eval_step(
-        #           state.ema_params, batch, flax_utils.replicate(eval_step))
-        #       eval_metrics.append(metrics['scalars'])
+            eval_metrics = []
+            for eval_step in range(config.num_steps_eval):
+              batch = self.eval_iter.next()
+              batch = jax.tree_map(jnp.asarray, batch)
+              metrics = self.p_eval_step(
+                  state.ema_params, batch, flax_utils.replicate(eval_step))
+              eval_metrics.append(metrics['scalars'])
 
-        #     # average over eval metrics
-        #     eval_metrics = utils.get_metrics(eval_metrics)
-        #     eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
-        #     writer.write_scalars(step, eval_metrics)
+            # average over eval metrics
+            eval_metrics = utils.get_metrics(eval_metrics)
+            eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
+            writer.write_scalars(step, eval_metrics)
 
-            # # print out a batch of images
-            # metrics = flax_utils.unreplicate(metrics)
-            # images = metrics['images']
-            # samples = self.p_sample(params=state.ema_params)
-            # samples = utils.generate_image_grids(samples)[None, :, :, :]
-            # images['samples'] = samples.astype(np.uint8)
-            # writer.write_images(step, images)
+            tokens, samples = self.p_sample(params=state.ema_params, 
+              rng=jax.random.split(self.rng, 8))
 
-            tokens, samples = self.p_sample(params=state.ema_params, rng=jax.random.split(self.rng, 8))
-            logging.info("Tokens: " + str(tokens[0]))
             samples = utils.generate_image_grids(samples)[None, :, :, :]
             samples = { 'samples': samples }
             writer.write_images(step, samples)
+
+        # TODO: evaluate FID and log
 
         if step % config.steps_per_save == 0 or is_last_step:
           with report_progress.timed('checkpoint'):
