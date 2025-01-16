@@ -26,8 +26,8 @@ def get_config():
   config = ml_collections.ConfigDict()
   config.exp_name = "exp_vdm"
   config.model_type = "model_transformer"
-  # config.ckpt_restore_dir = 'None'
-  config.ckpt_restore_dir = "gs://maskdiff/cond_hollow/250111/checkpoints-0/"
+  config.ckpt_restore_dir = 'None'
+  # config.ckpt_restore_dir = "gs://maskdiff/cond_hollow/250111/checkpoints-0/"
 
   config.use_hollow_transformer = True
   
@@ -101,7 +101,7 @@ def get_config():
       batch_size_eval=512,
       steps_per_logging=100,
       steps_per_eval=100, # 512 * 100 ~ 50k val images
-      steps_per_save=50_000,
+      steps_per_save=50_000, # ~3h of training time
       profile=False,
   )
 
