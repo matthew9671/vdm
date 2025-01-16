@@ -323,10 +323,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     fid = fidjax.FID(weights, reference)
     
     self._sample_and_compute_fid(fid, params, total_samples=self.config.sampler.max_samples,
-      samples_per_label=10, save_imgs=True, sample_logdir=sample_logdir)
+      samples_per_label=10, save_imgs=True, sample_logdir=sample_logdir, verbose=True)
 
   def _sample_and_compute_fid(self, fid, params, total_samples=10_000, 
-    samples_per_label=10, save_imgs=False, sample_logdir=None):
+    samples_per_label=10, save_imgs=False, sample_logdir=None, verbose=False):
 
     config = self.config 
     S = config.data.codebook_size + 1
@@ -371,7 +371,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
         img.save(path_to_save)
 
       image_id += samples.shape[0]
-      logging.info(f"Number of samples: {image_id}/{total_samples}")
+      if verbose:
+        logging.info(f"Number of samples: {image_id}/{total_samples}")
 
       all_acts.append(fid.compute_acts(uint8_images))
 
