@@ -390,35 +390,26 @@ class HollowTransformer(nn.Module):
     backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
     mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
-    xf = x[:,:-2] #jnp.concatenate([pad, x[:,:-1]], axis=1)
-    xb = x[:,2:] #jnp.concatenate([x[:,1:], pad], axis=1)
-    xm = None
+    xf = x[:,:-2]
+    xb = x[:,2:]
+    xm = xf + xb
       
     for i in range(self.num_hidden_layers):
-      f_layer = GenericTransformerLayer(
+      fb_layer = GenericTransformerLayer(
           intermediate_size=self.intermediate_size,
           hidden_size=self.hidden_size,
           hidden_dropout_prob=self.hidden_dropout_prob,
           num_attention_heads=self.num_attention_heads,
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
           initializer_fn=truncated_normal(self.initializer_range))
-      b_layer = GenericTransformerLayer(
-          intermediate_size=self.intermediate_size,
-          hidden_size=self.hidden_size,
-          hidden_dropout_prob=self.hidden_dropout_prob,
-          num_attention_heads=self.num_attention_heads,
-          attention_probs_dropout_prob=self.attention_probs_dropout_prob,
-          initializer_fn=truncated_normal(self.initializer_range))
-      xf = f_layer(q=xf, kv=xf, mask=forward_mask, deterministic=deterministic)
-      xb = b_layer(q=xb, kv=xb, mask=backward_mask, deterministic=deterministic)
+      xf = fb_layer(q=xf, kv=xf, mask=forward_mask, deterministic=deterministic)
+      xb = fb_layer(q=xb, kv=xb, mask=backward_mask, deterministic=deterministic)
 
       if (i + 1) % self.num_layers_per_mixed == 0:
-        if xm is None:
-          xm = jnp.concatenate([xf, xb], axis=2)
         xfb = jnp.concatenate([xf, xb], axis=1)
         m_layer = GenericTransformerLayer(
           intermediate_size=self.intermediate_size,
-          hidden_size=self.hidden_size * 2, # since we're combining the streams
+          hidden_size=self.hidden_size, # since we're combining the streams
           hidden_dropout_prob=self.hidden_dropout_prob,
           num_attention_heads=self.num_attention_heads,
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
