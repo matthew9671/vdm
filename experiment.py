@@ -276,7 +276,14 @@ class Experiment(ABC):
             samples = { 'samples': samples }
             writer.write_images(step, samples)
 
-        # TODO: evaluate FID and log
+        if step % config.steps_per_save == 0 or step == 1:
+          weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
+          reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
+          fid = fidjax.FID(weights, reference)
+          fid_score = self._sample_and_compute_fid(fid, state.ema_params, 
+            total_samples=self.config.sampler.max_samples,
+            samples_per_label=10, save_imgs=False)
+          writer.write_scalars(step, {'FID': fid_score})
 
         if step % config.steps_per_save == 0 or is_last_step:
           with report_progress.timed('checkpoint'):
