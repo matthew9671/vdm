@@ -8,10 +8,6 @@ from absl import logging
 import scipy
 import numpy as np
 
-from jax.experimental import maps
-print(maps.thread_resources.env.shape)  # Ensure the TPU mesh is initialized.
-
-
 # The total number of TPU cores in the Pod
 device_count = jax.device_count()
 
