@@ -1,7 +1,7 @@
 # The following code snippet will be run on all TPU hosts
 import jax
 import socket
-import fidjax
+# import fidjax
 import jax.numpy as jnp
 from absl import logging
 
