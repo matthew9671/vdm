@@ -283,7 +283,7 @@ class Experiment(ABC):
             samples_per_label=10, save_imgs=False)
           writer.write_scalars(step, {'FID': fid_score})
 
-        if step % config.steps_per_save == 0 or is_last_step:
+        if (step % config.steps_per_save == 0 or is_last_step) and jax.process_index() == 0:
           with report_progress.timed('checkpoint'):
             ckpt.save(flax_utils.unreplicate(state))
 
