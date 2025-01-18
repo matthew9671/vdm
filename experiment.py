@@ -184,7 +184,7 @@ class Experiment(ABC):
 
     # Set up checkpointing of the model and the input pipeline.
     checkpoint_dir = os.path.join(workdir, 'checkpoints')
-    ckpt = checkpoint.MultihostCheckpoint(checkpoint_dir, max_to_keep=5)
+    ckpt = checkpoint.MultihostCheckpoint(checkpoint_dir, max_to_keep=10)
     checkpoint_to_restore = ckpt.get_latest_checkpoint_to_restore_from()
     
     # I don't know how to deal with the discrepancy issue between works
