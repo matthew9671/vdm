@@ -21,13 +21,13 @@ r = jax.pmap(lambda x: jax.lax.psum(x, 'i'), axis_name='i')(xs)
 # Print from a single host to avoid duplicated output
 print(f"What is going on? Says process {jax.process_index()}")
 
-# if jax.process_index() == 0:
+if jax.process_index() == 0:
 
-#     print('global device count:', jax.device_count())
-#     print('local device count:', jax.local_device_count())
-#     print('pmap result:', r)
+    print('global device count:', jax.device_count())
+    print('local device count:', jax.local_device_count())
+    print('pmap result:', r)
     
-#     print("Worker " + socket.gethostname() + " has process id 0.")
+    print("Worker " + socket.gethostname() + " has process id 0.")
 
     # weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
     # reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
