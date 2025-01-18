@@ -418,7 +418,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # Distribute training.
     params = flax_utils.replicate(params)
 
-    weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
+    weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle'
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 

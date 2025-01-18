@@ -274,7 +274,7 @@ class Experiment(ABC):
             writer.write_images(step, samples)
 
         if step % config.steps_per_save == 0 or step == 1:
-          weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle?dl=1'
+          weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle'
           reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
           import fidjax
           fid = fidjax.FID(weights, reference)
