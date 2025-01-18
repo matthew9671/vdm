@@ -12,3 +12,4 @@ tensorflow-probability
 optax
 ipython
 pandas
+fidjax
