@@ -395,22 +395,22 @@ class HollowTransformer(nn.Module):
     xm = None
       
     for i in range(self.num_hidden_layers):
-      f_layer = GenericTransformerLayer(
+      fb_layer = GenericTransformerLayer(
           intermediate_size=self.intermediate_size,
           hidden_size=self.hidden_size,
           hidden_dropout_prob=self.hidden_dropout_prob,
           num_attention_heads=self.num_attention_heads,
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
           initializer_fn=truncated_normal(self.initializer_range))
-      b_layer = GenericTransformerLayer(
-          intermediate_size=self.intermediate_size,
-          hidden_size=self.hidden_size,
-          hidden_dropout_prob=self.hidden_dropout_prob,
-          num_attention_heads=self.num_attention_heads,
-          attention_probs_dropout_prob=self.attention_probs_dropout_prob,
-          initializer_fn=truncated_normal(self.initializer_range))
-      xf = f_layer(q=xf, kv=xf, mask=forward_mask, deterministic=deterministic)
-      xb = b_layer(q=xb, kv=xb, mask=backward_mask, deterministic=deterministic)
+    #   b_layer = GenericTransformerLayer(
+    #       intermediate_size=self.intermediate_size,
+    #       hidden_size=self.hidden_size,
+    #       hidden_dropout_prob=self.hidden_dropout_prob,
+    #       num_attention_heads=self.num_attention_heads,
+    #       attention_probs_dropout_prob=self.attention_probs_dropout_prob,
+    #       initializer_fn=truncated_normal(self.initializer_range))
+      xf = fb_layer(q=xf, kv=xf, mask=forward_mask, deterministic=deterministic)
+      xb = fb_layer(q=xb, kv=xb, mask=backward_mask, deterministic=deterministic)
 
       if (i + 1) % self.num_layers_per_mixed == 0:
         if xm is None:
