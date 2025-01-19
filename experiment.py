@@ -289,7 +289,7 @@ class Experiment(ABC):
               wandb_images = [wandb.Image(np.array(samples['samples']), caption=f"Sample")]
 
               # Log images to W&B
-              wandb.log({f"sample_images/step_{step}": wandb_images}, step=step)
+              wandb.log({f"sample_images": wandb_images}, step=step)
 
         if step % config.steps_per_save == 0 or step == 1:
           weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle'
