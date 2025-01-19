@@ -39,6 +39,7 @@ import vdm.train_state
 import vdm.utils as utils
 import vdm.dataset as dataset
 
+import wandb
 
 class Experiment(ABC):
   """Boilerplate for training and evaluating VDM models."""
@@ -175,6 +176,10 @@ class Experiment(ABC):
     if jax.process_index() == 0:
      if not tf.io.gfile.exists(workdir):
        tf.io.gfile.mkdir(workdir)
+       wandb.init(
+        project="maskdiff",
+        config=self.config
+      )
 
     config = self.config.training
     logging.info('num_steps_train=%d', config.num_steps_train)
@@ -246,6 +251,8 @@ class Experiment(ABC):
             return float(jnp.squeeze(x.mean(axis=0)))
 
           metrics = jax.tree_map(avg_over_substeps, metrics)
+          if jax.process_index() == 0:
+            wandb.log({f"train/{k}": v for k, v in train_metrics.items()}, step=step)
           writer.write_scalars(step, metrics)
 
         # We're getting rid of eval for now
@@ -264,6 +271,9 @@ class Experiment(ABC):
             # average over eval metrics
             eval_metrics = utils.get_metrics(eval_metrics)
             eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
+            
+            if jax.process_index() == 0:
+              wandb.log({f"eval/{k}": v for k, v in eval_metrics.items()}, step=step)
             writer.write_scalars(step, eval_metrics)
 
             tokens, samples = self.p_sample(params=state.ema_params, 
@@ -273,6 +283,14 @@ class Experiment(ABC):
             samples = { 'samples': samples }
             writer.write_images(step, samples)
 
+            if jax.process_index() == 0:
+              # Convert samples for W&B logging
+              # Assuming `samples['samples']` is a NumPy array or can be converted to one
+              wandb_images = [wandb.Image(img, caption=f"Sample") for i, img in enumerate(samples['samples'])]
+
+              # Log images to W&B
+              wandb.log({f"sample_images/step_{step}": wandb_images}, step=step)
+
         if step % config.steps_per_save == 0 or step == 1:
           weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle'
           reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
@@ -281,7 +299,10 @@ class Experiment(ABC):
           fid_score = self._sample_and_compute_fid(fid, state.ema_params, 
             total_samples=self.config.sampler.max_samples,
             samples_per_label=10, save_imgs=False)
-          writer.write_scalars(step, {'FID': fid_score})
+          
+          if jax.process_index() == 0:
+            wandb.log({'FID': fid_score}, step=step)
+            writer.write_scalars(step, {'FID': fid_score})
 
         if (step % config.steps_per_save == 0 or is_last_step) and jax.process_index() == 0:
           with report_progress.timed('checkpoint'):
