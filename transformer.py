@@ -414,11 +414,11 @@ class HollowTransformer(nn.Module):
 
       if (i + 1) % self.num_layers_per_mixed == 0:
         if xm is None:
-          xm = jnp.concatenate([xf, xb], axis=2)
+          xm = xf + xb
         xfb = jnp.concatenate([xf, xb], axis=1)
         m_layer = GenericTransformerLayer(
           intermediate_size=self.intermediate_size,
-          hidden_size=self.hidden_size * 2, # since we're combining the streams
+          hidden_size=self.hidden_size, # since we're combining the streams
           hidden_dropout_prob=self.hidden_dropout_prob,
           num_attention_heads=self.num_attention_heads,
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
