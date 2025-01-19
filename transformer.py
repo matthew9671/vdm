@@ -392,7 +392,7 @@ class HollowTransformer(nn.Module):
 
     xf = x[:,:-2]
     xb = x[:,2:]
-    xm = None
+    xm = jnp.zeros((L,))
       
     for i in range(self.num_hidden_layers):
       fb_layer = GenericTransformerLayer(
@@ -413,8 +413,7 @@ class HollowTransformer(nn.Module):
       xb = fb_layer(q=xb, kv=xb, mask=backward_mask, deterministic=deterministic)
 
       if (i + 1) % self.num_layers_per_mixed == 0:
-        if xm is None:
-          xm = xf + xb
+        xm += xf + xb
         xfb = jnp.concatenate([xf, xb], axis=1)
         m_layer = GenericTransformerLayer(
           intermediate_size=self.intermediate_size,

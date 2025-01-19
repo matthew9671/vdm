@@ -14,6 +14,22 @@
 
 # Get configuration
 import ml_collections
+import subprocess
+
+def get_git_commit_message():
+    try:
+        # Run the Git command to get the latest commit message
+        result = subprocess.run(
+            ["git", "log", "-1", "--pretty=%B"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()  # Return the commit message
+    except subprocess.CalledProcessError as e:
+        print("Error retrieving Git commit message:", e.stderr)
+        return None
 
 
 def d(**kwargs):
@@ -30,7 +46,8 @@ def get_config():
   # config.ckpt_restore_dir = "gs://maskdiff/cond_hollow/250111/checkpoints-0/"
 
   config.use_hollow_transformer = True
-  
+  config.git_commit_message = get_git_commit_message()
+
   config.data = d(
       dataset='tokenized_imagenet_256',  # cifar10/cifar10_aug/cifar10_aug_with_channel
       ignore_cache=False,
