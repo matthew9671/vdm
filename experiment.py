@@ -252,7 +252,7 @@ class Experiment(ABC):
 
           metrics = jax.tree_map(avg_over_substeps, metrics)
           if jax.process_index() == 0:
-            wandb.log({f"train/{k}": v for k, v in train_metrics.items()}, step=step)
+            wandb.log({f"train/{k}": v for k, v in metrics.items()}, step=step)
           writer.write_scalars(step, metrics)
 
         # We're getting rid of eval for now
