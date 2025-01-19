@@ -285,7 +285,8 @@ class Experiment(ABC):
 
             if jax.process_index() == 0:
               # Convert samples for W&B logging
-              wandb_images = [wandb.Image(samples['samples'], caption=f"Sample")]
+              # Need numpy array interface
+              wandb_images = [wandb.Image(np.array(samples['samples']), caption=f"Sample")]
 
               # Log images to W&B
               wandb.log({f"sample_images/step_{step}": wandb_images}, step=step)
