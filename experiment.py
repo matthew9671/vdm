@@ -276,33 +276,33 @@ class Experiment(ABC):
               wandb.log({f"eval/{k}": v for k, v in eval_metrics.items()}, step=step)
             writer.write_scalars(step, eval_metrics)
 
-            tokens, samples = self.p_sample(params=state.ema_params, 
-              rng=jax.random.split(self.rng, jax.local_device_count()))
+            # tokens, samples = self.p_sample(params=state.ema_params, 
+            #   rng=jax.random.split(self.rng, jax.local_device_count()))
 
-            samples = utils.generate_image_grids(samples)[None, :, :, :]
-            samples = { 'samples': samples }
-            writer.write_images(step, samples)
+            # samples = utils.generate_image_grids(samples)[None, :, :, :]
+            # samples = { 'samples': samples }
+            # writer.write_images(step, samples)
 
-            if jax.process_index() == 0:
-              # Convert samples for W&B logging
-              # Need numpy array interface
-              wandb_images = [wandb.Image(np.array(samples['samples']), caption=f"Sample")]
+            # if jax.process_index() == 0:
+            #   # Convert samples for W&B logging
+            #   # Need numpy array interface
+            #   wandb_images = [wandb.Image(np.array(samples['samples']), caption=f"Sample")]
 
-              # Log images to W&B
-              wandb.log({f"sample_images": wandb_images}, step=step)
+            #   # Log images to W&B
+            #   wandb.log({f"sample_images": wandb_images}, step=step)
 
-        if step % config.steps_per_save == 0 or step == 1:
-          weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle'
-          reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
-          import fidjax
-          fid = fidjax.FID(weights, reference)
-          fid_score = self._sample_and_compute_fid(fid, state.ema_params, 
-            total_samples=self.config.sampler.max_samples,
-            samples_per_label=10, save_imgs=False)
+        # if step % config.steps_per_save == 0 or step == 1:
+        #   weights = '/home/yixiuz/fid/inception_v3_weights_fid.pickle'
+        #   reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
+        #   import fidjax
+        #   fid = fidjax.FID(weights, reference)
+        #   fid_score = self._sample_and_compute_fid(fid, state.ema_params, 
+        #     total_samples=self.config.sampler.max_samples,
+        #     samples_per_label=10, save_imgs=False)
           
-          if jax.process_index() == 0:
-            wandb.log({'FID': fid_score}, step=step)
-            writer.write_scalars(step, {'FID': fid_score})
+        #   if jax.process_index() == 0:
+        #     wandb.log({'FID': fid_score}, step=step)
+        #     writer.write_scalars(step, {'FID': fid_score})
 
         if (step % config.steps_per_save == 0 or is_last_step) and jax.process_index() == 0:
           with report_progress.timed('checkpoint'):
