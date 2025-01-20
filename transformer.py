@@ -484,29 +484,28 @@ class GenericTransformerLayer(nn.Module):
                freqs_cos_kv: jnp.ndarray=None, freqs_sin_kv: jnp.ndarray=None,
                deterministic: bool=True) -> jnp.ndarray:
       
-    # attention_output = CausalAttention(
-    #     hidden_size=self.hidden_size,
-    #     hidden_dropout_prob=self.hidden_dropout_prob,
-    #     num_attention_heads=self.num_attention_heads,
-    #     attention_probs_dropout_prob=self.attention_probs_dropout_prob,
-    #     initializer_fn=self.initializer_fn)(
-    #         q=q, kv=kv, attention_mask=mask,
-    #         deterministic=deterministic)
-
-    # Note that this function from MD4 applies dropout
-    # but not the residual connection and layer norm
-    attention_output = MaskedAttentionWithRoPE(
-        dim=self.hidden_size,
-        n_heads=self.num_attention_heads,
-        dropout_rate=self.attention_probs_dropout_prob,
-        qkv_bias=True)(q, kv, mask,
-            freqs_cos, freqs_sin, 
-            freqs_cos_kv=freqs_cos_kv, freqs_sin_kv=freqs_sin_kv,
+    attention_output = CausalAttention(
+        hidden_size=self.hidden_size,
+        hidden_dropout_prob=self.hidden_dropout_prob,
+        num_attention_heads=self.num_attention_heads,
+        attention_probs_dropout_prob=self.attention_probs_dropout_prob,
+        initializer_fn=self.initializer_fn)(
+            q=q, kv=kv, attention_mask=mask,
             deterministic=deterministic)
-      
-    # Apply layer norm and residual connection
-    attention_output = nn.LayerNorm(
-        epsilon=LAYERNORM_EPSILON, name='attention_output_ln')(attention_output + q)
+
+    # # Note that this function from MD4 applies dropout
+    # # but not the residual connection and layer norm
+    # attention_output = MaskedAttentionWithRoPE(
+    #     dim=self.hidden_size,
+    #     n_heads=self.num_attention_heads,
+    #     dropout_rate=self.attention_probs_dropout_prob,
+    #     qkv_bias=True)(q, kv, mask,
+    #         freqs_cos, freqs_sin, 
+    #         freqs_cos_kv=freqs_cos_kv, freqs_sin_kv=freqs_sin_kv,
+    #         deterministic=deterministic)
+    # # Apply layer norm and residual connection
+    # attention_output = nn.LayerNorm(
+    #     epsilon=LAYERNORM_EPSILON, name='attention_output_ln')(attention_output + q)
 
     layer_output = Mlp(
         hidden_size=self.hidden_size,
@@ -547,8 +546,9 @@ class HollowTransformer(nn.Module):
         vocab_size=self.vocab_size,
         max_position_embeddings=self.max_position_embeddings + 2, # Including the padded values
         initializer_fn=truncated_normal(self.initializer_range),
-        use_position_embeddings=False)( # No positional embeddings because of the rotary position encoding
-            input_ids=input_ids, deterministic=deterministic)
+        # No positional embeddings if we use rotary embeddings
+        # use_position_embeddings=False
+        )(input_ids=input_ids, deterministic=deterministic)
     
     H = self.num_attention_heads
       
@@ -564,9 +564,9 @@ class HollowTransformer(nn.Module):
     forward_mask = jnp.tile(jnp.tril(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
     backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
 
-    # Different conventions between MD4 attention and linen.MultiHeadAttention
-    forward_mask = jnp.where(forward_mask == 0, -jnp.inf, 0)
-    backward_mask = jnp.where(backward_mask == 0, -jnp.inf, 0)
+    # # Different conventions between MD4 attention and linen.MultiHeadAttention
+    # forward_mask = jnp.where(forward_mask == 0, -jnp.inf, 0)
+    # backward_mask = jnp.where(backward_mask == 0, -jnp.inf, 0)
 
     mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
