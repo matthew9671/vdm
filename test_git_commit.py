@@ -8,6 +8,7 @@ def get_git_commit_message():
         stderr=subprocess.PIPE,
         text=True,
         check=True,
+        cwd="/home/yixiuz/vdm/",
     )
     return result.stdout.strip()  # Return the commit message
 
