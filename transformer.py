@@ -458,7 +458,7 @@ class GenericTransformerLayer(nn.Module):
         dim=self.hidden_size,
         n_heads=self.num_attention_heads,
         dropout_rate=self.attention_probs_dropout_prob,
-        qkv_bias=True)(q, kv, attn_mask,
+        qkv_bias=True)(q, kv, mask,
             freqs_cos, freqs_sin, 
             freqs_cos_kv=freqs_cos_kv, freqs_sin_kv=freqs_sin_kv,
             deterministic=deterministic)
