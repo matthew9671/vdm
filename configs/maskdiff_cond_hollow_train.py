@@ -120,8 +120,8 @@ def get_config():
       batch_size_train=512, #1024 in paper version
       batch_size_eval=512,
       steps_per_logging=100,
-      steps_per_eval=1250, # 1 full epoch
-      steps_per_save=50_000, # ~3h of training time
+      steps_per_eval=2500, # 1 full epoch
+      steps_per_save=25_000, # ~3h of training time
       profile=False,
   )
 
@@ -133,7 +133,7 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=2e-4, #2e-4 in paper version
+      learning_rate=1e-4, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
   )
