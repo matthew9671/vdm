@@ -498,35 +498,35 @@ class GenericTransformerLayer(nn.Module):
 
   @nn.compact
   def __call__(self, q: jnp.ndarray, kv: jnp.ndarray, mask: jnp.ndarray,
-               freqs_cos: jnp.ndarray, freqs_sin: jnp.ndarray,
+               freqs_cos: jnp.ndarray=None, freqs_sin: jnp.ndarray=None,
                freqs_cos_kv: jnp.ndarray=None, freqs_sin_kv: jnp.ndarray=None,
                deterministic: bool=True) -> jnp.ndarray:
       
-    # attention_output = CausalAttention(
-    #     hidden_size=self.hidden_size,
-    #     hidden_dropout_prob=self.hidden_dropout_prob,
-    #     num_attention_heads=self.num_attention_heads,
-    #     attention_probs_dropout_prob=self.attention_probs_dropout_prob,
-    #     initializer_fn=self.initializer_fn)(
-    #         q=q, kv=kv, attention_mask=mask,
-    #         deterministic=deterministic)
-
-    norm_layer = RMSNorm(dim=self.hidden_size, eps=RMSNORM_EPSILON)
-
-    # Note that this function from MD4 applies dropout
-    # but not the residual connection and layer norm
-    attention_output = MaskedAttentionWithRoPE(
-        dim=self.hidden_size,
-        n_heads=self.num_attention_heads,
-        dropout_rate=self.attention_probs_dropout_prob,
-        qkv_bias=True)(
-            norm_layer(q), 
-            norm_layer(kv), 
-            mask, freqs_cos, freqs_sin, 
-            freqs_cos_kv=freqs_cos_kv, freqs_sin_kv=freqs_sin_kv,
+    attention_output = CausalAttention(
+        hidden_size=self.hidden_size,
+        hidden_dropout_prob=self.hidden_dropout_prob,
+        num_attention_heads=self.num_attention_heads,
+        attention_probs_dropout_prob=self.attention_probs_dropout_prob,
+        initializer_fn=self.initializer_fn)(
+            q=q, kv=kv, attention_mask=mask,
             deterministic=deterministic)
-    # Apply layer norm and residual connection
-    attention_output = norm_layer(attention_output + q)
+
+    # norm_layer = RMSNorm(dim=self.hidden_size, eps=RMSNORM_EPSILON)
+
+    # # Note that this function from MD4 applies dropout
+    # # but not the residual connection and layer norm
+    # attention_output = MaskedAttentionWithRoPE(
+    #     dim=self.hidden_size,
+    #     n_heads=self.num_attention_heads,
+    #     dropout_rate=self.attention_probs_dropout_prob,
+    #     qkv_bias=True)(
+    #         norm_layer(q), 
+    #         norm_layer(kv), 
+    #         mask, freqs_cos, freqs_sin, 
+    #         freqs_cos_kv=freqs_cos_kv, freqs_sin_kv=freqs_sin_kv,
+    #         deterministic=deterministic)
+    # # Apply layer norm and residual connection
+    # attention_output = norm_layer(attention_output + q)
 
     layer_output = Mlp(
         hidden_size=self.hidden_size,
@@ -568,26 +568,26 @@ class HollowTransformer(nn.Module):
         max_position_embeddings=self.max_position_embeddings + 2, # Including the padded values
         initializer_fn=truncated_normal(self.initializer_range),
         # No positional embeddings if we use rotary embeddings
-        use_position_embeddings=False
+        use_position_embeddings=True
         )(input_ids=input_ids, deterministic=deterministic)
     
     H = self.num_attention_heads
       
-    freqs_cos, freqs_sin = precompute_freqs_cis(self.hidden_size // self.num_attention_heads, L+2)
+    # freqs_cos, freqs_sin = precompute_freqs_cis(self.hidden_size // self.num_attention_heads, L+2)
 
-    # Offset the two streams and initialize the mixed stream to None
-    freqs_cos_f, freqs_sin_f = freqs_cos[:-2], freqs_sin[:-2]
-    freqs_cos_b, freqs_sin_b = freqs_cos[2:], freqs_sin[2:]
-    freqs_cos_m, freqs_sin_m = freqs_cos[1:-1], freqs_sin[1:-1]
-    freqs_cos_m_kv = jnp.concatenate([freqs_cos_f, freqs_cos_b], axis=0)
-    freqs_sin_m_kv = jnp.concatenate([freqs_sin_f, freqs_sin_b], axis=0)
+    # # Offset the two streams and initialize the mixed stream to None
+    # freqs_cos_f, freqs_sin_f = freqs_cos[:-2], freqs_sin[:-2]
+    # freqs_cos_b, freqs_sin_b = freqs_cos[2:], freqs_sin[2:]
+    # freqs_cos_m, freqs_sin_m = freqs_cos[1:-1], freqs_sin[1:-1]
+    # freqs_cos_m_kv = jnp.concatenate([freqs_cos_f, freqs_cos_b], axis=0)
+    # freqs_sin_m_kv = jnp.concatenate([freqs_sin_f, freqs_sin_b], axis=0)
 
     forward_mask = jnp.tile(jnp.tril(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
     backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
 
-    # Different conventions between MD4 attention and linen.MultiHeadAttention
-    forward_mask = jnp.where(forward_mask == 0, -jnp.inf, 0)
-    backward_mask = jnp.where(backward_mask == 0, -jnp.inf, 0)
+    # # Different conventions between MD4 attention and linen.MultiHeadAttention
+    # forward_mask = jnp.where(forward_mask == 0, -jnp.inf, 0)
+    # backward_mask = jnp.where(backward_mask == 0, -jnp.inf, 0)
 
     mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
@@ -611,25 +611,26 @@ class HollowTransformer(nn.Module):
     #       attention_probs_dropout_prob=self.attention_probs_dropout_prob,
     #       initializer_fn=truncated_normal(self.initializer_range))
       xf = fb_layer(q=xf, kv=xf, mask=forward_mask, 
-                    freqs_cos=freqs_cos_f, freqs_sin=freqs_sin_f,
+                    # freqs_cos=freqs_cos_f, freqs_sin=freqs_sin_f,
                     deterministic=deterministic)
       xb = fb_layer(q=xb, kv=xb, mask=backward_mask, 
-                    freqs_cos=freqs_cos_b, freqs_sin=freqs_sin_b,
+                    # freqs_cos=freqs_cos_b, freqs_sin=freqs_sin_b,
                     deterministic=deterministic)
 
       if (i + 1) % self.num_layers_per_mixed == 0:
-        xm += xf + xb
+        # xm += xf + xb
+        xm += jnp.concatenate([xf, xb], axis=2)
         xfb = jnp.concatenate([xf, xb], axis=1)
         m_layer = GenericTransformerLayer(
           intermediate_size=self.intermediate_size,
-          hidden_size=self.hidden_size,
+          hidden_size=self.hidden_size * 2,
           hidden_dropout_prob=self.hidden_dropout_prob,
           num_attention_heads=self.num_attention_heads,
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
           initializer_fn=truncated_normal(self.initializer_range))
         xm = m_layer(q=xm, kv=xfb, mask=mixing_mask, 
-                    freqs_cos=freqs_cos_m, freqs_sin=freqs_sin_m,
-                    freqs_cos_kv=freqs_cos_m_kv, freqs_sin_kv=freqs_sin_m_kv,
+                    # freqs_cos=freqs_cos_m, freqs_sin=freqs_sin_m,
+                    # freqs_cos_kv=freqs_cos_m_kv, freqs_sin_kv=freqs_sin_m_kv,
                     deterministic=deterministic)
 
     layer_output = xm
