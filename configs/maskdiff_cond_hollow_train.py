@@ -121,7 +121,7 @@ def get_config():
       batch_size_eval=512,
       steps_per_logging=100,
       steps_per_eval=2500, # 1 full epoch
-      steps_per_save=25_000, # ~3h of training time
+      steps_per_save=25_000, # ~1.5h of training time
       profile=False,
   )
 

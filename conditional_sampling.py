@@ -20,7 +20,7 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
 
     D = y.shape[0]
     S = config.data.codebook_size + 1
-    mask = S - 1
+    mask = S-1
     # forward_process = config.forward_process
     min_t = config.training.min_t
     eps = config.training.eps
