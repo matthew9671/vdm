@@ -64,11 +64,11 @@ def get_config():
     hidden_size=768,
     num_hidden_layers=24, # 24
     num_attention_heads=16,
-    intermediate_size=2048,
+    intermediate_size=1280,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
-    num_layers_per_mixed=8,
+    num_layers_per_mixed=4,
   )
 
   config.sampler = d(
