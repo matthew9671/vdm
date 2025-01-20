@@ -290,6 +290,20 @@ class Transformer(nn.Module):
 # 2025/1/19 Update: added rotary position encoding from MD4
 # ---------------------------------------------------------------------
 
+class Dropout1d(nn.Module):
+
+  dropout_rate: float = 0.0
+
+  def __call__(self, x, deterministic=True):
+    if (self.dropout_rate > 0.0) and not deterministic:
+      drop = jax.random.bernoulli(
+          self.make_rng('dropout'),
+          1 - self.dropout_rate,
+          (x.shape[0], 1, x.shape[-1]),
+      )
+      x = x * drop / (1 - self.dropout_rate)
+    return x
+
 def precompute_freqs_cis(dim, end, theta: float = 10000.0):
   freqs = 1.0 / (theta ** (jnp.arange(0, dim, 2)[: (dim // 2)] / dim))
   t = jnp.arange(end)
@@ -318,6 +332,15 @@ def apply_rotary_emb(x, freqs_cos, freqs_sin):
       x_out_r.shape[:3] + (-1,)
   )
   return x_out
+
+# Not used if n_heads == n_kv_heads (n_rep == 1)
+def repeat_kv(x, n_rep):
+  bs, slen, n_kv_heads, head_dim = x.shape
+  if n_rep == 1:
+    return x
+  return jnp.tile(x[:, :, :, None, :], [1, 1, 1, n_rep, 1]).reshape(
+      bs, slen, n_kv_heads * n_rep, head_dim
+  )
 
 class MaskedAttentionWithRoPE(nn.Module):
   """
@@ -375,8 +398,7 @@ class MaskedAttentionWithRoPE(nn.Module):
 
     scores = jnp.matmul(xq, xk.swapaxes(2, 3)) / math.sqrt(self.head_dim)
 
-    # Assuming attn_mask has shape (seqlen_q, seqlen_kv)
-    attn_mask = attn_mask[None, None]
+    # Assuming attn_mask already has the right shape
     scores = (
           scores + attn_mask
       )  # (bs, n_heads, seqlen_q, seqlen_kv)
@@ -523,6 +545,11 @@ class HollowTransformer(nn.Module):
 
     forward_mask = jnp.tile(jnp.tril(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
     backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
+
+    # Different conventions between MD4 attention and linen.MultiHeadAttention
+    forward_mask = - (1 - forward_mask) * jnp.inf
+    backward_mask = - (1 - backward_mask) * jnp.inf
+
     mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
     xf = x[:,:-2]
