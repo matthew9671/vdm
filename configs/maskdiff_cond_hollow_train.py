@@ -17,19 +17,19 @@ import ml_collections
 import subprocess
 
 def get_git_commit_message():
-    try:
-        # Run the Git command to get the latest commit message
-        result = subprocess.run(
-            ["git", "log", "-1", "--pretty=%B"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()  # Return the commit message
-    except subprocess.CalledProcessError as e:
-        print("Error retrieving Git commit message:", e.stderr)
-        return None
+  try:
+      # Run the Git command to get the latest commit message
+      result = subprocess.run(
+          ["git", "log", "-1", "--pretty=%B"],
+          stdout=subprocess.PIPE,
+          stderr=subprocess.PIPE,
+          text=True,
+          check=True,
+      )
+      return result.stdout.strip()  # Return the commit message
+  except subprocess.CalledProcessError as e:
+      print("Error retrieving Git commit message:", e.stderr)
+      return None
 
 
 def d(**kwargs):

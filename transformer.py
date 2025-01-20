@@ -393,7 +393,7 @@ class HollowTransformer(nn.Module):
     xf = x[:,:-2]
     xb = x[:,2:]
     xm = jnp.zeros_like(xf)
-      
+    
     for i in range(self.num_hidden_layers):
       fb_layer = GenericTransformerLayer(
           intermediate_size=self.intermediate_size,
