@@ -561,8 +561,8 @@ class HollowTransformer(nn.Module):
     backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
 
     # Different conventions between MD4 attention and linen.MultiHeadAttention
-    forward_mask = - (1 - forward_mask) * jnp.inf
-    backward_mask = - (1 - backward_mask) * jnp.inf
+    forward_mask = jnp.where(forward_mask == 0, -jnp.inf, 0)
+    backward_mask = jnp.where(backward_mask == 0, -jnp.inf, 0)
 
     mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
