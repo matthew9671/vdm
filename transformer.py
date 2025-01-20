@@ -161,12 +161,16 @@ class Embed(nn.Module):
         embedding_init=self.initializer_fn,
         name='word_embeddings')
     word_embeddings = word_embedder(input_ids)
-    position_embeddings = nn.Embed(
-        num_embeddings=self.max_position_embeddings,
-        features=self.embedding_size,
-        embedding_init=self.initializer_fn,
-        name='position_embeddings')(
-            position_ids)
+
+    if self.use_position_embeddings:
+        position_embeddings = nn.Embed(
+            num_embeddings=self.max_position_embeddings,
+            features=self.embedding_size,
+            embedding_init=self.initializer_fn,
+            name='position_embeddings')(
+                position_ids)
+    else:
+        position_embeddings = jnp.zeros_like(word_embeddings)
 
     input_embeddings = nn.LayerNorm(
         epsilon=LAYERNORM_EPSILON, name='embeddings_ln')(
