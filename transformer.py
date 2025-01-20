@@ -548,7 +548,6 @@ class HollowTransformer(nn.Module):
     H = self.num_attention_heads
       
     freqs_cos, freqs_sin = precompute_freqs_cis(self.hidden_size // self.num_attention_heads, L+2)
-    freqs_cos, freqs_sin = freqs_cos[:L], freqs_sin[:L]
 
     # Offset the two streams and initialize the mixed stream to None
     freqs_cos_f, freqs_sin_f = freqs_cos[:-2], freqs_sin[:-2]
