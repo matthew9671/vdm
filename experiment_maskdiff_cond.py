@@ -290,14 +290,20 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # when t = 0, 1 - alpha = 0, but min_t > 0 so we never encounter this case
     alpha = forward_process.alpha(t)
     dalpha = forward_process.dalpha(t)
-    weights = jnp.where((y == mask), dalpha / (1 - alpha), dalpha / alpha)
 
-    score_entropy = 0.5 * jnp.sum(weights * log_p0t_eval_y[jnp.arange(D), x0])
+    mask_dim_weight = dalpha / (1 - alpha) if config.use_mask_loss else 0
+    non_mask_dim_weight = dalpha / alpha if config.use_non_mask_loss else 0
+    loss_mult = 0.5 if config.use_mask_loss and config.use_non_mask_loss else 1
+
+    weights = jnp.where((y == mask), mask_dim_weight, non_mask_dim_weight)
+
+    score_entropy = loss_mult * jnp.sum(weights * log_p0t_eval_y[jnp.arange(D), x0])
 
     loss = score_entropy
 
     scalar_dict = {
         "loss": loss,
+        "md4_loss": jnp.sum(jnp.where((y == mask), dalpha / (1 - alpha), 0) * log_p0t_eval_y[jnp.arange(D), x0])
     }
 
     img_dict = {}
