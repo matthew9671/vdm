@@ -234,7 +234,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     x0 = data.flatten()
     S = config.data.codebook_size + 1
-    mask = -1
+    mask = S-1
     D = x0.shape[0]
 
     forward_process = self.forward_process 
@@ -261,7 +261,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     qt0_eval_x0 = qt0[x0, :]
     # (D,) int array
     y = jr.categorical(key_y, logits=jnp.log(qt0_eval_x0))
-    # Turn all occurences of S into the mask token (-1)
+    # Turn all occurences of S-1 into the mask token (-1)
     # This doesn't affect indexing because python
     y = jnp.where((y == (S-1)), mask, y)
 
