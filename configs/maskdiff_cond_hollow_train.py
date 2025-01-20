@@ -47,8 +47,7 @@ def get_config():
 
   config.use_hollow_transformer = True
 
-  config.use_mask_loss = True
-  config.use_non_mask_loss = False
+  config.loss = "mask" # "mask" or "nonmask" or "mixed"
 
   config.git_commit_message = get_git_commit_message()
 

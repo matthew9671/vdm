@@ -291,19 +291,28 @@ class Experiment_MaskDiff_Conditional(Experiment):
     alpha = forward_process.alpha(t)
     dalpha = forward_process.dalpha(t)
 
-    mask_dim_weight = dalpha / (1 - alpha) if config.use_mask_loss else 0
-    non_mask_dim_weight = dalpha / alpha if config.use_non_mask_loss else 0
-    loss_mult = 0.5 if config.use_mask_loss and config.use_non_mask_loss else 1
+    mask_dim_weight = dalpha / (1 - alpha)
+    non_mask_dim_weight = dalpha / alpha
 
-    weights = jnp.where((y == mask), mask_dim_weight, non_mask_dim_weight)
+    mask_loss = jnp.sum(jnp.where((y == mask), mask_dim_weight, 0) * log_p0t_eval_y[jnp.arange(D), x0])
+    non_mask_loss = jnp.sum(jnp.where((y == mask), 0, non_mask_dim_weight) * log_p0t_eval_y[jnp.arange(D), x0])
 
-    score_entropy = loss_mult * jnp.sum(weights * log_p0t_eval_y[jnp.arange(D), x0])
+    mixed_loss = 0.5 * (mask_loss + non_mask_loss)
 
-    loss = score_entropy
+    if config.loss == "mixed":
+      loss = mixed_loss
+    elif config.loss == "mask":
+      loss = mask_loss
+    elif config.loss == "non_mask":
+      loss = non_mask_loss
+    else:
+      raise ValueError(f"Unrecognized loss type: {config.loss}")
 
     scalar_dict = {
         "loss": loss,
-        "md4_loss": jnp.sum(jnp.where((y == mask), dalpha / (1 - alpha), 0) * log_p0t_eval_y[jnp.arange(D), x0])
+        "mask_loss": mask_loss,
+        "non_mask_loss": non_mask_loss,
+        "mixed_loss": mixed_loss,
     }
 
     img_dict = {}
