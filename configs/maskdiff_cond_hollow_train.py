@@ -64,11 +64,11 @@ def get_config():
     hidden_size=768,
     num_hidden_layers=24, # 24
     num_attention_heads=16,
-    intermediate_size=1280,
+    intermediate_size=2048,
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
-    num_layers_per_mixed=4,
+    num_layers_per_mixed=8,
   )
 
   config.sampler = d(
@@ -120,7 +120,7 @@ def get_config():
       batch_size_train=512, #1024 in paper version
       batch_size_eval=512,
       steps_per_logging=100,
-      steps_per_eval=2500, # 1 full epoch
+      steps_per_eval=1250, # 1 full epoch
       steps_per_save=50_000, # ~3h of training time
       profile=False,
   )
@@ -133,7 +133,7 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=1e-4, #2e-4 in paper version
+      learning_rate=2e-4, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
   )
