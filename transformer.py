@@ -28,6 +28,7 @@ from flax import linen as nn
 import jax
 import jax.numpy as jnp
 
+import math
 
 LAYERNORM_EPSILON = 1e-12  # Layer norm from BERT
 
