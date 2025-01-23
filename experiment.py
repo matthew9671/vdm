@@ -174,12 +174,15 @@ class Experiment(ABC):
     logging.info('Workdir: ' + workdir)
 
     if jax.process_index() == 0:
-     if not tf.io.gfile.exists(workdir):
-       tf.io.gfile.mkdir(workdir)
-       wandb.init(
+      wandb.init(
         project="maskdiff",
-        config=self.config
+        config=self.config,
+        id="fnquujwg",
+        resume="must"
       )
+      if not tf.io.gfile.exists(workdir):
+        tf.io.gfile.mkdir(workdir)
+       
 
     config = self.config.training
     logging.info('num_steps_train=%d', config.num_steps_train)
