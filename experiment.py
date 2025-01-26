@@ -177,8 +177,8 @@ class Experiment(ABC):
       wandb.init(
         project="maskdiff",
         config=self.config,
-        # id="fnquujwg",
-        # resume="must"
+        id="fnquujwg",
+        resume="must"
       )
       if not tf.io.gfile.exists(workdir):
         tf.io.gfile.mkdir(workdir)
@@ -192,7 +192,7 @@ class Experiment(ABC):
 
     # Set up checkpointing of the model and the input pipeline.
     checkpoint_dir = os.path.join(workdir, 'checkpoints')
-    ckpt = checkpoint.MultihostCheckpoint(checkpoint_dir, max_to_keep=10)
+    ckpt = checkpoint.MultihostCheckpoint(checkpoint_dir)
     checkpoint_to_restore = ckpt.get_latest_checkpoint_to_restore_from()
     
     # I don't know how to deal with the discrepancy issue between works

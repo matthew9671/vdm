@@ -94,8 +94,8 @@ def get_config():
     # predictor_cutoff_time=0.25, convergence_steps=100,
     # If set to true, only update masked tokens at the last argmax step
     restricted=False,
-    k = 8,
-    top_k_temperature=1.,
+    k = 16,
+    top_k_temperature=3.,
     maskgit_temperature=6,
   )
 
@@ -134,7 +134,7 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=3.3e-5, #2e-4 in paper version
+      learning_rate=1e-4, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
   )
