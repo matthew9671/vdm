@@ -438,15 +438,17 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "test_results_01_28.csv"
+    file_name = "test_results_01_28_.csv"
     csv_file = os.path.join(logdir, file_name)
 
-    if jax.process_index() == 0:
+    # if jax.process_index() == 0:
+    if True:
       if os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
       else:
         df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
-          'cstep_size', 'num_pstep', 'corrector', 'fid', 'k', 'top_k_temperature'])
+          'cstep_size', 'num_pstep', 'corrector', 'fid', 
+          'k', 'gibbs_temperature', 'maskgit_temperature'])
 
     # Gibbs
     methods = ["gibbs"]
@@ -503,8 +505,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
       methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
       ks, top_k_temperatures, maskgit_temperatures)
 
-    params_combination = itertools.chain(no_corrector_experiments, 
-      maskgit_experiments, forward_backward_experiments,
+    params_combination = itertools.chain(
+      # no_corrector_experiments, # TODO
+      maskgit_experiments, 
+      forward_backward_experiments,
       gibbs_experiments)
 
     cfg = self.config.sampler
@@ -536,17 +540,20 @@ class Experiment_MaskDiff_Conditional(Experiment):
       #   fid_score = None
 
       result = {
-        'method': [method], 
-        'num_cstep': [num_cstep], 
-        'entry_time': [entry_time], 
-        'cstep_size': [cstep_size], 
-        'num_pstep': [num_pstep], 
-        'corrector': [corrector], 
-        'fid': [fid_score],
-        'k': [k]
+        "method": method,
+        "num_cstep": num_cstep,
+        "entry_time": entry_time,
+        "cstep_size": cstep_size,
+        "num_pstep": num_pstep,
+        "corrector": corrector,
+        "fid": fid_score,
+        "k": k,
+        "gibbs_temperature": top_k_temperature,
+        "maskgit_temperature": maskgit_temperature
       }
 
-      if jax.process_index() == 0:
+      if True:
+      # if jax.process_index() == 0:
         df = pd.concat([df, pd.DataFrame(result)], ignore_index=True)
         df.to_csv(csv_file, index=False)
 
