@@ -303,7 +303,7 @@ def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024, temperature=
     out = jnp.where((scores <= thres) & (x != mask), jump_target, x)
     return out
 
-def mask_conditonal_gibbs_update_uninformed(key, x, x0_logits, k=1, mask=1024):
+def mask_conditonal_gibbs_update_uninformed(key, x, x0_logits, k=1, mask=1024, temperature=None):
     D = x.shape[0]
 
     key_dim, key_cat = jr.split(key)
