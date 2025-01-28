@@ -459,9 +459,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     top_k_temperatures = [.1, 1.,5.,10.]
     maskgit_temperatures = [-1]
 
+    # TODO: we need to clean up sampling code
     no_corrector_experiments = itertools.product(
       ["gibbs"], # Uses md4 sampling
-      [None], 
+      ["gibbs"], # So that we would call backward_process_gibbs
       [0], # no corrector
       [-1], 
       [-1], 
