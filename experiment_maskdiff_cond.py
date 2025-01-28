@@ -386,10 +386,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
         img.save(path_to_save)
 
       image_id += samples.shape[0]
+      all_acts.append(fid.compute_acts(uint8_images))
+      
       if verbose:
         logging.info(f"Number of samples: {image_id}/{total_samples}")
-
-      all_acts.append(fid.compute_acts(uint8_images))
 
     if jax.process_index() == 0:
 
