@@ -76,21 +76,18 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=128, # Cut the number of steps in half due to using correctors
+    num_steps=16, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
-    # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
+    # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence", "md4"
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
     tag="",
-    # corrector="", corrector_step_size=0,
-    corrector="gibbs", corrector_step_size=0,
+    corrector="", corrector_step_size=0,
+    # corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
-    # corrector="gibbs_mpf", corrector_step_size=0,
-    # corrector="mpf", corrector_step_size=0.005,
-    # corrector="barker", corrector_step_size=4.,
     # corrector="forward_backward", corrector_step_size=4.,
     corrector_entry_time=0.9,
-    num_corrector_steps=1,
+    num_corrector_steps=0,
 
     # Testing corrector convergence
     # predictor_cutoff_time=0.25, convergence_steps=100,
