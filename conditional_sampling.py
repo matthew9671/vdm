@@ -382,9 +382,10 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rc = corrector_rate(res)
 
-        # TODO: this now only works for temperature annealed Gibbs
+        temperature_coeff = t if config.sampler.anneal_temperature else 1
+
         x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask,
-            temperature=config.sampler.top_k_temperature * t)
+            temperature=config.sampler.top_k_temperature * temperature_coeff)
 
         x = x.at[1:-1].set(x_update)
         

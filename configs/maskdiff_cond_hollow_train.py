@@ -81,7 +81,7 @@ def get_config():
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
-    tag="md4_predictor",
+    tag="test_no_anneal",
     # corrector="", corrector_step_size=0,
     corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
@@ -98,7 +98,8 @@ def get_config():
     restricted=False,
     k = 16,
     top_k_temperature=3.,
-    maskgit_temperature=6,
+    maskgit_temperature=6.,
+    anneal_temperature=False,
   )
 
   config.noise = d(
