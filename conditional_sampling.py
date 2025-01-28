@@ -171,7 +171,7 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
 
         out = {
             "x": x,
-            "rp": rp
+            # "rp": rp
         }
         
         return (x, key), out
