@@ -93,7 +93,7 @@ def get_config():
     # predictor_cutoff_time=0.25, convergence_steps=100,
     # If set to true, only update masked tokens at the last argmax step
     restricted=False,
-    k = 8,
+    k = 16,
     top_k_temperature=100.,
     maskgit_temperature=6.,
     anneal_temperature=False,
