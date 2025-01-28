@@ -507,7 +507,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     params_combination = itertools.chain(
       # no_corrector_experiments, # TODO
-      maskgit_experiments, 
+      # maskgit_experiments, 
       forward_backward_experiments,
       gibbs_experiments)
 
@@ -540,16 +540,16 @@ class Experiment_MaskDiff_Conditional(Experiment):
       #   fid_score = None
 
       result = {
-        "method": method,
-        "num_cstep": num_cstep,
-        "entry_time": entry_time,
-        "cstep_size": cstep_size,
-        "num_pstep": num_pstep,
-        "corrector": corrector,
-        "fid": fid_score,
-        "k": k,
-        "gibbs_temperature": top_k_temperature,
-        "maskgit_temperature": maskgit_temperature
+        "method": [method],
+        "num_cstep": [num_cstep],
+        "entry_time": [entry_time],
+        "cstep_size": [cstep_size],
+        "num_pstep": [num_pstep],
+        "corrector": [corrector],
+        "fid": [fid_score],
+        "k": [k],
+        "gibbs_temperature": [top_k_temperature],
+        "maskgit_temperature": [maskgit_temperature]
       }
 
       if True:
