@@ -160,8 +160,14 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         rp = res["rates"]
+
+        m1 = forward_process.mask_percentage(t)
+        m2 = forward_process.mask_percentage(t-dt)
+        unmask_prob = (m1 - m2) / m1
+        update = md4_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, mask=mask)
+
         # Only update the data, do not update the label
-        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+        x = x.at[1:-1].set(update)
 
         out = {
             "x": x,
