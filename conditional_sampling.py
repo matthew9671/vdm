@@ -128,8 +128,6 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
         update_func = euler_update
     elif config.sampler.update_type == "tau_leaping": 
         update_func = poisson_jump_reject
-    elif config.sampler.update_type == "md4":
-        update_func = md4_predictor_update
     else:
         raise Exception(f"Unknown update type: {config.sampler.update_type}")
 

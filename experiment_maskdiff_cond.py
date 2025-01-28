@@ -437,7 +437,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "random_gibbs_results_11_28.csv"
+    file_name = "test_results_01_28.csv"
     csv_file = os.path.join(logdir, file_name)
 
     if jax.process_index() == 0:
@@ -445,87 +445,79 @@ class Experiment_MaskDiff_Conditional(Experiment):
         df = pd.read_csv(csv_file)
       else:
         df = pd.DataFrame(columns=['method', 'num_cstep', 'entry_time', 
-          'cstep_size', 'num_pstep', 'corrector', 'fid', 'k'])
+          'cstep_size', 'num_pstep', 'corrector', 'fid', 'k', 'top_k_temperature'])
 
+    # Gibbs
     methods = ["gibbs"]
+    correctors = ["gibbs"]
     num_csteps = [1,]
-    entry_times = [.9, .5]
-    cstep_sizes = [0] # divide by 100 for mpf stepsizes
-    num_psteps = [8, 16, 32, 64, 128]
-    ks = [1, 2, 4, 8, 16]
-    correctors = ["gibbs_uninformed"]
-
-    # # From this point we added temperature so that 
-    # # top k choice in gibbs is randomized
-    # methods = ["gibbs"]
-    # num_csteps = [1,]
-    # entry_times = [.9, .5]
-    # cstep_sizes = [0] # divide by 100 for mpf stepsizes
-    # num_psteps = [8, 16, 32, 64, 128]
-    # ks = [1, 2, 4, 8, 16]
-    # correctors = ["gibbs_mpf", "gibbs_uninformed", "gibbs"]
-
-    # methods = ["gibbs"]
-    # num_csteps = [1,]
-    # entry_times = [.9, .5]
-    # cstep_sizes = [0] # divide by 100 for mpf stepsizes
-    # num_psteps = [8, 16, 32, 64, 128]
-    # ks = [1, 2, 4, 8, 16]
-    # correctors = ["gibbs"]
-
-    # methods = ["euler"]
-    # num_csteps = [1, 2]
-    # entry_times = [.9, .5]
-    # cstep_sizes = [.5, 1., 2., 4., 8.] # divide by 100 for mpf stepsizes
-    # num_psteps = [8, 16, 32, 64, 128]
-    # correctors = ["forward_backward", "mpf", "barker"]
-
-    # methods = ["euler"]
-    # num_csteps = [1, 2]
-    # entry_times = [.9, .5]
-    # cstep_sizes = [0.5, 1., 2., 4., 8.] # divide by 100 for mpf stepsizes
-    # num_psteps = [8, 16, 32, 64]
-    # correctors = ["mpf", "barker", "mpf_full", "barker_full"]
-
-    # methods = ["euler"]
-    # num_csteps = [1, 2]
-    # entry_times = [.9, .5]
-    # cstep_sizes = [0.0002, 0.0005, .001, .002, .004,]
-    # num_psteps = [8, 16]
-    # correctors = ["mpf_full", "barker_full"]
+    entry_times = [.9]
+    cstep_sizes = [-1] # divide by 100 for mpf stepsizes
+    num_psteps = [8, 16, 32,] # Save 64 and 128 for later
+    ks = [16, 8, 4, 2, 1]
+    top_k_temperatures = [.1, 1.,5.,10.]
+    maskgit_temperatures = [-1]
 
     no_corrector_experiments = itertools.product(
-      methods[:1], num_csteps[:1], entry_times[:1], 
-      cstep_sizes[:1], num_psteps, [None])
-    params_combination = itertools.product(methods, num_csteps, entry_times, 
-      cstep_sizes, num_psteps, correctors, 
-      # Gibbs only
-      ks)
+      ["gibbs"], # Uses md4 sampling
+      [None], 
+      [0], # no corrector
+      [-1], 
+      [-1], 
+      [8, 16, 32, 64, 128, 256], 
+      [-1], [-1], [-1])
 
-    # params_combination = itertools.chain(no_corrector_experiments, 
-    #   params_combination)
+    gibbs_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
+
+    # Maskgit experiments
+    methods = ["maskgit"]
+    correctors = [None]
+    num_csteps = [0,]
+    entry_times = [-1]
+    cstep_sizes = [-1] # divide by 100 for mpf stepsizes
+    num_psteps = [8, 16, 32, 64, 128]
+    ks = [-1]
+    top_k_temperatures = [-1]
+    maskgit_temperatures = [.5,1.,2.,4.,8.]
+
+    maskgit_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
+
+    # Forward-backward experiments
+    methods = ["euler"]
+    correctors = ["forward_backward"]
+    num_csteps = [1,]
+    entry_times = [.9]
+    cstep_sizes = [.5, 1., 2., 4.] # divide by 100 for mpf stepsizes
+    num_psteps = [8, 16, 32, 64, 128] # Save 64 and 128 for later
+    ks = [-1]
+    top_k_temperatures = [-1]
+    maskgit_temperatures = [-1]
+
+    forward_backward_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
+
+    params_combination = itertools.chain(no_corrector_experiments, 
+      maskgit_experiments, forward_backward_experiments,
+      gibbs_experiments)
 
     cfg = self.config.sampler
 
-    for method, num_cstep, entry_time, cstep_size, num_pstep, corrector, k in params_combination:
-      # # Adjust mpf stepsize
-      # if corrector == "mpf":
-      #   cstep_size /= 100
-      # elif "barker_full" in corrector: # Seems like barker with full connection is also problematic...???
-      #   cstep_size /= 100
+    for method, corrector, num_cstep, entry_time, cstep_size, num_pstep, k, top_k_temperature, maskgit_temperature in params_combination:
 
-      # if "full" in corrector:
-      #   # Keep the absolute stepsize constant
-      #   cstep_size *= num_pstep / 32
-
-      cfg.num_steps = num_pstep
       cfg.update_type = method
       cfg.corrector = corrector
-      cfg.corrector_step_size = cstep_size
-      cfg.corrector_entry_time = entry_time
       cfg.num_corrector_steps = num_cstep
-      # Only for k-Gibbs/Gilespies
+      cfg.corrector_entry_time = entry_time
+      cfg.corrector_step_size = cstep_size
+      cfg.num_steps = num_pstep
       cfg.k = k
+      cfg.top_k_temperature = top_k_temperature
+      cfg.maskgit_temperature = maskgit_temperature
 
       # Redefine the sample function now that we have changed configs
       self.p_sample = partial(self.sample_fn, dummy_inputs=None)
@@ -533,7 +525,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       try:
         fid_score = self._sample_and_compute_fid(fid, params, 
-          total_samples=10_000,
+          total_samples=10,
           samples_per_label=10, save_imgs=False)
       except:
         logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
@@ -584,8 +576,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
       logging.info(f"Using corrector: {config.sampler.corrector}")
     else:
       if config.sampler.update_type == "maskgit":
-        backward_process = backward_process_maskgit
-      elif config.sampler.update_type == "maskgit_original":
         backward_process = maskgit
       else:
         backward_process = backward_process_no_corrector
