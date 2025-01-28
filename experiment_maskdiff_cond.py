@@ -575,7 +575,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
         backward_process = test_corrector_convergence
       elif config.sampler.update_type == "gibbs":
         backward_process = backward_process_gibbs
-      else: # tau-leaping or euler
+      else: # tau-leaping or euler or md4
         if config.sampler.num_corrector_steps == 1:
           backward_process = backward_process_pc_single
         else:
