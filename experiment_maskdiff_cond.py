@@ -341,7 +341,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       samples_per_label=10, save_imgs=True, sample_logdir=sample_logdir, verbose=True)
 
   def _sample_and_compute_fid(self, fid, params, total_samples=10_000, 
-    samples_per_label=10, save_imgs=False, sample_logdir=None, verbose=False):
+    samples_per_label=10, save_imgs=False, sample_logdir=None, verbose=False,
+    debug=False):
 
     config = self.config 
     S = config.data.codebook_size + 1
@@ -378,7 +379,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       all_images.append(uint8_images)
 
-      if save_imgs and jax.process_index() == 0 and image_id % (128 * 10) == 0:
+      if save_imgs and jax.process_index() == 0 and image_id % (128 * 10) == 0 and not debug:
         # Save some sample images
         img = utils.generate_image_grids(uint8_images[:100])
         path_to_save = sample_logdir + f'/{image_id}.png'
@@ -391,7 +392,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       if verbose:
         logging.info(f"Number of samples: {image_id}/{total_samples}")
 
-    if jax.process_index() == 0:
+    if jax.process_index() == 0 and not debug:
 
       file_name = utils.get_file_name(self.config)
 
@@ -523,13 +524,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
       self.p_sample = partial(self.sample_fn, dummy_inputs=None)
       self.p_sample = utils.dist(self.p_sample, accumulate='concat', axis_name='batch')
 
-      try:
+      if True:
+      # try:
         fid_score = self._sample_and_compute_fid(fid, params, 
           total_samples=10,
-          samples_per_label=10, save_imgs=False)
-      except:
-        logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
-        fid_score = None
+          samples_per_label=10, save_imgs=False,
+          debug=True)
+      # except:
+      #   logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
+      #   fid_score = None
 
       result = {
         'method': [method], 
