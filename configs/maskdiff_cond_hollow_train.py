@@ -76,12 +76,12 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=8, # Cut the number of steps in half due to using correctors
+    num_steps=128, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence"
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
-    tag="anti-anneal",
+    tag="",
     # corrector="", corrector_step_size=0,
     corrector="gibbs", corrector_step_size=0,
     # corrector="gibbs_uninformed", corrector_step_size=0,
@@ -96,10 +96,10 @@ def get_config():
     # predictor_cutoff_time=0.25, convergence_steps=100,
     # If set to true, only update masked tokens at the last argmax step
     restricted=False,
-    k = 16,
+    k = 1,
     top_k_temperature=1.,
     maskgit_temperature=6.,
-    anneal_temperature=True,
+    anneal_temperature=False,
   )
 
   config.noise = d(

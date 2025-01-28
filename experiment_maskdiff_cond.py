@@ -387,7 +387,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       image_id += samples.shape[0]
       all_acts.append(fid.compute_acts(uint8_images))
-      
+
       if verbose:
         logging.info(f"Number of samples: {image_id}/{total_samples}")
 
@@ -593,8 +593,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     S = config.data.codebook_size + 1
     D = config.data.seq_length
     # Drop min_t to 0
-    min_t = 0 #config.training.min_t
-    max_t = 1 #config.training.max_t
+    min_t = 0 
+    max_t = 1
     num_steps = config.sampler.num_steps
     
     # Initialize the all-mask state
