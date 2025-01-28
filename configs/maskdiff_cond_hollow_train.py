@@ -86,7 +86,7 @@ def get_config():
     # corrector="gibbs", corrector_step_size=0,
     corrector="gibbs_uninformed", corrector_step_size=0,
     # corrector="forward_backward", corrector_step_size=4.,
-    corrector_entry_time=0.9,
+    corrector_entry_time=0.5,
     num_corrector_steps=1,
 
     # Testing corrector convergence
