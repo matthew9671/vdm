@@ -441,8 +441,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     file_name = "test_results_01_28_.csv"
     csv_file = os.path.join(logdir, file_name)
 
-    # if jax.process_index() == 0:
-    if True:
+    if jax.process_index() == 0:
+    # if True:
       if os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
       else:
@@ -458,7 +458,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     cstep_sizes = [-1] # divide by 100 for mpf stepsizes
     num_psteps = [8, 16, 32,] # Save 64 and 128 for later
     ks = [16, 8, 4, 2, 1]
-    top_k_temperatures = [.1, 1.,5.,10.]
+    top_k_temperatures = [.1,1.,2.,5.]
     maskgit_temperatures = [-1]
 
     # TODO: we need to clean up sampling code
@@ -506,8 +506,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       ks, top_k_temperatures, maskgit_temperatures)
 
     params_combination = itertools.chain(
-      # no_corrector_experiments, # TODO
-      # maskgit_experiments, 
+      no_corrector_experiments,
+      maskgit_experiments, 
       forward_backward_experiments,
       gibbs_experiments)
 
@@ -529,15 +529,14 @@ class Experiment_MaskDiff_Conditional(Experiment):
       self.p_sample = partial(self.sample_fn, dummy_inputs=None)
       self.p_sample = utils.dist(self.p_sample, accumulate='concat', axis_name='batch')
 
-      if True:
-      # try:
+      # if True:
+      try:
         fid_score = self._sample_and_compute_fid(fid, params, 
-          total_samples=10,
-          samples_per_label=10, save_imgs=False,
-          debug=True)
-      # except:
-      #   logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
-      #   fid_score = None
+          total_samples=10_000,
+          samples_per_label=10, save_imgs=False)
+      except:
+        logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
+        fid_score = None
 
       result = {
         "method": [method],
@@ -552,8 +551,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
         "maskgit_temperature": [maskgit_temperature]
       }
 
-      if True:
-      # if jax.process_index() == 0:
+      # if True:
+      if jax.process_index() == 0:
         df = pd.concat([df, pd.DataFrame(result)], ignore_index=True)
         df.to_csv(csv_file, index=False)
 
