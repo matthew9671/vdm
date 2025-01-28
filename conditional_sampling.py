@@ -128,6 +128,8 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
         update_func = euler_update
     elif config.sampler.update_type == "tau_leaping": 
         update_func = poisson_jump_reject
+    elif config.sampler.update_type == "md4":
+        update_func = md4_predictor_update
     else:
         raise Exception(f"Unknown update type: {config.sampler.update_type}")
 
@@ -175,9 +177,17 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
         t = ts[idx]
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rp = res["rates"]
+        # rp = res["rates"]
+
+        # Changing update function from euler to MD4 (closed form?)
+        # This means that we no longer need rates
+        m1 = forward_process.mask_percentage(t)
+        m2 = forward_process.mask_percentage(t-dt)
+        unmask_prob = (m1 - m2) / m1
+        update = md4_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, mask=mask)
 
         x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+        
 
         # Change current time (!!)
         t -= dt
@@ -401,8 +411,6 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         
         # Changing update function from euler to MD4 (closed form?)
         # This means that we no longer need rates
-        # rp = res["rates"]
-        # update = update_func(p_key, x[1:-1], rp * dt)
         m1 = forward_process.mask_percentage(t)
         m2 = forward_process.mask_percentage(t-dt)
         unmask_prob = (m1 - m2) / m1
@@ -422,131 +430,6 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
                         lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
                         lambda x: x, x)
-
-        out = { "x": x, }
-        
-        return (x, key), out
-
-    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
-    res = compute_backward(x, t, apply_fn, params, config, forward_process)
-    x0_logits = res["x0_logits"]
-
-    if not config.sampler.restricted:
-        x0_pred = jnp.argmax(x0_logits, axis=1)
-    else:
-        # Instead of potentially updating every position, update only the masks
-        x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
-
-    return x0_pred, x_hist["x"]
-
-def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024, temperature=0, hollow=False):
-    D = x.shape[0]
-
-    key_dim, key_cat = jr.split(key)
-
-    logits = x0_logits.at[:, mask].set(-jnp.inf)
-    # Sample a bunch of new values according to denoising model
-    jump_target = jr.categorical(key_cat, logits).astype(jnp.int32)
-    # Compute the confidence score on each dimensions
-    confidence = x0_logits[jnp.arange(D), jump_target].T
-    # Add temperature annealing
-    confidence += temperature * jr.gumbel(key_dim, shape=(D,))
-    if not hollow:
-        # This should be the original maskgit
-        # Only update masks, set confidence for non-masks to 0
-        confidence = jnp.where(x != mask, -jnp.inf, confidence)
-        # Trick: sort and then find the kth largest
-        thres = -jnp.sort(-confidence, axis=-1)[k-1]
-        out = jnp.where((confidence >= thres), jump_target, x)
-    else:
-        # We don't care about the generated tokens
-        k += jnp.sum(x != mask).astype(int)
-        k = jnp.minimum(k, D)
-
-        thres = -jnp.sort(-confidence, axis=-1)[k-1]
-        out = jnp.where((confidence >= thres), jump_target, mask)
-    return out
-
-def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_process):
-
-    S = config.data.codebook_size + 1
-    D = config.data.seq_length
-    mask = S - 1
-    k = config.sampler.k
-    t = ts[0]
-    x = xT
-
-    predictor_update = partial(maskgit_predictor_update,
-            # "Hollow maskgit" doesn't work yet
-            hollow=False)
-    
-    corrector = config.sampler.corrector
-    if corrector == "gibbs":
-        corrector_rate = gibbs_corrector
-        # k-Gibbs with temperature similar in MaskGIT
-        # Note that the MaskGIT implementation doesn't do annealing
-        corrector_update = partial(mask_conditonal_gibbs_update, 
-            temperature=config.sampler.top_k_temperature)
-    elif corrector == "gibbs_uninformed":
-        corrector_rate = gibbs_corrector
-        corrector_update = mask_conditonal_gibbs_update_uninformed
-    elif corrector == "gibbs_mpf":
-        corrector_rate = gibbs_corrector
-        corrector_update = mask_conditional_k_gillespies_update_mpf
-    elif corrector == "":
-        corrector_update = None
-    else:
-        # Always use the full corrector because we allow transition between non-masks
-        if "barker" in corrector:
-            corrector_rate = barker_corrector_full
-        elif "mpf" in corrector:
-            corrector_rate = mpf_corrector_full
-        else:
-            raise Exception(f"Invalid corrector for Gibbs: {corrector}")
-        corrector_update = mask_conditional_k_gillespies_update
-
-    def _c_step(i, carry):
-        x, key, t, k = carry
-        key, c_key = jr.split(key, 2)
-        
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-        rc = corrector_rate(res)
-
-        x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask)
-        # This is just to test how changing k messes with recompilation
-
-        x = x.at[1:-1].set(x_update)
-        
-        return (x, key, t, k)
-
-    def _step(carry, idx):
-        x, key = carry
-        key, p_key, c_key = jr.split(key, 3)
-
-        t = ts[idx]
-        dt = t - ts[idx+1]
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
-
-        # Figure out how many dimensions need to be unmasked
-        dm = forward_process.mask_percentage(t) - forward_process.mask_percentage(t-dt)
-        k = jnp.floor(dm * D).astype(int)
-        k = jnp.maximum(1, k)
-
-        x_update = predictor_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask,
-        # TODO: This temperature annealing actually makes performance worse...?
-            temperature=config.sampler.maskgit_temperature * t)
-
-        x = x.at[1:-1].set(x_update)
-
-        if corrector_update is not None:
-            # Change current time (!!)
-            t -= dt
-
-            # Corrector
-            k = config.sampler.k
-            x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
-                            lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
-                            lambda x: x, x)
 
         out = { "x": x, }
         
@@ -948,3 +831,128 @@ def backward_process_pc_k_gillespies_euler(apply_fn, params, ts, config, xT, key
     x0_pred = jnp.argmax(x0_logits, axis=1)
 
     return x0_pred, x_hist
+
+def maskgit_predictor_update(key, x, x0_logits, k=1, mask=1024, temperature=0, hollow=False):
+    D = x.shape[0]
+
+    key_dim, key_cat = jr.split(key)
+
+    logits = x0_logits.at[:, mask].set(-jnp.inf)
+    # Sample a bunch of new values according to denoising model
+    jump_target = jr.categorical(key_cat, logits).astype(jnp.int32)
+    # Compute the confidence score on each dimensions
+    confidence = x0_logits[jnp.arange(D), jump_target].T
+    # Add temperature annealing
+    confidence += temperature * jr.gumbel(key_dim, shape=(D,))
+    if not hollow:
+        # This should be the original maskgit
+        # Only update masks, set confidence for non-masks to 0
+        confidence = jnp.where(x != mask, -jnp.inf, confidence)
+        # Trick: sort and then find the kth largest
+        thres = -jnp.sort(-confidence, axis=-1)[k-1]
+        out = jnp.where((confidence >= thres), jump_target, x)
+    else:
+        # We don't care about the generated tokens
+        k += jnp.sum(x != mask).astype(int)
+        k = jnp.minimum(k, D)
+
+        thres = -jnp.sort(-confidence, axis=-1)[k-1]
+        out = jnp.where((confidence >= thres), jump_target, mask)
+    return out
+
+def backward_process_maskgit(apply_fn, params, ts, config, xT, key, forward_process):
+
+    S = config.data.codebook_size + 1
+    D = config.data.seq_length
+    mask = S - 1
+    k = config.sampler.k
+    t = ts[0]
+    x = xT
+
+    predictor_update = partial(maskgit_predictor_update,
+            # "Hollow maskgit" doesn't work yet
+            hollow=False)
+    
+    corrector = config.sampler.corrector
+    if corrector == "gibbs":
+        corrector_rate = gibbs_corrector
+        # k-Gibbs with temperature similar in MaskGIT
+        # Note that the MaskGIT implementation doesn't do annealing
+        corrector_update = partial(mask_conditonal_gibbs_update, 
+            temperature=config.sampler.top_k_temperature)
+    elif corrector == "gibbs_uninformed":
+        corrector_rate = gibbs_corrector
+        corrector_update = mask_conditonal_gibbs_update_uninformed
+    elif corrector == "gibbs_mpf":
+        corrector_rate = gibbs_corrector
+        corrector_update = mask_conditional_k_gillespies_update_mpf
+    elif corrector == "":
+        corrector_update = None
+    else:
+        # Always use the full corrector because we allow transition between non-masks
+        if "barker" in corrector:
+            corrector_rate = barker_corrector_full
+        elif "mpf" in corrector:
+            corrector_rate = mpf_corrector_full
+        else:
+            raise Exception(f"Invalid corrector for Gibbs: {corrector}")
+        corrector_update = mask_conditional_k_gillespies_update
+
+    def _c_step(i, carry):
+        x, key, t, k = carry
+        key, c_key = jr.split(key, 2)
+        
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        rc = corrector_rate(res)
+
+        x_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask)
+        # This is just to test how changing k messes with recompilation
+
+        x = x.at[1:-1].set(x_update)
+        
+        return (x, key, t, k)
+
+    def _step(carry, idx):
+        x, key = carry
+        key, p_key, c_key = jr.split(key, 3)
+
+        t = ts[idx]
+        dt = t - ts[idx+1]
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+
+        # Figure out how many dimensions need to be unmasked
+        dm = forward_process.mask_percentage(t) - forward_process.mask_percentage(t-dt)
+        k = jnp.floor(dm * D).astype(int)
+        k = jnp.maximum(1, k)
+
+        x_update = predictor_update(c_key, x[1:-1], res["x0_logits"], k=k, mask=mask,
+        # TODO: This temperature annealing actually makes performance worse...?
+            temperature=config.sampler.maskgit_temperature * t)
+
+        x = x.at[1:-1].set(x_update)
+
+        if corrector_update is not None:
+            # Change current time (!!)
+            t -= dt
+
+            # Corrector
+            k = config.sampler.k
+            x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
+                            lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
+                            lambda x: x, x)
+
+        out = { "x": x, }
+        
+        return (x, key), out
+
+    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
+    res = compute_backward(x, t, apply_fn, params, config, forward_process)
+    x0_logits = res["x0_logits"]
+
+    if not config.sampler.restricted:
+        x0_pred = jnp.argmax(x0_logits, axis=1)
+    else:
+        # Instead of potentially updating every position, update only the masks
+        x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
+
+    return x0_pred, x_hist["x"]
