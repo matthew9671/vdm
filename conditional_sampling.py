@@ -190,7 +190,7 @@ def backward_process_pc_single(apply_fn, params, ts, config, xT, key, forward_pr
         unmask_prob = (m1 - m2) / m1
         update = md4_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, mask=mask)
 
-        x = x.at[1:-1].set(update_func(p_key, x[1:-1], rp * dt))
+        x = x.at[1:-1].set(update)
         
 
         # Change current time (!!)
