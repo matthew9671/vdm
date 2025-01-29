@@ -572,15 +572,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
       self.p_sample = partial(self.sample_fn, dummy_inputs=None)
       self.p_sample = utils.dist(self.p_sample, accumulate='concat', axis_name='batch')
 
-      # if True:
-      try:
+      if True:
+      # try:
         fid_score = self._sample_and_compute_fid(fid, params, 
           total_samples=50_000,
           samples_per_label=50, 
           save_imgs=save_imgs)
-      except:
-        logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
-        fid_score = None
+      # except:
+      #   logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
+      #   fid_score = None
 
       result = {
         "method": [method],
