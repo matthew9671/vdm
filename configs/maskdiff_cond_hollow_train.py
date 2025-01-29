@@ -76,7 +76,7 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=8, # Cut the number of steps in half due to using correctors
+    num_steps=4, # Cut the number of steps in half due to using correctors
     max_samples=10_000, 
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence", "md4"
     update_type="md4", 
@@ -94,7 +94,7 @@ def get_config():
     # If set to true, only update masked tokens at the last argmax step
     restricted=False,
     k = 16,
-    top_k_temperature=100.,
+    top_k_temperature=1.,
     maskgit_temperature=6.,
     anneal_temperature=False,
   )

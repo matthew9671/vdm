@@ -415,7 +415,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       if save_imgs:
         jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(all_acts, axis=0))
-        jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', jnp.concatenate(all_images, axis=0))
+
+        all_images = jnp.stack(all_images)
+        logging.info(f"Shape of all_images: {all_images.shape}")
+        jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', all_images)
         logging.info("Saved activations and images")
 
       logging.info(f"======= Complete =======")
