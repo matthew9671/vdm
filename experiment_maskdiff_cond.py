@@ -420,8 +420,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
         # Create a folder first
         if not os.path.exists(sample_logdir + f'/{file_name}_images'):
           os.makedirs(sample_logdir+f'/{file_name}_images')
-        for i, images in enumerate(all_images):
-          np.savez_compressed(sample_logdir + f'/{file_name}_images/{i}', images)
+
+        # Save the images in larger batches
+        save_batch_size = 100
+        for i in range(0, len(all_images), save_batch_size):
+          np.savez_compressed(sample_logdir + f'/{file_name}_images/{i}', 
+            jnp.concatenate(all_images[i:i+save_batch_size], axis=0))
+
+        # for i, images in enumerate(all_images):
+        #   np.savez_compressed(sample_logdir + f'/{file_name}_images/{i}', images)
         # all_images = np.concatenate(all_images)
         # logging.info(f"Shape of all_images: {all_images.shape}")
         # jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', all_images)
@@ -555,6 +562,13 @@ class Experiment_MaskDiff_Conditional(Experiment):
     cfg = self.config.sampler
 
     for method, corrector, num_cstep, entry_time, cstep_size, num_pstep, k, top_k_temperature, maskgit_temperature in params_combination:
+
+      # Skip if the experiment has already been done
+      if df[(df.method == method) & (df.num_cstep == num_cstep) & (df.entry_time == entry_time) &
+        (df.cstep_size == cstep_size) & (df.num_pstep == num_pstep) & (df.corrector == corrector) &
+        (df.k == k) & (df.gibbs_temperature == top_k_temperature) & (df.maskgit_temperature == maskgit_temperature)].shape[0] > 0:
+        logging.info(f"Skipping experiment with method={method}, num_cstep={num_cstep}, entry_time={entry_time}, cstep_size={cstep_size}, num_pstep={num_pstep}, corrector={corrector}, k={k}, gibbs_temperature={top_k_temperature}, maskgit_temperature={maskgit_temperature}")
+        continue
 
       cfg.update_type = method
       cfg.corrector = corrector
