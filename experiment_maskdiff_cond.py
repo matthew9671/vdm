@@ -577,7 +577,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
         fid_score = self._sample_and_compute_fid(fid, params, 
           total_samples=50_000,
           samples_per_label=50, 
-          save_imgs=save_imgs)
+          save_imgs=save_imgs,
+          sample_logdir="/home/yixiuz/logs/samples",)
       # except:
       #   logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
       #   fid_score = None
