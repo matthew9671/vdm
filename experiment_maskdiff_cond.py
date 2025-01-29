@@ -475,21 +475,21 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
     #   ks, top_k_temperatures, maskgit_temperatures)
 
-    # TODO: there was something wrong with the Maskgit experiments
-    # # Maskgit experiments
-    # methods = ["maskgit"]
-    # correctors = [None]
-    # num_csteps = [0,]
-    # entry_times = [-1]
-    # cstep_sizes = [-1]
-    # num_psteps = [8, 16, 32, 64, 128]
-    # ks = [-1]
-    # top_k_temperatures = [-1]
-    # maskgit_temperatures = [.5,1.,2.,4.,8.]
+    # TODO: redoing the Maskgit experiments
+    # Maskgit experiments
+    methods = ["maskgit"]
+    correctors = [None]
+    num_csteps = [0,]
+    entry_times = [-1]
+    cstep_sizes = [-1]
+    num_psteps = [8, 16, 32, 64, 128]
+    ks = [-1]
+    top_k_temperatures = [-1]
+    maskgit_temperatures = [.5,1.,2.,4.,8.]
 
-    # maskgit_experiments = itertools.product(
-    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-    #   ks, top_k_temperatures, maskgit_temperatures)
+    maskgit_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
 
     # # Forward-backward experiments
     # methods = ["euler"]
@@ -512,22 +512,22 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #   forward_backward_experiments,
     #   gibbs_experiments)
 
-    # The other half of the gibbs experiments
-    methods = ["gibbs"]
-    correctors = ["gibbs"]
-    num_csteps = [1,]
-    entry_times = [.9,]
-    cstep_sizes = [-1] 
-    num_psteps = [64, 128]
-    ks = [16, 8, 4, 2, 1]
-    top_k_temperatures = [2.,5.,10.,1000.]
-    maskgit_temperatures = [-1]
+    # # The other half of the gibbs experiments
+    # methods = ["gibbs"]
+    # correctors = ["gibbs"]
+    # num_csteps = [1,]
+    # entry_times = [.9,]
+    # cstep_sizes = [-1] 
+    # num_psteps = [64, 128]
+    # ks = [16, 8, 4, 2, 1]
+    # top_k_temperatures = [2.,5.,10.,1000.]
+    # maskgit_temperatures = [-1]
 
-    gibbs_experiments = itertools.product(
-      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-      ks, top_k_temperatures, maskgit_temperatures)
+    # gibbs_experiments = itertools.product(
+    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+    #   ks, top_k_temperatures, maskgit_temperatures)
 
-    params_combination = gibbs_experiments
+    params_combination = maskgit_experiments
 
     cfg = self.config.sampler
 

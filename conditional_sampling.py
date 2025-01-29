@@ -454,7 +454,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 def maskgit(apply_fn, params, ts, config, xT, key, forward_process):
 
     S = config.data.codebook_size + 1
-    mask = -1
+    mask = S-1
 
     def tokens_to_logits(y): 
         x0_logits = apply_fn({"params": params}, y, t=0, deterministic=True)
@@ -462,7 +462,8 @@ def maskgit(apply_fn, params, ts, config, xT, key, forward_process):
         return x0_logits[...,:S]
 
     # Add batch dimension
-    inputs = jnp.where((xT == (S-1)), mask, xT)[None]
+    # inputs = jnp.where((xT == (S-1)), mask, xT)[None]
+    inputs = xT[None]
     rng = key
 
     x_hist = decode(inputs,
