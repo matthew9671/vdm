@@ -482,10 +482,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     num_csteps = [0,]
     entry_times = [-1]
     cstep_sizes = [-1]
-    num_psteps = [8, 16, 32, 64, 128]
+    num_psteps = [16, 32, 64, 128, 256]
     ks = [-1]
     top_k_temperatures = [-1]
-    maskgit_temperatures = [.5,1.,2.,4.,8.]
+    maskgit_temperatures = [10.,12.,16.,20.,40.]
 
     maskgit_experiments = itertools.product(
       methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
