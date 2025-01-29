@@ -449,7 +449,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_01_28.csv"
+    file_name = "results_01_29_50k.csv"
     csv_file = os.path.join(logdir, file_name)
 
     if jax.process_index() == 0:
@@ -486,21 +486,20 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
     #   ks, top_k_temperatures, maskgit_temperatures)
 
-    # TODO: redoing the Maskgit experiments
     # Maskgit experiments
-    methods = ["maskgit"]
-    correctors = [None]
-    num_csteps = [0,]
-    entry_times = [-1]
-    cstep_sizes = [-1]
-    num_psteps = [16, 32, 64, 128, 256]
-    ks = [-1]
-    top_k_temperatures = [-1]
-    maskgit_temperatures = [10.,12.,16.,20.,40.]
+    # methods = ["maskgit"]
+    # correctors = [None]
+    # num_csteps = [0,]
+    # entry_times = [-1]
+    # cstep_sizes = [-1]
+    # num_psteps = [16, 32, 64, 128, 256]
+    # ks = [-1]
+    # top_k_temperatures = [-1]
+    # maskgit_temperatures = [10.,12.,16.,20.,40.]
 
-    maskgit_experiments = itertools.product(
-      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-      ks, top_k_temperatures, maskgit_temperatures)
+    # maskgit_experiments = itertools.product(
+    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+    #   ks, top_k_temperatures, maskgit_temperatures)
 
     # # Forward-backward experiments
     # methods = ["euler"]
@@ -538,7 +537,22 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
     #   ks, top_k_temperatures, maskgit_temperatures)
 
-    params_combination = maskgit_experiments
+    # params_combination = maskgit_experiments
+
+    import pandas as pd
+
+    # Load the best experimental configurations
+    best_configs_file_path = "/home/yixiuz/vdm/best_results_1_29.csv"
+    best_configs = pd.read_csv(best_configs_file_path)
+
+    best_configs.fillna("none", inplace=True)
+
+    # Convert the dataframe into a list of tuples matching the required parameter order
+    params_combination = list(
+        best_configs[
+            ["method", "corrector", "num_cstep", "entry_time", "cstep_size", "num_pstep", "k", "gibbs_temperature", "maskgit_temperature"]
+        ].itertuples(index=False, name=None)
+    )
 
     cfg = self.config.sampler
 
@@ -554,6 +568,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       cfg.top_k_temperature = top_k_temperature
       cfg.maskgit_temperature = maskgit_temperature
 
+      save_imgs = num_pstep <= 16
+
       # Redefine the sample function now that we have changed configs
       self.p_sample = partial(self.sample_fn, dummy_inputs=None)
       self.p_sample = utils.dist(self.p_sample, accumulate='concat', axis_name='batch')
@@ -561,8 +577,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # if True:
       try:
         fid_score = self._sample_and_compute_fid(fid, params, 
-          total_samples=10_000,
-          samples_per_label=10, save_imgs=False)
+          total_samples=50_000,
+          samples_per_label=50, 
+          save_imgs=save_imgs)
       except:
         logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
         fid_score = None
