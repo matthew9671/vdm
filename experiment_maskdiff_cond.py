@@ -539,8 +539,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     # params_combination = maskgit_experiments
 
-    import pandas as pd
-
     # Load the best experimental configurations
     best_configs_file_path = "/home/yixiuz/vdm/best_results_1_29.csv"
     best_configs = pd.read_csv(best_configs_file_path)
