@@ -459,8 +459,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     file_name = "results_01_29_50k.csv"
     csv_file = os.path.join(logdir, file_name)
 
-    if jax.process_index() == 0:
-    # if True:
+    # if jax.process_index() == 0:
+    if True:
       if os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
       else:
@@ -610,8 +610,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
         "maskgit_temperature": [maskgit_temperature]
       }
 
-      # if True:
-      if jax.process_index() == 0:
+      if True:
+      # if jax.process_index() == 0:
         df = pd.concat([df, pd.DataFrame(result)], ignore_index=True)
         df.to_csv(csv_file, index=False)
 
