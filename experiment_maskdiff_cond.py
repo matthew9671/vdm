@@ -416,9 +416,11 @@ class Experiment_MaskDiff_Conditional(Experiment):
       if save_imgs:
         jnp.save(sample_logdir + f'/{file_name}_acts', jnp.concatenate(all_acts, axis=0))
 
-        all_images = jnp.stack(all_images)
+        all_images = np.concatenate(all_images)
         logging.info(f"Shape of all_images: {all_images.shape}")
-        jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', all_images)
+        # jnp.save(sample_logdir + f'/{file_name}_score={score:.2f}', all_images)
+        # Use savez_compressed to save disk space
+        np.savez_compressed(sample_logdir + f'/{file_name}_images', all_images)
         logging.info("Saved activations and images")
 
       logging.info(f"======= Complete =======")
