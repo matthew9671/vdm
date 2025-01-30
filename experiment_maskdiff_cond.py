@@ -625,7 +625,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     config = self.config
 
-    if config.sampler.corrector:
+    # TODO: we need to fix this mess
+    if config.sampler.corrector and config.sampler.corrector != "none":
       if config.sampler.update_type == "maskgit":
         backward_process = backward_process_maskgit
       elif config.sampler.update_type == "gillespies":
