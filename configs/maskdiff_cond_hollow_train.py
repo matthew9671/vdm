@@ -91,7 +91,7 @@ def get_config():
     # Testing corrector convergence
     # predictor_cutoff_time=0.25, convergence_steps=100,
     # If set to true, only update masked tokens at the last argmax step
-    restricted=False,
+    restricted=True,
     k = 16,
     top_k_temperature=1.,
     maskgit_temperature=6.,

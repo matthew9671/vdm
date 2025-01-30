@@ -456,7 +456,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_01_29_50k.csv"
+    file_name = "results_01_30_restricted_50k.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
@@ -580,7 +580,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       cfg.top_k_temperature = top_k_temperature
       cfg.maskgit_temperature = maskgit_temperature
 
-      save_imgs = num_pstep <= 16
+      save_imgs = False#num_pstep <= 16
 
       # Redefine the sample function now that we have changed configs
       self.p_sample = partial(self.sample_fn, dummy_inputs=None)
