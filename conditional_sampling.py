@@ -14,7 +14,9 @@ from vdm.parallel_decode import decode
 import tensorflow_probability.substrates.jax as tfp
 tfd = tfp.distributions
 
-def compute_backward(y_with_label, t, apply_fn, params, config, forward_process):
+def compute_backward(y_with_label, t, apply_fn, params, config, forward_process, rng=None):
+    rng = jr.PRNGKey(0) if rng is None else rng
+
     y_with_label = y_with_label.flatten()
     y = y_with_label[1:-1]
 
@@ -33,7 +35,7 @@ def compute_backward(y_with_label, t, apply_fn, params, config, forward_process)
     # Set corresponding values to mask 
     y_with_label = jnp.where((y_with_label == (S-1)), mask, y_with_label)
     y = y_with_label[1:-1]
-    x0_logits = apply_fn({"params": params}, y_with_label[None], t, 
+    x0_logits = apply_fn({"params": params}, y_with_label[None], t, rngs={"permute": rng},
         deterministic=True)
     # Only take the valid parts of the output
     x0_logits = x0_logits[0,1:-1,:S]
@@ -297,6 +299,7 @@ def mask_conditional_k_gillespies_update_mpf(key, x, x0_logits, mask=1024, k=1):
     out = jnp.where((taus <= cutoff) & (x != mask), jump_target, x)
     return out
 
+#TODO: we made a mistake with Gumbel here, should be minus instead of plus!
 def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024, temperature=0):
     D = x.shape[0]
 

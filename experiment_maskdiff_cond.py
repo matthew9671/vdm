@@ -242,9 +242,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
     max_t = config.training.max_t 
     eps = config.training.eps
 
-    key_t, key_T, key_y = jr.split(rng, 3)
+    key_t, key_T, key_y, key_p = jr.split(rng, 4)
 
-    rngs = {}
+    rngs = {"permute": key_p}
 
     if is_train:
       key_y, key_dropout = jr.split(key_y)

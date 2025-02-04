@@ -549,6 +549,7 @@ class HollowTransformer(nn.Module):
   max_position_embeddings: int = 256
   initializer_range: float = 0.02
   num_layers_per_mixed: int = 4 
+  permute_positions: bool = False
 
   @nn.compact
   def __call__(self,
@@ -572,7 +573,7 @@ class HollowTransformer(nn.Module):
         )(input_ids=input_ids, deterministic=deterministic)
     
     H = self.num_attention_heads
-      
+
     # freqs_cos, freqs_sin = precompute_freqs_cis(self.hidden_size // self.num_attention_heads, L+2)
 
     # # Offset the two streams and initialize the mixed stream to None
@@ -591,8 +592,32 @@ class HollowTransformer(nn.Module):
 
     mixing_mask = jnp.concatenate([forward_mask, backward_mask], axis=-1)   
 
-    xf = x[:,:-2]
-    xb = x[:,2:]
+    if self.permute_positions:
+      # Randomly permute the sequence after positional embeddings
+      key = self.make_rng('permute')
+      # Keep the first and last positions (labels) fixed
+      rand_perm = jax.random.permutation(key, jnp.arange(L-2))
+      rand_perm = jnp.concatenate([jnp.array([0]), rand_perm + 1, jnp.array([L-1])], axis=0)
+      # Permute the sequence
+      # Also keeping the paddings fixed
+      x = jnp.concatenate([x[:,:1], x[:,1:-1][:,rand_perm], x[:,-1:]], axis=1)
+      # In order for each position to "remember" the permutation
+      # The Q vectors for the first layer is a special position embedding-only vector
+      position_ids = jnp.arange(L)[None, :] + 1 # +1 because of the padding
+      p_emb = nn.Embed(
+              num_embeddings=self.max_position_embeddings,
+              features=self.hidden_size,
+              embedding_init=truncated_normal(self.initializer_range),
+              name='init_position_embeddings')(position_ids)
+      # Permute position embeddings in the same way
+      p_emb = p_emb[:, rand_perm]
+      xf = init_fb_layer(q=p_emb, kv=x[:,:-2], mask=forward_mask, 
+                    deterministic=deterministic)
+      xb = init_fb_layer(q=p_emb, kv=x[:,2:], mask=backward_mask, 
+                    deterministic=deterministic)
+    else:
+      xf = x[:,:-2]
+      xb = x[:,2:]
     xm = jnp.zeros((B, L, self.hidden_size * 2))
     
     for i in range(self.num_hidden_layers):
@@ -634,6 +659,8 @@ class HollowTransformer(nn.Module):
                     deterministic=deterministic)
 
     layer_output = xm
+    if self.permute_positions:
+      layer_output = layer_output[:, jnp.argsort(rand_perm)]
       
     word_embedding_matrix = self.variables['params']['Embed_0'][
         'word_embeddings']['embedding']

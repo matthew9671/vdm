@@ -72,6 +72,7 @@ def get_config():
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
     num_layers_per_mixed=8,
+    permute_positions=True,
   )
 
   config.sampler = d(
@@ -91,7 +92,7 @@ def get_config():
     # Testing corrector convergence
     # predictor_cutoff_time=0.25, convergence_steps=100,
     # If set to true, only update masked tokens at the last argmax step
-    restricted=True,
+    restricted=False,
     k = 16,
     top_k_temperature=1.,
     maskgit_temperature=6.,
