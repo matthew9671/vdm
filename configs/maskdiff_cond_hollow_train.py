@@ -134,7 +134,7 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=1e-5, #2e-4 in paper version
+      learning_rate=1e-4, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
   )

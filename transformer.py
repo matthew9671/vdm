@@ -609,6 +609,8 @@ class HollowTransformer(nn.Module):
               features=self.hidden_size,
               embedding_init=truncated_normal(self.initializer_range),
               name='init_position_embeddings')(position_ids)
+      p_emb = nn.LayerNorm(
+        epsilon=LAYERNORM_EPSILON, name='init_embeddings_ln')(p_emb)
       # Permute position embeddings in the same way
       p_emb = p_emb[:, rand_perm]
       p_emb = jnp.tile(p_emb, (B, 1, 1))
