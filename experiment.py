@@ -173,6 +173,9 @@ class Experiment(ABC):
     logging.warning('=== Experiment.train_and_evaluate() ===')
     logging.info('Workdir: ' + workdir)
 
+    # Debugging NaNs
+    jax.config.update("jax_debug_nans", True)
+
     if jax.process_index() == 0:
       wandb.init(
         project="maskdiff",
