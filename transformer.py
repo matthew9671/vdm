@@ -638,18 +638,22 @@ class HollowTransformer(nn.Module):
       p_emb = p_emb[rand_perm]
       p_emb = jnp.tile(p_emb[None], (B, 1, 1))
 
-      init_fb_layer = GenericTransformerLayer(
-          intermediate_size=self.intermediate_size,
-          hidden_size=self.hidden_size,
-          hidden_dropout_prob=self.hidden_dropout_prob,
-          num_attention_heads=self.num_attention_heads,
-          attention_probs_dropout_prob=self.attention_probs_dropout_prob,
-          initializer_fn=truncated_normal(self.initializer_range))
+      # init_fb_layer = GenericTransformerLayer(
+      #     intermediate_size=self.intermediate_size,
+      #     hidden_size=self.hidden_size,
+      #     hidden_dropout_prob=self.hidden_dropout_prob,
+      #     num_attention_heads=self.num_attention_heads,
+      #     attention_probs_dropout_prob=self.attention_probs_dropout_prob,
+      #     initializer_fn=truncated_normal(self.initializer_range))
 
-      xf = init_fb_layer(q=p_emb, kv=x[:,:-2], mask=forward_mask, 
-                    deterministic=deterministic)
-      xb = init_fb_layer(q=p_emb, kv=x[:,2:], mask=backward_mask, 
-                    deterministic=deterministic)
+      # xf = init_fb_layer(q=p_emb, kv=x[:,:-2], mask=forward_mask, 
+      #               deterministic=deterministic)
+      # xb = init_fb_layer(q=p_emb, kv=x[:,2:], mask=backward_mask, 
+      #               deterministic=deterministic)
+
+      xf = x[:,:-2] + p_emb
+      xb = x[:,2:] + p_emb
+
     else:
       xf = x[:,:-2]
       xb = x[:,2:]
