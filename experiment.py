@@ -87,12 +87,8 @@ class Experiment(ABC):
     # initialize train/eval step
     logging.info('=== Initializing train/eval step ===')
     self.rng, train_rng = jax.random.split(self.rng)
-
-    # TODO: turn check_nan into a flag
-    train_step = checkify.checkify(
-            self.train_step, errors=checkify.float_checks)
             
-    self.p_train_step = functools.partial(train_step, train_rng)
+    self.p_train_step = functools.partial(self.train_step, train_rng)
     self.p_train_step = functools.partial(jax.lax.scan, self.p_train_step)
     self.p_train_step = jax.pmap(self.p_train_step, "batch")
 
