@@ -178,13 +178,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # initialize train/eval step
     logging.info('=== Initializing train/eval step ===')
     self.rng, train_rng = jax.random.split(self.rng)
-
-    # TODO: turn check_nan into a flag
-    train_step = checkify.checkify(
-            self.train_step, errors=checkify.float_checks)
-            
-    self.p_train_step = partial(train_step, train_rng)
+    self.p_train_step = partial(self.train_step, train_rng)
     self.p_train_step = partial(jax.lax.scan, self.p_train_step)
+    self.p_train_step = checkify.checkify(self.p_train_step, 
+        errors=checkify.float_checks)
     self.p_train_step = jax.pmap(self.p_train_step, "batch")
 
     self.rng, eval_rng, sample_rng = jax.random.split(self.rng, 3)
