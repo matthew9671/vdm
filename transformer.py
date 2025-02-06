@@ -44,6 +44,23 @@ def truncated_normal(stddev: Union[float, jnp.ndarray], dtype=jnp.float32):
 
   return init
 
+def cosine_fixed_positional_embedding(seq_len: int, dim: int):
+    """
+    Generate cosine fixed positional embeddings.
+    
+    Args:
+        seq_len (int): The maximum sequence length.
+        dim (int): The embedding dimension.
+    
+    Returns:
+        jnp.ndarray: A (seq_len, dim) tensor containing the positional embeddings.
+    """
+    positions = jnp.arange(seq_len)[:, None]  # Shape: (seq_len, 1)
+    div_term = 10000 ** (jnp.arange(dim) / dim)  # Shape: (dim,)
+
+    pos_embedding = jnp.cos(positions / div_term)  # Shape: (seq_len, dim)
+    
+    return pos_embedding
 
 class Attention(nn.Module):
   """Attention layer that is part of each Transformer layer."""
@@ -603,6 +620,8 @@ class HollowTransformer(nn.Module):
       x = jnp.concatenate([x[:,:1], x[:,1:-1][:,rand_perm], x[:,-1:]], axis=1)
       # In order for each position to "remember" the permutation
       # The Q vectors for the first layer is a special position embedding-only vector
+
+      # Learnable embeddings
       position_ids = jnp.arange(L)[None, :] + 1 # +1 because of the padding
       p_emb = nn.Embed(
               num_embeddings=self.max_position_embeddings,
@@ -611,6 +630,10 @@ class HollowTransformer(nn.Module):
               name='init_position_embeddings')(position_ids)
       p_emb = nn.LayerNorm(
         epsilon=LAYERNORM_EPSILON, name='init_embeddings_ln')(p_emb)
+
+      # Fixed embeddings
+      # p_emb = cosine_fixed_positional_embedding(L, self.hidden_size)
+
       # Permute position embeddings in the same way
       p_emb = p_emb[:, rand_perm]
       p_emb = jnp.tile(p_emb, (B, 1, 1))
