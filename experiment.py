@@ -35,6 +35,8 @@ import optax
 from optax._src import base
 import tensorflow as tf
 
+from jax.experimental import checkify
+
 import vdm.train_state
 import vdm.utils as utils
 import vdm.dataset as dataset
@@ -85,7 +87,12 @@ class Experiment(ABC):
     # initialize train/eval step
     logging.info('=== Initializing train/eval step ===')
     self.rng, train_rng = jax.random.split(self.rng)
-    self.p_train_step = functools.partial(self.train_step, train_rng)
+
+    # TODO: turn check_nan into a flag
+    train_step = checkify.checkify(
+            self.train_step, errors=checkify.float_checks)
+            
+    self.p_train_step = functools.partial(train_step, train_rng)
     self.p_train_step = functools.partial(jax.lax.scan, self.p_train_step)
     self.p_train_step = jax.pmap(self.p_train_step, "batch")
 
@@ -172,9 +179,6 @@ class Experiment(ABC):
   def train_and_evaluate(self, workdir: str):
     logging.warning('=== Experiment.train_and_evaluate() ===')
     logging.info('Workdir: ' + workdir)
-
-    # Debugging NaNs
-    jax.config.update("jax_debug_nans", True)
 
     if jax.process_index() == 0:
       wandb.init(
