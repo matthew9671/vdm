@@ -115,7 +115,7 @@ def get_config():
 
       seed=1,
       substeps=1,
-      num_steps_lr_warmup=100,
+      num_steps_lr_warmup=10_000,
       num_steps_train=2_000_000, #100_000_000,
       num_steps_eval=100, # 512 * 100 ~ 50k val images
       batch_size_train=512, #1024 in paper version

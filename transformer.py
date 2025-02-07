@@ -622,6 +622,7 @@ class HollowTransformer(nn.Module):
       # The Q vectors for the first layer is a special position embedding-only vector
 
       # Learnable embeddings
+      # I don't understand why learned embeddings always NaN out...?
       position_ids = jnp.arange(L)[None, :] + 1 # +1 because of the padding
       p_emb = nn.Embed(
               num_embeddings=self.max_position_embeddings,
