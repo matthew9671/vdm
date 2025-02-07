@@ -637,7 +637,7 @@ class HollowTransformer(nn.Module):
       # p_emb = jnp.tile(p_emb[None], (B, 1, 1))
 
       # Permute position embeddings in the same way
-      p_emb = p_emb[rand_perm]
+      p_emb = p_emb[:, rand_perm]
       p_emb = jnp.tile(p_emb, (B, 1, 1))
 
       # init_fb_layer = GenericTransformerLayer(
