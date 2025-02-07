@@ -622,17 +622,17 @@ class HollowTransformer(nn.Module):
       # The Q vectors for the first layer is a special position embedding-only vector
 
       # Learnable embeddings
-      # position_ids = jnp.arange(L)[None, :] + 1 # +1 because of the padding
-      # p_emb = nn.Embed(
-      #         num_embeddings=self.max_position_embeddings,
-      #         features=self.hidden_size,
-      #         embedding_init=truncated_normal(self.initializer_range),
-      #         name='init_position_embeddings')(position_ids)
-      # p_emb = nn.LayerNorm(
-      #   epsilon=LAYERNORM_EPSILON, name='init_embeddings_ln')(p_emb)
+      position_ids = jnp.arange(L)[None, :] + 1 # +1 because of the padding
+      p_emb = nn.Embed(
+              num_embeddings=self.max_position_embeddings,
+              features=self.hidden_size,
+              embedding_init=truncated_normal(self.initializer_range),
+              name='init_position_embeddings')(position_ids)
+      p_emb = nn.LayerNorm(
+        epsilon=LAYERNORM_EPSILON, name='init_embeddings_ln')(p_emb)
 
       # Fixed embeddings
-      p_emb = cosine_fixed_positional_embedding(L, self.hidden_size)
+      # p_emb = cosine_fixed_positional_embedding(L, self.hidden_size)
 
       # Permute position embeddings in the same way
       p_emb = p_emb[rand_perm]
