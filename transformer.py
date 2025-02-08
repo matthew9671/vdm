@@ -654,8 +654,8 @@ class HollowTransformer(nn.Module):
       # xb = init_fb_layer(q=p_emb, kv=x[:,2:], mask=backward_mask, 
       #               deterministic=deterministic)
 
-      xf = x[:,:-2] + p_emb
-      xb = x[:,2:] + p_emb
+      xf = x[:,:-2] #+ p_emb
+      xb = x[:,2:] #+ p_emb
 
     else:
       xf = x[:,:-2]
