@@ -299,7 +299,6 @@ def mask_conditional_k_gillespies_update_mpf(key, x, x0_logits, mask=1024, k=1):
     out = jnp.where((taus <= cutoff) & (x != mask), jump_target, x)
     return out
 
-#TODO: we made a mistake with Gumbel here, should be minus instead of plus!
 def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024, temperature=0):
     D = x.shape[0]
 
@@ -312,7 +311,8 @@ def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024, temperature=
     # Since the score is proportional to the denoising prob anyways, we're just gonna use the logits again
     scores = x0_logits[jnp.arange(D), x].T
     # Add temperature annealing
-    scores += temperature * jr.gumbel(key2, shape=(D,))
+    # This is minus since conventionally we add noise and take max
+    scores -= temperature * jr.gumbel(key2, shape=(D,))
 
     scores = jnp.where(x == mask, jnp.inf, scores)
     # Trick: sort and then find the kth smallest
