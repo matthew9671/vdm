@@ -340,11 +340,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
     
-    self._sample_and_compute_fid(fid, params, total_samples=self.config.sampler.max_samples,
-      samples_per_label=10, save_imgs=True, sample_logdir=sample_logdir, verbose=True)
+    num_labels = 1000
 
-  def _sample_and_compute_fid(self, fid, params, total_samples=10_000, 
-    samples_per_label=10, save_imgs=False, sample_logdir=None, verbose=False,
+    self._sample_and_compute_fid(fid, params, 
+      total_samples=self.config.sampler.max_samples,
+      samples_per_label=self.config.sampler.max_samples // num_labels, 
+      save_imgs=True, sample_logdir=sample_logdir, verbose=True)
+
+  def _sample_and_compute_fid(self, fid, params, total_samples=50_000, 
+    samples_per_label=50, save_imgs=False, sample_logdir=None, verbose=False,
     debug=False):
 
     config = self.config 
