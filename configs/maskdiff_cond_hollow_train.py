@@ -72,7 +72,7 @@ def get_config():
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
     num_layers_per_mixed=8,
-    permute_positions=False,
+    permute_positions=True,
   )
 
   config.sampler = d(
@@ -135,7 +135,7 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=0., # lol #1e-6, #2e-4 in paper version
+      learning_rate=1e-4, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
   )

@@ -387,13 +387,15 @@ class Experiment_MaskDiff_Conditional(Experiment):
       all_images.append(uint8_images)
 
       if (save_imgs and jax.process_index() == 0 
-        # and image_id % (128 * 10) == 0 
+        and image_id % (128 * 10) == 0 
         and not debug):
         # # Save some sample images
         # img = utils.generate_image_grids(uint8_images[:100])
         # path_to_save = sample_logdir + f'/{image_id}.png'
         # img = Image.fromarray(np.array(img))
         # img.save(path_to_save)
+
+        # This somehow doesn't break the TPU
         file_name = utils.get_file_name(self.config)
         if not os.path.exists(sample_logdir + f'/{file_name}_images'):
           os.makedirs(sample_logdir+f'/{file_name}_images')
