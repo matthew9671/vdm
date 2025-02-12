@@ -82,7 +82,7 @@ def get_config():
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
-    tag="annealed",
+    tag="",
     corrector="gibbs", corrector_step_size=0.,
     # corrector="gibbs_uninformed", corrector_step_size=0,
     # corrector="forward_backward", corrector_step_size=4.,
@@ -97,7 +97,7 @@ def get_config():
     top_k_temperature=1.,
     maskgit_temperature=6.,
     # This only controls temperature for k-gibbs
-    anneal_temperature=True,
+    anneal_temperature=False,
   )
 
   config.noise = d(
