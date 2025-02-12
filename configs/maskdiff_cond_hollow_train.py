@@ -72,13 +72,14 @@ def get_config():
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
     num_layers_per_mixed=8,
+    # This should improve image generation
     permute_positions=True,
   )
 
   config.sampler = d(
     seed=42,
     num_steps=8, # Cut the number of steps in half due to using correctors
-    max_samples=50_000, 
+    max_samples=10_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
     update_type="gibbs", 
     # max_samples=128, update_type="test_convergence",
@@ -116,7 +117,7 @@ def get_config():
 
       seed=1,
       substeps=1,
-      num_steps_lr_warmup=10_000,
+      num_steps_lr_warmup=100,
       num_steps_train=2_000_000, #100_000_000,
       num_steps_eval=100, # 512 * 100 ~ 50k val images
       batch_size_train=512, #1024 in paper version
@@ -138,6 +139,9 @@ def get_config():
       learning_rate=1e-4, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
+      # Trying gradient clipping
+      # This shouldn't matter too much but should eliminate spikes
+      gradient_clip_norm=1.0,
   )
 
   config.vqvae = ml_collections.ConfigDict()
