@@ -386,12 +386,18 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
       all_images.append(uint8_images)
 
-      if save_imgs and jax.process_index() == 0 and image_id % (128 * 10) == 0 and not debug:
-        # Save some sample images
-        img = utils.generate_image_grids(uint8_images[:100])
-        path_to_save = sample_logdir + f'/{image_id}.png'
-        img = Image.fromarray(np.array(img))
-        img.save(path_to_save)
+      if (save_imgs and jax.process_index() == 0 
+        # and image_id % (128 * 10) == 0 
+        and not debug):
+        # # Save some sample images
+        # img = utils.generate_image_grids(uint8_images[:100])
+        # path_to_save = sample_logdir + f'/{image_id}.png'
+        # img = Image.fromarray(np.array(img))
+        # img.save(path_to_save)
+        file_name = utils.get_file_name(self.config)
+        if not os.path.exists(sample_logdir + f'/{file_name}_images'):
+          os.makedirs(sample_logdir+f'/{file_name}_images')
+        np.save(sample_logdir + f'/{file_name}_images/{image_id}', uint8_images, axis=0)
 
       image_id += samples.shape[0]
       all_acts.append(fid.compute_acts(uint8_images))
@@ -428,13 +434,13 @@ class Experiment_MaskDiff_Conditional(Experiment):
         if not os.path.exists(sample_logdir + f'/{file_name}_images'):
           os.makedirs(sample_logdir+f'/{file_name}_images')
 
-        # Save the images in larger batches
-        save_batch_size = 10
-        for i in range(0, len(all_images), save_batch_size):
-          # np.savez_compressed(sample_logdir + f'/{file_name}_images/{i}', 
-          #   jnp.concatenate(all_images[i:i+save_batch_size], axis=0))
-          np.save(sample_logdir + f'/{file_name}_images/{i}', 
-            jnp.concatenate(all_images[i:i+save_batch_size], axis=0))
+        # # Save the images in larger batches
+        # save_batch_size = 10
+        # for i in range(0, len(all_images), save_batch_size):
+        #   # np.savez_compressed(sample_logdir + f'/{file_name}_images/{i}', 
+        #   #   jnp.concatenate(all_images[i:i+save_batch_size], axis=0))
+        #   np.save(sample_logdir + f'/{file_name}_images/{i}', 
+        #     jnp.concatenate(all_images[i:i+save_batch_size], axis=0))
 
         # for i, images in enumerate(all_images):
         #   np.savez_compressed(sample_logdir + f'/{file_name}_images/{i}', images)
