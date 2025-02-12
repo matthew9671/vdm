@@ -429,9 +429,11 @@ class Experiment_MaskDiff_Conditional(Experiment):
           os.makedirs(sample_logdir+f'/{file_name}_images')
 
         # Save the images in larger batches
-        save_batch_size = 1
+        save_batch_size = 10
         for i in range(0, len(all_images), save_batch_size):
-          np.savez_compressed(sample_logdir + f'/{file_name}_images/{i}', 
+          # np.savez_compressed(sample_logdir + f'/{file_name}_images/{i}', 
+          #   jnp.concatenate(all_images[i:i+save_batch_size], axis=0))
+          np.save(sample_logdir + f'/{file_name}_images/{i}', 
             jnp.concatenate(all_images[i:i+save_batch_size], axis=0))
 
         # for i, images in enumerate(all_images):
