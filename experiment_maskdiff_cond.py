@@ -397,7 +397,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
         file_name = utils.get_file_name(self.config)
         if not os.path.exists(sample_logdir + f'/{file_name}_images'):
           os.makedirs(sample_logdir+f'/{file_name}_images')
-        np.save(sample_logdir + f'/{file_name}_images/{image_id}', uint8_images, axis=0)
+        np.save(sample_logdir + f'/{file_name}_images/{image_id}', uint8_images, allow_pickle=True)
 
       image_id += samples.shape[0]
       all_acts.append(fid.compute_acts(uint8_images))
