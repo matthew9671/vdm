@@ -490,10 +490,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     correctors = ["gibbs"]
     num_csteps = [1,]
     entry_times = [.9]
-    cstep_sizes = [-1] # divide by 100 for mpf stepsizes
-    num_psteps = [4, 8, 16, 32, 64, 128] # Save 64 and 128 for later
-    ks = [16, 8, 4, 2, 1]
-    top_k_temperatures = [.1, 1.,2.,5.]
+    cstep_sizes = [-1]
+    num_psteps = [4, 8] # Save 64 and 128 for later
+    ks = [24, 32, 40]
+    top_k_temperatures = [.01, .1, 1., 2.]
     maskgit_temperatures = [-1]
 
     # # TODO: we need to clean up sampling code
@@ -506,7 +506,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #   [8, 16, 32, 64, 128, 256], 
     #   [-1], [-1], [-1])
 
-    params_combination = itertools.product(
+    small_psteps_gibbs_experiments = itertools.product(
       methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
       ks, top_k_temperatures, maskgit_temperatures)
 
@@ -546,20 +546,20 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #   forward_backward_experiments,
     #   gibbs_experiments)
 
-    # # The other half of the gibbs experiments
-    # methods = ["gibbs"]
-    # correctors = ["gibbs"]
-    # num_csteps = [1,]
-    # entry_times = [.9,]
-    # cstep_sizes = [-1] 
-    # num_psteps = [64, 128]
-    # ks = [16, 8, 4, 2, 1]
-    # top_k_temperatures = [2.,5.,10.,1000.]
-    # maskgit_temperatures = [-1]
+    # The other half of the gibbs experiments
+    methods = ["gibbs"]
+    correctors = ["gibbs"]
+    num_csteps = [1,]
+    entry_times = [.9,]
+    cstep_sizes = [-1] 
+    num_psteps = [32, 64, 128]
+    ks = [16, 8, 4, 2, 1]
+    top_k_temperatures = [10.,100.,1000.]
+    maskgit_temperatures = [-1]
 
-    # gibbs_experiments = itertools.product(
-    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-    #   ks, top_k_temperatures, maskgit_temperatures)
+    large_psteps_gibbs_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
 
     # params_combination = maskgit_experiments
 
@@ -575,6 +575,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #         ["method", "corrector", "num_cstep", "entry_time", "cstep_size", "num_pstep", "k", "gibbs_temperature", "maskgit_temperature"]
     #     ].itertuples(index=False, name=None)
     # )
+
+    params_combination = itertools.chain(
+      small_psteps_gibbs_experiments,
+      large_psteps_gibbs_experiments)
 
     cfg = self.config.sampler
 
