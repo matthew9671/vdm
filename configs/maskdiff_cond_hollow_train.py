@@ -42,8 +42,8 @@ def get_config():
   config = ml_collections.ConfigDict()
   config.exp_name = "exp_vdm"
   config.model_type = "model_transformer"
-  config.ckpt_restore_dir = 'None'
-  # config.ckpt_restore_dir = "gs://maskdiff/logs/maskdiff_cond_hollow_train/20250128-021342/checkpoints-0/"
+  # config.ckpt_restore_dir = 'None'
+  config.ckpt_restore_dir = "gs://maskdiff/logs/maskdiff_cond_hollow_train/20250128-021342/checkpoints-0/"
   # config.ckpt_restore_dir = "gs://maskdiff/logs/maskdiff_cond_hollow_train/20250127-095016/checkpoints-0/"
   # config.ckpt_restore_dir = "gs://maskdiff/logs/maskdiff_cond_hollow_train/20250120-115642/checkpoints-0/"
   # config.ckpt_restore_dir = "gs://maskdiff/cond_hollow/250111/checkpoints-0/"
@@ -73,7 +73,8 @@ def get_config():
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
     num_layers_per_mixed=8,
     # This should improve image generation
-    permute_positions=True,
+    # permute_positions=True,
+    permute_positions=False,
   )
 
   config.sampler = d(

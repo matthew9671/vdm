@@ -473,7 +473,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_01_30_restricted_50k.csv"
+    file_name = "results_gibbs_fixed_02_17.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
@@ -485,16 +485,16 @@ class Experiment_MaskDiff_Conditional(Experiment):
           'cstep_size', 'num_pstep', 'corrector', 'fid', 
           'k', 'gibbs_temperature', 'maskgit_temperature'])
 
-    # # Gibbs
-    # methods = ["gibbs"]
-    # correctors = ["gibbs"]
-    # num_csteps = [1,]
-    # entry_times = [.9]
-    # cstep_sizes = [-1] # divide by 100 for mpf stepsizes
-    # num_psteps = [8, 16, 32,] # Save 64 and 128 for later
-    # ks = [16, 8, 4, 2, 1]
-    # top_k_temperatures = [.1,1.,2.,5.]
-    # maskgit_temperatures = [-1]
+    # Gibbs
+    methods = ["gibbs"]
+    correctors = ["gibbs"]
+    num_csteps = [1,]
+    entry_times = [.9]
+    cstep_sizes = [-1] # divide by 100 for mpf stepsizes
+    num_psteps = [4, 8, 16, 32, 64, 128] # Save 64 and 128 for later
+    ks = [16, 8, 4, 2, 1]
+    top_k_temperatures = [.1, 1.,2.,5.]
+    maskgit_temperatures = [-1]
 
     # # TODO: we need to clean up sampling code
     # no_corrector_experiments = itertools.product(
@@ -506,9 +506,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #   [8, 16, 32, 64, 128, 256], 
     #   [-1], [-1], [-1])
 
-    # gibbs_experiments = itertools.product(
-    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-    #   ks, top_k_temperatures, maskgit_temperatures)
+    params_combination = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
 
     # Maskgit experiments
     # methods = ["maskgit"]
@@ -563,18 +563,18 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     # params_combination = maskgit_experiments
 
-    # Load the best experimental configurations
-    best_configs_file_path = "/home/yixiuz/vdm/best_results_1_29.csv"
-    best_configs = pd.read_csv(best_configs_file_path)
+    # # Load the best experimental configurations
+    # best_configs_file_path = "/home/yixiuz/vdm/best_results_gibbs_fixed_2_17.csv"
+    # best_configs = pd.read_csv(best_configs_file_path)
 
-    best_configs.fillna("none", inplace=True)
+    # best_configs.fillna("none", inplace=True)
 
-    # Convert the dataframe into a list of tuples matching the required parameter order
-    params_combination = list(
-        best_configs[
-            ["method", "corrector", "num_cstep", "entry_time", "cstep_size", "num_pstep", "k", "gibbs_temperature", "maskgit_temperature"]
-        ].itertuples(index=False, name=None)
-    )
+    # # Convert the dataframe into a list of tuples matching the required parameter order
+    # params_combination = list(
+    #     best_configs[
+    #         ["method", "corrector", "num_cstep", "entry_time", "cstep_size", "num_pstep", "k", "gibbs_temperature", "maskgit_temperature"]
+    #     ].itertuples(index=False, name=None)
+    # )
 
     cfg = self.config.sampler
 
@@ -597,7 +597,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       cfg.top_k_temperature = top_k_temperature
       cfg.maskgit_temperature = maskgit_temperature
 
-      save_imgs = False#num_pstep <= 16
+      save_imgs = False #num_pstep <= 16
 
       # Redefine the sample function now that we have changed configs
       self.p_sample = partial(self.sample_fn, dummy_inputs=None)
@@ -606,8 +606,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
       if True:
       # try:
         fid_score = self._sample_and_compute_fid(fid, params, 
-          total_samples=50_000,
-          samples_per_label=50, 
+          # Search with lower number of samples first
+          total_samples=10_000,#50_000,
+          samples_per_label=10,#50, 
           save_imgs=save_imgs,
           sample_logdir="/home/yixiuz/logs/samples",)
       # except:
