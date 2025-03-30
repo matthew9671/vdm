@@ -125,12 +125,12 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=1e-4, #2e-4 in paper version
+      learning_rate=1e-5, #2e-4 in paper version
       lr_decay=False,
       ema_rate=0.9999,
       # Trying gradient clipping
       # This shouldn't matter too much but should eliminate spikes
-      # gradient_clip_norm=1.0,
+      gradient_clip_norm=1.0,
   )
 
   config.vqvae = ml_collections.ConfigDict()
