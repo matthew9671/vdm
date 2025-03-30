@@ -284,7 +284,7 @@ class Transformer(nn.Module):
         embedding_size=self.hidden_size,
         hidden_dropout_prob=self.hidden_dropout_prob,
         vocab_size=self.vocab_size,
-        max_position_embeddings=self.max_position_embeddings,
+        max_position_embeddings=self.max_position_embeddings + 2, # I don't know...
         initializer_fn=truncated_normal(self.initializer_range),
         use_position_embeddings=True
         )(input_ids=input_ids, deterministic=deterministic)
