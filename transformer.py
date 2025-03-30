@@ -619,6 +619,7 @@ class HollowTransformer(nn.Module):
 
     forward_mask = jnp.tile(jnp.tril(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
     backward_mask = jnp.tile(jnp.triu(jnp.ones((L, L)))[None, None], (B, H, 1, 1))
+    full_mask = jnp.tile((jnp.ones((L, L)))[None, None], (B, H, 1, 1))
 
     # # Different conventions between MD4 attention and linen.MultiHeadAttention
     # forward_mask = jnp.where(forward_mask == 0, -jnp.inf, 0)
@@ -687,19 +688,17 @@ class HollowTransformer(nn.Module):
           num_attention_heads=self.num_attention_heads,
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
           initializer_fn=truncated_normal(self.initializer_range))
-    #   b_layer = GenericTransformerLayer(
-    #       intermediate_size=self.intermediate_size,
-    #       hidden_size=self.hidden_size,
-    #       hidden_dropout_prob=self.hidden_dropout_prob,
-    #       num_attention_heads=self.num_attention_heads,
-    #       attention_probs_dropout_prob=self.attention_probs_dropout_prob,
-    #       initializer_fn=truncated_normal(self.initializer_range))
-      xf = fb_layer(q=xf, kv=xf, mask=forward_mask, 
-                    # freqs_cos=freqs_cos_f, freqs_sin=freqs_sin_f,
-                    deterministic=deterministic)
-      xb = fb_layer(q=xb, kv=xb, mask=backward_mask, 
-                    # freqs_cos=freqs_cos_b, freqs_sin=freqs_sin_b,
-                    deterministic=deterministic)
+   
+      # xf = fb_layer(q=xf, kv=xf, mask=forward_mask, 
+      #               # freqs_cos=freqs_cos_f, freqs_sin=freqs_sin_f,
+      #               deterministic=deterministic)
+      # xb = fb_layer(q=xb, kv=xb, mask=backward_mask, 
+      #               # freqs_cos=freqs_cos_b, freqs_sin=freqs_sin_b,
+      #               deterministic=deterministic)
+
+      # TODO: this is just testing regular transformer
+      xf = fb_layer(q=xf, kv=xf, mask=full_mask, deterministic=deterministic)
+      xm = xf
 
       if (i + 1) % self.num_layers_per_mixed == 0:
         # xm += xf + xb

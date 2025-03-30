@@ -46,7 +46,7 @@ def get_config():
 
   config.use_hollow_transformer = False
 
-  config.loss = "nonmask" # "mask" or "nonmask" or "mixed"
+  config.loss = "non_mask" # "mask" or "non_mask" or "mixed"
 
   config.git_commit_message = get_git_commit_message()
 
@@ -67,6 +67,7 @@ def get_config():
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
+    # num_layers_per_mixed=100,
   )
 
   config.sampler = d(
