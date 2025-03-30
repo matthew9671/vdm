@@ -276,28 +276,45 @@ class Transformer(nn.Module):
                # Add time-conditioning
                t: float,
                deterministic: bool = True) -> Dict[Text, jnp.ndarray]:
+    B, L = input_ids.shape
+    H = self.num_attention_heads
+
     input_ids = input_ids.astype('int32')
     input_embeddings = Embed(
         embedding_size=self.hidden_size,
         hidden_dropout_prob=self.hidden_dropout_prob,
         vocab_size=self.vocab_size,
         max_position_embeddings=self.max_position_embeddings,
-        initializer_fn=truncated_normal(self.initializer_range))(
-            input_ids=input_ids, deterministic=deterministic)
+        initializer_fn=truncated_normal(self.initializer_range),
+        use_position_embeddings=True
+        )(input_ids=input_ids, deterministic=deterministic)
+
+    full_mask = jnp.tile((jnp.ones((L, L)))[None, None], (B, H, 1, 1))
 
     layer_input = input_embeddings
     for _ in range(self.num_hidden_layers):
-      layer_output = TransformerLayer(
+      # layer_output = TransformerLayer(
+      #     intermediate_size=self.intermediate_size,
+      #     hidden_size=self.hidden_size,
+      #     hidden_dropout_prob=self.hidden_dropout_prob,
+      #     num_attention_heads=self.num_attention_heads,
+      #     attention_probs_dropout_prob=self.attention_probs_dropout_prob,
+      #     initializer_fn=truncated_normal(self.initializer_range))(
+      #         layer_input=layer_input,
+      #         input_mask=jnp.ones_like(input_ids, dtype=jnp.int32),
+      #         deterministic=deterministic)
+      # layer_input = layer_output
+      layer = GenericTransformerLayer(
           intermediate_size=self.intermediate_size,
           hidden_size=self.hidden_size,
           hidden_dropout_prob=self.hidden_dropout_prob,
           num_attention_heads=self.num_attention_heads,
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
-          initializer_fn=truncated_normal(self.initializer_range))(
-              layer_input=layer_input,
-              input_mask=jnp.ones_like(input_ids, dtype=jnp.int32),
-              deterministic=deterministic)
-      layer_input = layer_output
+          initializer_fn=truncated_normal(self.initializer_range))
+      layer_input = layer(q=layer_input, kv=layer_input, mask=full_mask,
+                    deterministic=deterministic)
+      
+    layer_output = layer_input
 
     word_embedding_matrix = self.variables['params']['Embed_0'][
         'word_embeddings']['embedding']

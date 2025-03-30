@@ -44,7 +44,7 @@ def get_config():
   config.model_type = "model_transformer"
   config.ckpt_restore_dir = 'None'
 
-  config.use_hollow_transformer = True
+  config.use_hollow_transformer = False
 
   config.loss = "mask" # "mask" or "nonmask" or "mixed"
 
