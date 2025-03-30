@@ -44,7 +44,7 @@ def get_config():
   config.model_type = "model_transformer"
   config.ckpt_restore_dir = 'None'
 
-  config.use_hollow_transformer = True
+  config.use_hollow_transformer = False
 
   config.loss = "mask" # "mask" or "non_mask" or "mixed"
 
@@ -67,7 +67,7 @@ def get_config():
     hidden_dropout_prob=0.1, 
     attention_probs_dropout_prob=0.1, # Same as hidden dropout prob
     max_position_embeddings=256 + 2, # label at start and end of sequence (because of the 2 streams)
-    num_layers_per_mixed=100,
+    # num_layers_per_mixed=100,
   )
 
   config.sampler = d(
@@ -130,7 +130,7 @@ def get_config():
       ema_rate=0.9999,
       # Trying gradient clipping
       # This shouldn't matter too much but should eliminate spikes
-      gradient_clip_norm=1.0,
+      # gradient_clip_norm=1.0,
   )
 
   config.vqvae = ml_collections.ConfigDict()
