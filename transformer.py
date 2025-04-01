@@ -689,16 +689,12 @@ class HollowTransformer(nn.Module):
           attention_probs_dropout_prob=self.attention_probs_dropout_prob,
           initializer_fn=truncated_normal(self.initializer_range))
    
-      # xf = fb_layer(q=xf, kv=xf, mask=forward_mask, 
-      #               # freqs_cos=freqs_cos_f, freqs_sin=freqs_sin_f,
-      #               deterministic=deterministic)
-      # xb = fb_layer(q=xb, kv=xb, mask=backward_mask, 
-      #               # freqs_cos=freqs_cos_b, freqs_sin=freqs_sin_b,
-      #               deterministic=deterministic)
-
-      # TODO: this is just testing regular transformer
-      xf = fb_layer(q=xf, kv=xf, mask=full_mask, deterministic=deterministic)
-      xm = xf
+      xf = fb_layer(q=xf, kv=xf, mask=forward_mask, 
+                    # freqs_cos=freqs_cos_f, freqs_sin=freqs_sin_f,
+                    deterministic=deterministic)
+      xb = fb_layer(q=xb, kv=xb, mask=backward_mask, 
+                    # freqs_cos=freqs_cos_b, freqs_sin=freqs_sin_b,
+                    deterministic=deterministic)
 
       if (i + 1) % self.num_layers_per_mixed == 0:
         # xm += xf + xb
