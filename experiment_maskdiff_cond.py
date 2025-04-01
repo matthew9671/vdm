@@ -345,10 +345,12 @@ class Experiment_MaskDiff_Conditional(Experiment):
     self._sample_and_compute_fid(fid, params, 
       total_samples=self.config.sampler.max_samples,
       samples_per_label=self.config.sampler.max_samples // num_labels, 
-      save_imgs=True, sample_logdir=sample_logdir, verbose=True)
+      save_imgs=False, 
+      sample_logdir=sample_logdir, 
+      verbose=True)
 
   def _sample_and_compute_fid(self, fid, params, total_samples=50_000, 
-    samples_per_label=50, save_imgs=False, sample_logdir=None, verbose=False,
+    samples_per_label=50, save_imgs=False, sample_logdir=None, verbose=True,
     debug=False):
 
     config = self.config 
