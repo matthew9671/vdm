@@ -80,9 +80,9 @@ def get_config():
   config.sampler = d(
     seed=42,
     num_steps=8, # Cut the number of steps in half due to using correctors
-    max_samples=10_000, # Stick with 10k samples for comparison
+    max_samples=50_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
-    update_type="gibbs", 
+    update_type="maskgit", 
     # max_samples=128, update_type="test_convergence",
     tag="",
     corrector="gibbs", corrector_step_size=0.,
@@ -97,7 +97,7 @@ def get_config():
     restricted=False,
     k = 16,
     top_k_temperature=1.,
-    maskgit_temperature=6.,
+    maskgit_temperature=4.,
     # This only controls temperature for k-gibbs
     anneal_temperature=False,
   )
