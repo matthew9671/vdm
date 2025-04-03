@@ -126,7 +126,7 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=3.3e-6,
+      learning_rate=1e-6,
       lr_decay=False,
       ema_rate=0.9999,
       # Trying gradient clipping
