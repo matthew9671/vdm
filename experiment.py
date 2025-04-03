@@ -180,8 +180,8 @@ class Experiment(ABC):
       wandb.init(
         project="maskdiff",
         config=self.config,
-        id="uygjtfjg",
-        resume="must"
+        # id="uygjtfjg",
+        # resume="must"
       )
       if not tf.io.gfile.exists(workdir):
         tf.io.gfile.mkdir(workdir)
