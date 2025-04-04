@@ -42,8 +42,8 @@ def get_config():
   config = ml_collections.ConfigDict()
   config.exp_name = "exp_vdm"
   config.model_type = "model_transformer"
-  # config.ckpt_restore_dir = 'None'
-  config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250330-085405/checkpoints-0/'
+  config.ckpt_restore_dir = 'None'
+  # config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250330-085405/checkpoints-0/'
 
   config.use_hollow_transformer = False
 
