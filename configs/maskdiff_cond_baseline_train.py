@@ -107,7 +107,7 @@ def get_config():
 
       seed=1,
       substeps=1,
-      num_steps_lr_warmup=100,
+      num_steps_lr_warmup=5000, # MaskGIT used 5000 warmup steps and 1e-4 learning rate
       num_steps_train=2_500_000, #100_000_000,
       num_steps_eval=100, # 512 * 100 ~ 50k val images
       batch_size_train=512, #1024 in paper version
@@ -126,7 +126,7 @@ def get_config():
           eps=1e-8,
           weight_decay=0.01,
       ),
-      learning_rate=1e-6,
+      learning_rate=1e-4,
       lr_decay=False,
       ema_rate=0.9999,
       # Trying gradient clipping
