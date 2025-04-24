@@ -43,6 +43,9 @@ from matplotlib import pyplot as plt
 
 from jax.experimental import checkify
 
+import tensorflow_probability.substrates.jax as tfp
+tfd = tfp.distributions
+
 class AbsorbingRateCosine():
   def __init__(self, config):
     self.state_size = S = config.state_size
@@ -245,7 +248,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     max_t = config.training.max_t 
     eps = config.training.eps
 
-    key_t, key_T, key_y, key_p = jr.split(rng, 4)
+    key_t, key_T, key_y, key_xs_tilde, key_p = jr.split(rng, 5)
 
     rngs = {"permute": key_p}
 
@@ -308,15 +311,59 @@ class Experiment_MaskDiff_Conditional(Experiment):
       loss = mask_loss
     elif config.loss == "non_mask":
       loss = non_mask_loss
+    elif config.loss == "sic":
+      # Implement the additional terms for SIC
+      wt = 0.5 if config.training.corrector_loss_weight == "constant" else t
+
+      # Sample xs_tilde by running 1 ancestral step
+      s = t - 1.0 / config.training.sic_steps
+      s = jnp.clip(s, 0.0, 1.0) # Edge case s < 0.0
+      alpha_t = forward_process.alpha(t)
+      alpha_s = forward_process.alpha(s)
+
+      denoising_probs = softmax(x0_logits, axis=-1)
+      unmask_prob = (alpha_s - alpha_t) / (1 - alpha_t)
+      probs = unmask_prob * denoising_probs
+      probs = probs.at[:,mask].set(1 - unmask_prob)
+
+      to_unmask = tfd.Categorical(probs=probs).sample(seed=key_xs_tilde)
+      xs_tilde = jnp.where(y == mask, to_unmask, y)
+      # Don't take gradient w.r.t. xs_tilde
+      xs_tilde = jax.lax.stop_gradient(xs_tilde)
+
+      # Pass the sampled xs_tilde through the model
+      xs_tilde_with_label = jnp.concatenate([label_arr, xs_tilde, label_arr])
+      logits_xs_tilde = self.state.apply_fn(
+          {"params": params}, xs_tilde_with_label[None], s, rngs=rngs, deterministic=not is_train)
+
+      logits_xs_tilde = logits_xs_tilde[0, 1:-1, :S]
+      logits_xs_tilde = logits_xs_tilde.at[:, mask].set(-jnp.inf)
+      log_p_xs_tilde = logits_xs_tilde - jax.scipy.special.logsumexp(logits_xs_tilde, axis=-1, keepdims=True)
+
+      # Compute the cross entropy on the updated dimensions
+      neg_cross_ent = log_p_xs_tilde[jnp.arange(D), x0]
+      is_mask_xs = (xs_tilde == mask).astype('float32')
+      is_mask_y = (y == mask).astype('float32')
+      corrector_neg_cross_ent = jnp.sum((1 - is_mask_xs) * is_mask_y * neg_cross_ent, axis=-1)
+
+      corrector_loss = -config.training.sic_steps * corrector_neg_cross_ent
+      loss = (wt * mask_loss + (1 - wt) * corrector_loss)
     else:
       raise ValueError(f"Unrecognized loss type: {config.loss}")
 
-    scalar_dict = {
-        "loss": loss,
-        "mask_loss": mask_loss,
-        "non_mask_loss": non_mask_loss,
-        "mixed_loss": mixed_loss,
-    }
+    if config.loss == "sic":
+      scalar_dict = {
+          "loss": loss,
+          "mask_loss": mask_loss,
+          "corrector_loss": corrector_loss,
+      }
+    else:
+      scalar_dict = {
+          "loss": loss,
+          "mask_loss": mask_loss,
+          "non_mask_loss": non_mask_loss,
+          "mixed_loss": mixed_loss,
+      }
 
     img_dict = {}
     metrics = {"scalars": scalar_dict, "images": img_dict}
