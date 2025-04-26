@@ -83,7 +83,7 @@ def get_config():
     num_corrector_steps=1,
 
     # If set to true, only update masked tokens at the last argmax step
-    restricted=False,
+    restricted=True,
     k = 16,
     top_k_temperature=1.,
     maskgit_temperature=6.,
