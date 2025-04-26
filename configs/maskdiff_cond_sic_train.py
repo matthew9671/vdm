@@ -80,12 +80,12 @@ def get_config():
     tag="",
     corrector="gibbs", corrector_step_size=0.,
     corrector_entry_time=0.9,
-    num_corrector_steps=0,
+    num_corrector_steps=1,
 
     # If set to true, only update masked tokens at the last argmax step
     restricted=True,
-    k = 1,
-    top_k_temperature=1.,
+    k = 2,
+    top_k_temperature=.1,
     maskgit_temperature=6.,
     # This only controls temperature for k-gibbs
     anneal_temperature=False,
