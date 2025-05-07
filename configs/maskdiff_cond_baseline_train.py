@@ -114,7 +114,8 @@ def get_config():
       seed=1,
       substeps=1,
       num_steps_lr_warmup=5000, # MaskGIT used 5000 warmup steps and 1e-4 learning rate
-      num_steps_train=2_500_000, #100_000_000,
+      # Change to 2_500_000 for final lr decrease
+      num_steps_train=2_000_000, #100_000_000,
       num_steps_eval=100, # 512 * 100 ~ 50k val images
       batch_size_train=512, #1024 in paper version
       batch_size_eval=512,
