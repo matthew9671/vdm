@@ -45,7 +45,8 @@ def get_config():
   # config.ckpt_restore_dir = 'None'
 
   # 1e-4 lr, good
-  config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250404-002454/checkpoints-0'
+  config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250404-002454-1/checkpoints-0'
+  # config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250404-002454/checkpoints-0'
 
   # 1e-5 lr, bad
   # config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250330-085405/checkpoints-0/'
