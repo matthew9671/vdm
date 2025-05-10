@@ -79,10 +79,10 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=8, # Cut the number of steps in half due to using correctors
-    max_samples=50_000, # Stick with 10k samples for comparison
-    # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
-    update_type="maskgit", 
+    num_steps=16, # Cut the number of steps in half due to using correctors
+    max_samples=10_000, # Stick with 10k samples for comparison
+    # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence", "remdm"
+    update_type="remdm", 
     # max_samples=128, update_type="test_convergence",
     tag="",
     corrector="gibbs", corrector_step_size=0.,

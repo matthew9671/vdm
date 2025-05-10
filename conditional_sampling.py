@@ -357,6 +357,68 @@ def md4_predictor_update(key, x, x0_logits, unmask_prob, mask=1024):
     out = jnp.where(x == mask, to_unmask, x)
     return out
 
+def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_process):
+
+    S = config.data.codebook_size + 1
+    D = config.data.seq_length
+    mask = S - 1
+    k = config.sampler.k
+    t = ts[0]
+    x = xT
+    
+    # Always use the euler update for the predictor
+    update_func = euler_update
+
+    corrector = config.sampler.corrector
+    if corrector == "gibbs":
+        corrector_rate = gibbs_corrector
+    elif corrector == "forward_backward":
+        corrector_rate = forward_backward_corrector
+    else:
+        raise Exception(f"Only gibbs and forward backward correctors are supported for REMDM")
+        return None
+    
+    def _step(carry, idx):
+        x, key = carry
+        key, p_key, c_key = jr.split(key, 3)
+
+        t = ts[idx]
+        dt = t - ts[idx+1]
+        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        
+        # Apply corrector updates without another forward pass
+        rc = corrector_rate(res)
+        temperature_coeff = t if config.sampler.anneal_temperature else 1
+
+        c_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask,
+            temperature=config.sampler.top_k_temperature * temperature_coeff)
+        x = x.at[1:-1].set(c_update)
+
+        # Changing update function from euler to MD4 (closed form?)
+        # This means that we no longer need rates
+        m1 = forward_process.mask_percentage(t)
+        m2 = forward_process.mask_percentage(t-dt)
+        unmask_prob = (m1 - m2) / m1
+
+        p_update = md4_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, mask=mask)
+        x = x.at[1:-1].set(p_update)
+
+        out = { "x": x, }
+        
+        return (x, key), out
+
+    (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
+    res = compute_backward(x, t, apply_fn, params, config, forward_process)
+    x0_logits = res["x0_logits"]
+
+    if not config.sampler.restricted:
+        x0_pred = jnp.argmax(x0_logits, axis=1)
+    else:
+        # Instead of potentially updating every position, update only the masks
+        x0_pred = jnp.where(x[1:-1] == mask, jnp.argmax(x0_logits, axis=1), x[1:-1])
+
+    return x0_pred, x_hist["x"]
+
 def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_process):
 
     S = config.data.codebook_size + 1
