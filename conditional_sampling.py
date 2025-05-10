@@ -372,8 +372,10 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
     corrector = config.sampler.corrector
     if corrector == "gibbs":
         corrector_rate = gibbs_corrector
+        corrector_update = mask_conditonal_gibbs_update
     elif corrector == "forward_backward":
         corrector_rate = forward_backward_corrector
+        # TODO: corrector update is not implemented
     else:
         raise Exception(f"Only gibbs and forward backward correctors are supported for REMDM")
         return None
