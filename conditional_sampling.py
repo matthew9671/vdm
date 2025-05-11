@@ -395,7 +395,7 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
         unmask_prob = (m1 - m2) / m1
 
         if config.sampler.keep_updates_constant:
-            expected_generations = jnp.round(D * unmask_prob).astype(int)
+            expected_generations = jnp.round(D * (m1 - m2)).astype(int)
             # Keep the number of changes roughly constant
             k = config.sampler.k - expected_generations
             # Avoid k < 0
