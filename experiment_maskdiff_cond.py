@@ -378,6 +378,37 @@ class Experiment_MaskDiff_Conditional(Experiment):
     sample_logdir = os.path.join(logdir, 'samples')
     tf.io.gfile.makedirs(sample_logdir)
 
+    if self.config.sampler.use_corrector_model:
+      # Load and initialize the corrector model
+      # Hard coding the config file for now
+      from vdm.configs.maskdiff_cond_hollow_train import get_config
+      corr_config = get_config()
+      logging.info("=== Using a separately training corrector model ===")
+      corr_model = transformer.HollowTransformer(**corr_config.model)
+
+      inputs = jnp.zeros((2, corr_config.data.seq_length), dtype=int)
+      corr_params = corr_model.init(rng_corr, inputs, 0)
+
+      self.corrector_state = vdm.train_state.TrainState.create(
+        apply_fn=corr_model.apply,
+        variables=corr_params,
+        optax_optimizer=self.get_optimizer)
+
+      # Restore checkpoint
+      ckpt_restore_dir = corr_config.get('ckpt_restore_dir', 'None')
+      assert ckpt_restore_dir != 'None'
+
+      ckpt_restore = checkpoint.Checkpoint(ckpt_restore_dir)
+      checkpoint_to_restore = ckpt_restore.get_latest_checkpoint_to_restore_from()
+      assert checkpoint_to_restore
+      state_restore_dict = ckpt_restore.restore_dict(checkpoint_to_restore)
+      self.corrector_state = restore_partial(self.corrector_state, state_restore_dict)
+
+      c_params = self.corrector_state.params
+      c_params = flax_utils.replicate(c_params)
+    else:
+      c_params = None
+
     ckpt = checkpoint.Checkpoint(checkpoint_dir)
     state_dict = ckpt.restore_dict()
     params = flax.core.FrozenDict(state_dict['ema_params'])
@@ -395,11 +426,12 @@ class Experiment_MaskDiff_Conditional(Experiment):
       samples_per_label=self.config.sampler.max_samples // num_labels, 
       save_imgs=False, 
       sample_logdir=sample_logdir, 
-      verbose=True)
+      verbose=True,
+      c_params=c_params)
 
   def _sample_and_compute_fid(self, fid, params, total_samples=50_000, 
     samples_per_label=50, save_imgs=False, sample_logdir=None, verbose=True,
-    debug=False):
+    debug=False, c_params=None):
 
     config = self.config 
     S = config.data.codebook_size + 1
@@ -426,7 +458,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # sample a batch of images
       tokens_hist, samples = self.p_sample(params=params, rng=jax.random.split(curr_rng, 8), 
                                       samples_per_label=jnp.ones((8,)) * samples_per_label,
-                                      completed_samples=jnp.ones((8,)) * image_id)
+                                      completed_samples=jnp.ones((8,)) * image_id, c_params=c_params)
       mask_curve = jnp.sum(tokens_hist != (S-1), axis=-1)
       mask_curve = jnp.reshape(mask_curve, (128, -1))
       mask_curves.append(mask_curve)
@@ -687,7 +719,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
         df = pd.concat([df, pd.DataFrame(result)], ignore_index=True)
         df.to_csv(csv_file, index=False)
 
-  def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
+  def sample_fn(self, *, dummy_inputs, rng, params, 
+    samples_per_label=11, completed_samples=0, c_params=None):
     # We don't really need to use the dummy inputs.
 
     rng, rng_corr = jax.random.split(rng)
@@ -698,39 +731,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
     label = jnp.clip(label, max=999) # There are only 1000 labels in total
 
     config = self.config
-
-    if config.sampler.use_corrector_model:
-      # Load and initialize the corrector model
-      # Hard coding the config file for now
-      from vdm.configs.maskdiff_cond_hollow_train import get_config
-      corr_config = get_config()
-      logging.info("=== Using a separately training corrector model ===")
-      corr_model = transformer.HollowTransformer(**corr_config.model)
-
-      inputs = jnp.zeros((2, corr_config.data.seq_length), dtype=int)
-      corr_params = corr_model.init(rng_corr, inputs, 0)
-
-      self.corrector_state = vdm.train_state.TrainState.create(
-        apply_fn=corr_model.apply,
-        variables=corr_params,
-        optax_optimizer=self.get_optimizer)
-
-      # Restore checkpoint
-      ckpt_restore_dir = corr_config.get('ckpt_restore_dir', 'None')
-      assert ckpt_restore_dir != 'None'
-
-      ckpt_restore = checkpoint.Checkpoint(ckpt_restore_dir)
-      checkpoint_to_restore = ckpt_restore.get_latest_checkpoint_to_restore_from()
-      assert checkpoint_to_restore
-      state_restore_dict = ckpt_restore.restore_dict(checkpoint_to_restore)
-      self.corrector_state = restore_partial(self.corrector_state, state_restore_dict)
-
-      c_apply_fn = self.corrector_state.apply_fn
-      c_params = self.corrector_state.params
-      c_params = flax_utils.replicate(c_params)
-    else:
-      c_apply_fn = None
-      c_params = None
 
     # TODO: we need to fix this mess
     if config.sampler.corrector and config.sampler.corrector != "none":
@@ -773,7 +773,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     ts = jnp.linspace(max_t, min_t, num_steps + 1)
     # TODO: since we added the option to use the corrector model, only gibbs backward process works
     tokens, hist = backward_process(self.state.apply_fn, params, ts, config, xT_with_label, rng, 
-      self.forward_process, c_apply_fn=c_apply_fn, c_params=c_params)
+      self.forward_process, c_apply_fn=self.corrector_state.apply_fn, c_params=c_params)
 
     output_tokens = jnp.reshape(tokens, [-1, 16, 16])
     gen_images = self.tokenizer_model.apply(
