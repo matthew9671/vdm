@@ -362,7 +362,7 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
     S = config.data.codebook_size + 1
     D = config.data.seq_length
     mask = S - 1
-    k = config.sampler.k
+    # k = config.sampler.k
     t = ts[0]
     x = xT
     
@@ -388,6 +388,21 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
         dt = t - ts[idx+1]
         res = compute_backward(x, t, apply_fn, params, config, forward_process)
         
+        # Changing update function from euler to MD4 (closed form?)
+        # This means that we no longer need rates
+        m1 = forward_process.mask_percentage(t)
+        m2 = forward_process.mask_percentage(t-dt)
+        unmask_prob = (m1 - m2) / m1
+
+        if config.sampler.keep_updates_constant:
+            expected_generations = jnp.round(D * unmask_prob).astype(int)
+            # Keep the number of changes roughly constant
+            k = config.sampler.k - expected_generations
+            # Avoid k < 0
+            k = jnp.maximum(k, 1)
+        else:
+            k = config.sampler.k
+
         # Apply corrector updates without another forward pass
         rc = corrector_rate(res)
         temperature_coeff = t if config.sampler.anneal_temperature else 1
@@ -395,12 +410,6 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
         c_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask,
             temperature=config.sampler.top_k_temperature * temperature_coeff)
         x = x.at[1:-1].set(c_update)
-
-        # Changing update function from euler to MD4 (closed form?)
-        # This means that we no longer need rates
-        m1 = forward_process.mask_percentage(t)
-        m2 = forward_process.mask_percentage(t-dt)
-        unmask_prob = (m1 - m2) / m1
 
         p_update = md4_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, mask=mask)
         x = x.at[1:-1].set(p_update)
