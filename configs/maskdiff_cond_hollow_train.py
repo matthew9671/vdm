@@ -95,13 +95,13 @@ def get_config():
     # predictor_cutoff_time=0.25, convergence_steps=100,
     # If set to true, only update masked tokens at the last argmax step
     restricted=False,
-    k = 32,
+    k = 16,
     top_k_temperature=1.,
     maskgit_temperature=8.,
     # This only controls temperature for k-gibbs
     anneal_temperature=False,
     # This only applies to ReMDM
-    keep_updates_constant=True,
+    keep_updates_constant=False,
   )
 
   config.noise = d(
