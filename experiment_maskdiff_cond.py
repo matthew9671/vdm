@@ -726,7 +726,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       self.corrector_state = restore_partial(self.corrector_state, state_restore_dict)
 
       c_apply_fn = self.corrector_state.apply_fn
-      c_params = corrector_state.params
+      c_params = self.corrector_state.params
       c_params = flax_utils.replicate(c_params)
     else:
       c_apply_fn = None
