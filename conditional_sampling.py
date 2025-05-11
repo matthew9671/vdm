@@ -522,7 +522,7 @@ def backward_process_gibbs(p_apply_fn, p_params, ts, config, xT, key, forward_pr
         return (x, key), out
 
     (x, _), x_hist = jax.lax.scan(_step, (xT, key), jnp.arange(len(ts)-1))
-    res = compute_backward(x, t, c_apply_fn, params, config, forward_process)
+    res = compute_backward(x, t, c_apply_fn, c_params, config, forward_process)
     x0_logits = res["x0_logits"]
 
     if not config.sampler.restricted:
