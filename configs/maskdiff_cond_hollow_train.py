@@ -79,7 +79,7 @@ def get_config():
 
   config.sampler = d(
     seed=42,
-    num_steps=16, # Cut the number of steps in half due to using correctors
+    num_steps=32, # Cut the number of steps in half due to using correctors
     max_samples=10_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence", "remdm"
     update_type="remdm", 
@@ -95,7 +95,7 @@ def get_config():
     # predictor_cutoff_time=0.25, convergence_steps=100,
     # If set to true, only update masked tokens at the last argmax step
     restricted=False,
-    k = 16,
+    k = 8,
     top_k_temperature=1.,
     maskgit_temperature=8.,
     # This only controls temperature for k-gibbs
