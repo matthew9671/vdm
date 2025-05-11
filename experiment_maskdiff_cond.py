@@ -702,7 +702,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     if config.sampler.use_corrector_model:
       # Load and initialize the corrector model
       # Hard coding the config file for now
-      from vdm.config.maskdiff_cond_hollow_train import get_config
+      from vdm.configs.maskdiff_cond_hollow_train import get_config
       corr_config = get_config()
       logging.info("=== Using a separately training corrector model ===")
       corr_model = transformer.HollowTransformer(**corr_config.model)
