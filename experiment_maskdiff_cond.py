@@ -387,7 +387,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       corr_model = transformer.HollowTransformer(**corr_config.model)
 
       inputs = jnp.zeros((2, corr_config.data.seq_length), dtype=int)
-      corr_params = corr_model.init(rng_corr, inputs, 0)
+      # Random key doesn't matter here
+      corr_params = corr_model.init(jr.PRNGKey(0), inputs, 0)
 
       self.corrector_state = vdm.train_state.TrainState.create(
         apply_fn=corr_model.apply,
@@ -722,9 +723,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
   def sample_fn(self, *, dummy_inputs, rng, params, 
     samples_per_label=11, completed_samples=0, c_params=None):
     # We don't really need to use the dummy inputs.
-
-    rng, rng_corr = jax.random.split(rng)
-
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
 
     label = (completed_samples + jax.lax.axis_index('batch')) // samples_per_label
