@@ -430,7 +430,8 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
 
     return x0_pred, x_hist["x"]
 
-def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_process):
+def backward_process_gibbs(p_apply_fn, p_params, ts, config, xT, key, forward_process,
+    c_apply_fn=None, c_params=None):  
 
     S = config.data.codebook_size + 1
     D = config.data.seq_length
@@ -439,6 +440,9 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
     t = ts[0]
     x = xT
     
+    c_apply_fn = c_apply_fn or p_apply_fn
+    c_params = c_params or p_params
+
     # Always use the euler update for the predictor
     update_func = euler_update
 
@@ -469,7 +473,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         x, key, t, k = carry
         key, c_key = jr.split(key, 2)
         
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        res = compute_backward(x, t, c_apply_fn, c_params, config, forward_process)
         rc = corrector_rate(res)
 
         temperature_coeff = t if config.sampler.anneal_temperature else 1
@@ -487,7 +491,7 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
 
         t = ts[idx]
         dt = t - ts[idx+1]
-        res = compute_backward(x, t, apply_fn, params, config, forward_process)
+        res = compute_backward(x, t, p_apply_fn, p_params, config, forward_process)
         
         # Changing update function from euler to MD4 (closed form?)
         # This means that we no longer need rates
@@ -507,9 +511,11 @@ def backward_process_gibbs(apply_fn, params, ts, config, xT, key, forward_proces
         t -= dt
 
         # Corrector
-        x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
-                        lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
-                        lambda x: x, x)
+        if k > 0:
+            # We only apply the corrector if k > 0 to avoid unnecessary computation
+            x = jax.lax.cond(t <= config.sampler.corrector_entry_time,
+                            lambda x: jax.lax.fori_loop(0, config.sampler.num_corrector_steps, _c_step, (x, c_key, t, k))[0],
+                            lambda x: x, x)
 
         out = { "x": x, }
         

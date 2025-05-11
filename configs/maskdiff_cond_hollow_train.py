@@ -78,6 +78,9 @@ def get_config():
   )
 
   config.sampler = d(
+
+    use_corrector_model=False,
+
     seed=42,
     num_steps=32, # Cut the number of steps in half due to using correctors
     max_samples=10_000, # Stick with 10k samples for comparison

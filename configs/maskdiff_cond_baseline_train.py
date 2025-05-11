@@ -48,6 +48,8 @@ def get_config():
   config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250404-002454-1/checkpoints-0'
   # config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250404-002454/checkpoints-0'
 
+  config.corrector_ckpt_restore_dir = 'gs://maskdiff/logs/maskdiff_cond_hollow_train/20250128-021342/checkpoints-0/'
+
   # 1e-5 lr, bad
   # config.ckpt_restore_dir = 'gs://maskdiff/md4/maskdiff_cond_baseline_train/20250330-085405/checkpoints-0/'
 
@@ -79,15 +81,19 @@ def get_config():
   )
 
   config.sampler = d(
+
+    # Use a separate model for the corrector
+    use_corrector_model=True,
+
     seed=42,
-    num_steps=16, # Cut the number of steps in half due to using correctors
+    num_steps=8, # Cut the number of steps in half due to using correctors
     max_samples=10_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
     update_type="gibbs", 
     tag="",
     corrector="gibbs", corrector_step_size=0.,
-    corrector_entry_time=0,
-    num_corrector_steps=0,
+    corrector_entry_time=0.9,
+    num_corrector_steps=1,
 
     # If set to true, only update masked tokens at the last argmax step
     restricted=True,

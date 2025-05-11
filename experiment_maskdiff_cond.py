@@ -690,12 +690,46 @@ class Experiment_MaskDiff_Conditional(Experiment):
   def sample_fn(self, *, dummy_inputs, rng, params, samples_per_label=11, completed_samples=0):
     # We don't really need to use the dummy inputs.
 
+    rng, rng_corr = jax.random.split(rng)
+
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
 
     label = (completed_samples + jax.lax.axis_index('batch')) // samples_per_label
     label = jnp.clip(label, max=999) # There are only 1000 labels in total
 
     config = self.config
+
+    if config.sampler.use_corrector_model:
+      # Load and initialize the corrector model
+      # Hard coding the config file for now
+      from vdm.config.maskdiff_cond_hollow_train import get_config
+      corr_config = get_config()
+      logging.info("=== Using a separately training corrector model ===")
+      corr_model = transformer.HollowTransformer(**corr_config.model)
+
+      inputs = jnp.zeros((2, corr_config.data.seq_length), dtype=int)
+      corr_params = corr_model.init(rng_corr, inputs, 0)
+
+      self.corrector_state = vdm.train_state.TrainState.create(
+        apply_fn=corr_model.apply,
+        variables=corr_params,
+        optax_optimizer=self.get_optimizer)
+
+      # Restore checkpoint
+      ckpt_restore_dir = corr_config.get('ckpt_restore_dir', 'None')
+      assert ckpt_restore_dir != 'None'
+
+      ckpt_restore = checkpoint.Checkpoint(ckpt_restore_dir)
+      checkpoint_to_restore = ckpt_restore.get_latest_checkpoint_to_restore_from()
+      assert checkpoint_to_restore
+      state_restore_dict = ckpt_restore.restore_dict(checkpoint_to_restore)
+      self.corrector_state = restore_partial(self.corrector_state, state_restore_dict)
+
+      c_apply_fn = self.corrector_state.apply_fn
+      c_params = corr_params
+    else:
+      c_apply_fn = None
+      c_params = None
 
     # TODO: we need to fix this mess
     if config.sampler.corrector and config.sampler.corrector != "none":
@@ -712,10 +746,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       elif config.sampler.update_type == "remdm":
         backward_process = backward_process_remdm
       else: # tau-leaping or euler or md4
-        if config.sampler.num_corrector_steps == 1:
-          backward_process = backward_process_pc_single
-        else:
-          backward_process = backward_process_pc_multiple
+        backward_process = backward_process_pc_multiple
       logging.info(f"Using sampling strategy: {config.sampler.update_type}")
       logging.info(f"Using corrector: {config.sampler.corrector}")
     else:
@@ -739,8 +770,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # We want the length of the sequence to be num_steps + 1
     # Since we stop immediately after hitting min_t
     ts = jnp.linspace(max_t, min_t, num_steps + 1)
+    # TODO: since we added the option to use the corrector model, only gibbs backward process works
     tokens, hist = backward_process(self.state.apply_fn, params, ts, config, xT_with_label, rng, 
-      self.forward_process)
+      self.forward_process, c_apply_fn=c_apply_fn, c_params=c_params)
 
     output_tokens = jnp.reshape(tokens, [-1, 16, 16])
     gen_images = self.tokenizer_model.apply(
