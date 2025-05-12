@@ -741,7 +741,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       elif config.sampler.update_type == "test_convergence":
         backward_process = test_corrector_convergence
       elif config.sampler.update_type == "gibbs":
-        backward_process = backward_process_gibbs
+        backward_process = partial(backward_process_gibbs, c_apply_fn=self.corrector_state.apply_fn, c_params=c_params)
       elif config.sampler.update_type == "remdm":
         backward_process = backward_process_remdm
       else: # tau-leaping or euler or md4
@@ -769,9 +769,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     # We want the length of the sequence to be num_steps + 1
     # Since we stop immediately after hitting min_t
     ts = jnp.linspace(max_t, min_t, num_steps + 1)
-    # TODO: since we added the option to use the corrector model, only gibbs backward process works
-    tokens, hist = backward_process(self.state.apply_fn, params, ts, config, xT_with_label, rng, 
-      self.forward_process, c_apply_fn=self.corrector_state.apply_fn, c_params=c_params)
+    tokens, hist = backward_process(self.state.apply_fn, params, ts, config, xT_with_label, rng, self.forward_process)
 
     output_tokens = jnp.reshape(tokens, [-1, 16, 16])
     gen_images = self.tokenizer_model.apply(
