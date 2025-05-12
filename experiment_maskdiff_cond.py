@@ -546,6 +546,38 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     logging.info('=== Experiment.sample_sweep() ===')
 
+    if self.config.sampler.use_corrector_model:
+      # Load and initialize the corrector model
+      # Hard coding the config file for now
+      from vdm.configs.maskdiff_cond_hollow_train import get_config
+      corr_config = get_config()
+      logging.info("=== Using a separately training corrector model ===")
+      corr_model = transformer.HollowTransformer(**corr_config.model)
+
+      inputs = jnp.zeros((2, corr_config.data.seq_length), dtype=int)
+      # Random key doesn't matter here
+      corr_params = corr_model.init(jr.PRNGKey(0), inputs, 0)
+
+      self.corrector_state = vdm.train_state.TrainState.create(
+        apply_fn=corr_model.apply,
+        variables=corr_params,
+        optax_optimizer=self.get_optimizer)
+
+      # Restore checkpoint
+      ckpt_restore_dir = corr_config.get('ckpt_restore_dir', 'None')
+      assert ckpt_restore_dir != 'None'
+
+      ckpt_restore = checkpoint.Checkpoint(ckpt_restore_dir)
+      checkpoint_to_restore = ckpt_restore.get_latest_checkpoint_to_restore_from()
+      assert checkpoint_to_restore
+      state_restore_dict = ckpt_restore.restore_dict(checkpoint_to_restore)
+      self.corrector_state = restore_partial(self.corrector_state, state_restore_dict)
+
+      c_params = self.corrector_state.params
+      c_params = flax_utils.replicate(c_params)
+    else:
+      c_params = None
+
     ckpt = checkpoint.Checkpoint(checkpoint_dir)
     state_dict = ckpt.restore_dict()
     params = flax.core.FrozenDict(state_dict['ema_params'])
@@ -556,7 +588,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_gibbs_fixed_02_17.csv"
+    file_name = "results_separate_corrector_05_11.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
@@ -574,9 +606,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
     num_csteps = [1,]
     entry_times = [.9]
     cstep_sizes = [-1]
-    num_psteps = [4, 8] # Save 64 and 128 for later
-    ks = [24, 32, 40]
-    top_k_temperatures = [.01, .1, 1., 2.]
+    num_psteps = [4, 8, 16] # Save 64 and 128 for later
+    ks = [32, 16, 8, 4,]
+    top_k_temperatures = [.01, .1, 1., 2., 10.]
     maskgit_temperatures = [-1]
 
     # # TODO: we need to clean up sampling code
@@ -637,7 +669,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     cstep_sizes = [-1] 
     num_psteps = [32, 64, 128]
     ks = [16, 8, 4, 2, 1]
-    top_k_temperatures = [10.,100.,1000.]
+    top_k_temperatures = [2., 10., 100., 1000.]
     maskgit_temperatures = [-1]
 
     large_psteps_gibbs_experiments = itertools.product(
@@ -694,10 +726,11 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # try:
         fid_score = self._sample_and_compute_fid(fid, params, 
           # Search with lower number of samples first
-          total_samples=10_000,#50_000,
-          samples_per_label=10,#50, 
+          total_samples=10_000, #50_000,
+          samples_per_label=10, #50, 
           save_imgs=save_imgs,
-          sample_logdir="/home/yixiuz/logs/samples",)
+          sample_logdir="/home/yixiuz/logs/samples",
+          c_params=c_params)
       # except:
       #   logging.info('====== Experiment failed due to an unknown reason, moving on... ======')
       #   fid_score = None
