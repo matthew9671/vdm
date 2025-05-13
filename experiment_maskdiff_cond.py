@@ -588,7 +588,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_differnt_seed_5_13.csv"
+    file_name = "results_50k_5_13.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
@@ -711,7 +711,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # large_psteps_gibbs_experiments
       # remdm_experiments,
       no_corrector_experiments,
-      maskgit_experiments,
+      # maskgit_experiments,
       # forward_backward_experiments
       )
 
