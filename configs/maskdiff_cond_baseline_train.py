@@ -103,6 +103,7 @@ def get_config():
     # This only controls temperature for k-gibbs
     anneal_temperature=False,
     # ReMDM
+    keep_updates_constant=False,
     sigma_scale=0.05
   )
 

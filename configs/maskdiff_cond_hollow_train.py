@@ -105,6 +105,7 @@ def get_config():
     anneal_temperature=False,
     # This only applies to ReMDM
     keep_updates_constant=False,
+    sigma_scale=0.05,
   )
 
   config.noise = d(
