@@ -750,8 +750,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # try:
         fid_score = self._sample_and_compute_fid(fid, params, 
           # Search with lower number of samples first
-          total_samples=10_000,
-          samples_per_label=50, 
+          total_samples=50_000,
+          samples_per_label=10, 
           save_imgs=save_imgs,
           sample_logdir="/home/yixiuz/logs/samples",
           c_params=c_params)
@@ -783,7 +783,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
 
     label = (completed_samples + jax.lax.axis_index('batch')) // samples_per_label
-    label = jnp.clip(label, max=999) # There are only 1000 labels in total
+    # label = jnp.clip(label, max=999) # There are only 1000 labels in total
+    label = label % 1000
 
     config = self.config
 
