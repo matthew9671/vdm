@@ -750,8 +750,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # try:
         fid_score = self._sample_and_compute_fid(fid, params, 
           # Search with lower number of samples first
-          total_samples=10_000, #50_000,
-          samples_per_label=10, #50, 
+          total_samples=50_000,
+          samples_per_label=50, 
           save_imgs=save_imgs,
           sample_logdir="/home/yixiuz/logs/samples",
           c_params=c_params)
