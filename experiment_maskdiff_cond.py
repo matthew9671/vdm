@@ -798,7 +798,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
       elif config.sampler.update_type == "test_convergence":
         backward_process = test_corrector_convergence
       elif config.sampler.update_type == "gibbs":
-        backward_process = partial(backward_process_gibbs, c_apply_fn=self.corrector_state.apply_fn, c_params=c_params)
+        if self.config.sampler.use_corrector_model:
+          backward_process = partial(backward_process_gibbs, c_apply_fn=self.corrector_state.apply_fn, c_params=c_params)
+        else:
+          backward_process = backward_process_gibbs
       elif config.sampler.update_type == "remdm":
         backward_process = backward_process_remdm
       else: # tau-leaping or euler or md4
