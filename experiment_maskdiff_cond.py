@@ -600,84 +600,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
           'cstep_size', 'num_pstep', 'corrector', 'fid', 
           'k', 'gibbs_temperature', 'maskgit_temperature'])
 
-    # Gibbs
-    methods = ["gibbs"]
-    correctors = ["gibbs"]
-    num_csteps = [1,]
-    entry_times = [.9]
-    cstep_sizes = [-1]
-    num_psteps = [4, 8, 16] # Save 64 and 128 for later
-    ks = [32, 16, 8, 4,]
-    top_k_temperatures = [.01, .1, 1., 2., 10.]
-    maskgit_temperatures = [-1]
-
-    # # TODO: we need to clean up sampling code
-    # no_corrector_experiments = itertools.product(
-    #   ["gibbs"], # Uses md4 sampling
-    #   ["gibbs"], # So that we would call backward_process_gibbs
-    #   [0], # no corrector
-    #   [-1], 
-    #   [-1], 
-    #   [8, 16, 32, 64, 128, 256], 
-    #   [-1], [-1], [-1])
-
-    small_psteps_gibbs_experiments = itertools.product(
-      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-      ks, top_k_temperatures, maskgit_temperatures)
-
-    # Maskgit experiments
-    # methods = ["maskgit"]
-    # correctors = [None]
-    # num_csteps = [0,]
-    # entry_times = [-1]
-    # cstep_sizes = [-1]
-    # num_psteps = [16, 32, 64, 128, 256]
-    # ks = [-1]
-    # top_k_temperatures = [-1]
-    # maskgit_temperatures = [10.,12.,16.,20.,40.]
-
-    # maskgit_experiments = itertools.product(
-    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-    #   ks, top_k_temperatures, maskgit_temperatures)
-
-    # # Forward-backward experiments
-    # methods = ["euler"]
-    # correctors = ["forward_backward"]
-    # num_csteps = [1,]
-    # entry_times = [.9]
-    # cstep_sizes = [.5, 1., 2., 4.] 
-    # num_psteps = [8, 16, 32, 64, 128] # Save 64 and 128 for later
-    # ks = [-1]
-    # top_k_temperatures = [-1]
-    # maskgit_temperatures = [-1]
-
-    # forward_backward_experiments = itertools.product(
-    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-    #   ks, top_k_temperatures, maskgit_temperatures)
-
-    # params_combination = itertools.chain(
-    #   no_corrector_experiments,
-    #   maskgit_experiments, 
-    #   forward_backward_experiments,
-    #   gibbs_experiments)
-
-    # The other half of the gibbs experiments
-    methods = ["gibbs"]
-    correctors = ["gibbs"]
-    num_csteps = [1,]
-    entry_times = [.9,]
-    cstep_sizes = [-1] 
-    num_psteps = [32, 64, 128]
-    ks = [16, 8, 4, 2, 1]
-    top_k_temperatures = [2., 10., 100., 1000.]
-    maskgit_temperatures = [-1]
-
-    large_psteps_gibbs_experiments = itertools.product(
-      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-      ks, top_k_temperatures, maskgit_temperatures)
-
-    # params_combination = maskgit_experiments
-
+    # # Sweeping using existing best configurations
     # # Load the best experimental configurations
     # best_configs_file_path = "/home/yixiuz/vdm/best_results_gibbs_fixed_2_17.csv"
     # best_configs = pd.read_csv(best_configs_file_path)
@@ -691,9 +614,106 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #     ].itertuples(index=False, name=None)
     # )
 
+    # # Gibbs
+    # methods = ["gibbs"]
+    # correctors = ["gibbs"]
+    # num_csteps = [1,]
+    # entry_times = [.9]
+    # cstep_sizes = [-1]
+    # num_psteps = [4, 8, 16] # Save 64 and 128 for later
+    # ks = [32, 16, 8, 4,]
+    # top_k_temperatures = [.01, .1, 1., 2., 10.]
+    # maskgit_temperatures = [-1]
+
+    no_corrector_experiments = itertools.product(
+      ["gibbs"], # Uses md4 sampling
+      ["gibbs"], # So that we would call backward_process_gibbs
+      [0], # no corrector
+      [-1], 
+      [-1], 
+      [8, 16, 32, 64, 128, 256], 
+      [-1], [-1], [-1])
+
+    # small_psteps_gibbs_experiments = itertools.product(
+    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+    #   ks, top_k_temperatures, maskgit_temperatures)
+
+    # Maskgit experiments
+    methods = ["maskgit"]
+    correctors = [None]
+    num_csteps = [0,]
+    entry_times = [-1]
+    cstep_sizes = [-1]
+    num_psteps = [16, 32, 64, 128, 256]
+    ks = [-1]
+    top_k_temperatures = [-1]
+    maskgit_temperatures = [.5, 1., 2., 4., 8., 10., 12.]
+
+    maskgit_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
+
+    # Forward-backward experiments
+    methods = ["euler"]
+    correctors = ["forward_backward"]
+    num_csteps = [1,]
+    entry_times = [.9]
+    cstep_sizes = [.5, 1., 2., 4.] 
+    num_psteps = [8, 16, 32, 64, 128] # Save 64 and 128 for later
+    ks = [-1]
+    top_k_temperatures = [-1]
+    maskgit_temperatures = [-1]
+
+    forward_backward_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
+
+    # Forward-backward experiments
+    methods = ["remdm"]
+    correctors = ["forward_backward"]
+    num_csteps = [1,]
+    entry_times = [.9]
+    cstep_sizes = [.01, .02, .05] # This is actually the sigma scale 
+    num_psteps = [16, 32, 64, 128, 256] # Save 64 and 128 for later
+    ks = [-1]
+    top_k_temperatures = [-1]
+    maskgit_temperatures = [-1]
+
+    remdm_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
+
+    # params_combination = itertools.chain(
+    #   no_corrector_experiments,
+    #   maskgit_experiments, 
+    #   forward_backward_experiments,
+    #   gibbs_experiments)
+
+    # # The other half of the gibbs experiments
+    # methods = ["gibbs"]
+    # correctors = ["gibbs"]
+    # num_csteps = [1,]
+    # entry_times = [.9,]
+    # cstep_sizes = [-1] 
+    # num_psteps = [32, 64, 128]
+    # ks = [16, 8, 4, 2, 1]
+    # top_k_temperatures = [2., 10., 100., 1000.]
+    # maskgit_temperatures = [-1]
+
+    # large_psteps_gibbs_experiments = itertools.product(
+    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+    #   ks, top_k_temperatures, maskgit_temperatures)
+
+    # params_combination = maskgit_experiments
+
     params_combination = itertools.chain(
-      small_psteps_gibbs_experiments,
-      large_psteps_gibbs_experiments)
+      # small_psteps_gibbs_experiments,
+      # large_psteps_gibbs_experiments
+      remdm_experiments,
+      no_corrector_experiments,
+      maskgit_experiments,
+      forward_backward_experiments
+      )
 
     cfg = self.config.sampler
 
@@ -715,6 +735,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
       cfg.k = k
       cfg.top_k_temperature = top_k_temperature
       cfg.maskgit_temperature = maskgit_temperature
+
+      # TODO: this is a hack to include the new remdm method
+      if method == "remdm":
+        cfg.sigma_scale = cstep_size
 
       save_imgs = False #num_pstep <= 16
 
