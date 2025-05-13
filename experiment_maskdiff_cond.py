@@ -588,7 +588,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_50k_5_13.csv"
+    file_name = "results_differnt_seed_5_13.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
@@ -711,7 +711,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # large_psteps_gibbs_experiments
       # remdm_experiments,
       no_corrector_experiments,
-      # maskgit_experiments,
+      maskgit_experiments,
       # forward_backward_experiments
       )
 
@@ -750,8 +750,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       # try:
         fid_score = self._sample_and_compute_fid(fid, params, 
           # Search with lower number of samples first
-          total_samples=10_000,
-          samples_per_label=10, 
+          total_samples=10_000, #50_000,
+          samples_per_label=10, #50, 
           save_imgs=save_imgs,
           sample_logdir="/home/yixiuz/logs/samples",
           c_params=c_params)
@@ -784,7 +784,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     label = (completed_samples + jax.lax.axis_index('batch')) // samples_per_label
     label = jnp.clip(label, max=999) # There are only 1000 labels in total
-    # label = label % 1000
 
     config = self.config
 

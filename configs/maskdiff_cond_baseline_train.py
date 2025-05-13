@@ -87,7 +87,7 @@ def get_config():
 
     seed=37, # Default is 42
     num_steps=16, # Cut the number of steps in half due to using correctors
-    max_samples=50_000, # Stick with 10k samples for comparison
+    max_samples=10_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
     update_type="remdm", 
     tag="",
