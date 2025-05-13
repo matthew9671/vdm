@@ -438,7 +438,7 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
             alpha_s = 1 - m2
 
             # Recompute unmask probability because of remasking
-            sigma_t_max = (1 - alpha_s) / alpha_t
+            sigma_t_max = jnp.minimum((1 - alpha_s) / alpha_t, 1)
             sigma_t = config.sampler.sigma_scale * sigma_t_max
 
             unmask_prob = (alpha_s - (1 - sigma_t) * alpha_t) / (1 - alpha_t)
