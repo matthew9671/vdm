@@ -91,7 +91,7 @@ def get_config():
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
     update_type="remdm", 
     tag="",
-    corrector="", corrector_step_size=0.,
+    corrector="forward_backward", corrector_step_size=0.,
     corrector_entry_time=0.9,
     num_corrector_steps=1,
 
