@@ -783,8 +783,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     rng = jax.random.fold_in(rng, jax.lax.axis_index('batch'))
 
     label = (completed_samples + jax.lax.axis_index('batch')) // samples_per_label
-    # label = jnp.clip(label, max=999) # There are only 1000 labels in total
-    label = label % 1000
+    label = jnp.clip(label, max=999) # There are only 1000 labels in total
+    # label = label % 1000
 
     config = self.config
 
