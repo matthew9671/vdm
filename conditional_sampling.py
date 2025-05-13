@@ -357,6 +357,23 @@ def md4_predictor_update(key, x, x0_logits, unmask_prob, mask=1024):
     out = jnp.where(x == mask, to_unmask, x)
     return out
 
+def remdm_predictor_update(key, x, x0_logits, unmask_prob, sigma_t, 
+    mask=1024, softmax_temp=0.8):
+    
+    D = x.shape[0]
+    denoising_probs = softmax(x0_logits / softmax_temp, axis=-1)
+    probs = unmask_prob * denoising_probs
+    probs = probs.at[:,mask].set(1 - unmask_prob)
+
+    # Identity function but with a small probability of remasking
+    remask_probs = jax.nn.one_hot(x, probs.shape[-1]) * (1 - sigma_t)
+    remask_probs = remask_probs.at[:,mask].set(sigma_t)
+
+    probs = jnp.where(x[...,None] != mask, remask_probs, probs)
+
+    out = tfd.Categorical(probs=probs).sample(seed=key)
+    return out
+
 def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_process):
 
     S = config.data.codebook_size + 1
@@ -373,9 +390,8 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
     if corrector == "gibbs":
         corrector_rate = gibbs_corrector
         corrector_update = mask_conditonal_gibbs_update
-    elif corrector == "forward_backward":
-        corrector_rate = forward_backward_corrector
-        # TODO: corrector update is not implemented
+    elif corrector == "forward_backward" or corrector == "":
+        corrector_rate = None
     else:
         raise Exception(f"Only gibbs and forward backward correctors are supported for REMDM")
         return None
@@ -403,16 +419,32 @@ def backward_process_remdm(apply_fn, params, ts, config, xT, key, forward_proces
         else:
             k = config.sampler.k
 
-        # Apply corrector updates without another forward pass
-        rc = corrector_rate(res)
-        temperature_coeff = t if config.sampler.anneal_temperature else 1
+        if corrector == "gibbs":
 
-        c_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask,
-            temperature=config.sampler.top_k_temperature * temperature_coeff)
-        x = x.at[1:-1].set(c_update)
+            # Apply corrector updates without another forward pass
+            rc = corrector_rate(res)
+            temperature_coeff = t if config.sampler.anneal_temperature else 1
 
-        p_update = md4_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, mask=mask)
-        x = x.at[1:-1].set(p_update)
+            c_update = corrector_update(c_key, x[1:-1], rc, k=k, mask=mask,
+                temperature=config.sampler.top_k_temperature * temperature_coeff)
+            x = x.at[1:-1].set(c_update)
+
+            p_update = md4_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, mask=mask)
+            x = x.at[1:-1].set(p_update)
+
+        else:
+
+            alpha_t = 1 - m1
+            alpha_s = 1 - m2
+
+            # Recompute unmask probability because of remasking
+            sigma_t_max = (1 - alpha_s) / alpha_t
+            sigma_t = config.sampler.sigma_scale * sigma_t_max
+
+            unmask_prob = (alpha_s - (1 - sigma_t) * alpha_t) / (1 - alpha_t)
+
+            p_update = remdm_predictor_update(p_key, x[1:-1], res["x0_logits"], unmask_prob, sigma_t, mask=mask)
+            x = x.at[1:-1].set(p_update)
 
         out = { "x": x, }
         
