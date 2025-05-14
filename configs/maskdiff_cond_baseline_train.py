@@ -85,7 +85,7 @@ def get_config():
     # Use a separate model for the corrector
     use_corrector_model=False,
 
-    seed=37, # Default is 42
+    seed=42, # Default is 42
     num_steps=16, # Cut the number of steps in half due to using correctors
     max_samples=10_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
