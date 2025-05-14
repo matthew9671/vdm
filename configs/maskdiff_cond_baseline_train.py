@@ -87,13 +87,13 @@ def get_config():
 
     seed=42,
     num_steps=16, # Cut the number of steps in half due to using correctors
-    max_samples=10_000, # Stick with 10k samples for comparison
+    max_samples=50_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
-    update_type="remdm", 
+    update_type="gibbs", 
     tag="",
-    corrector="forward_backward", corrector_step_size=0.,
+    corrector="gibbs", corrector_step_size=0.,
     corrector_entry_time=0.9,
-    num_corrector_steps=1,
+    num_corrector_steps=0,
 
     # If set to true, only update masked tokens at the last argmax step
     restricted=True,
