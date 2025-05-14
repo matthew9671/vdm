@@ -307,14 +307,21 @@ def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024, temperature=
     logits = x0_logits.at[:, mask].set(-jnp.inf)
     # Sample a bunch of new values according to denoising model
     jump_target = jr.categorical(key1, logits).astype(jnp.int32)
-    # Figure out locations with the lowest score
-    # Since the score is proportional to the denoising prob anyways, we're just gonna use the logits again
-    scores = x0_logits[jnp.arange(D), x].T
+
+    # Margin trick: we use the difference between p(x) and max_{y\neq x} p(y) as confidence
+    # this way we prioritize updating the dimensions that can be most improved
+    x_logits = x0_logits[jnp.arange(D), x].T
+    x0_logits = x0_logits.at[jnp.arange(D), x].set(-jnp.inf)
+    # Confidence is logits of x - logits of the best other option
+    scores = x_logits - jnp.max(x0_logits, axis=-1)
+    # scores = x0_logits[jnp.arange(D), x].T
+    
     # Add temperature annealing
     # This is minus since conventionally we add noise and take max
     scores -= temperature * jr.gumbel(key2, shape=(D,))
 
     scores = jnp.where(x == mask, jnp.inf, scores)
+    # Want to take the k least confident dimensions
     # Trick: sort and then find the kth smallest
     thres = jnp.sort(scores, axis=-1)[k-1]
     out = jnp.where((scores <= thres) & (x != mask), jump_target, x)
