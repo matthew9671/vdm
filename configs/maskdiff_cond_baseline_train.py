@@ -98,7 +98,7 @@ def get_config():
     # If set to true, only update masked tokens at the last argmax step
     restricted=True,
     k = 2,
-    top_k_temperature=2.,
+    top_k_temperature=5.,
     maskgit_temperature=8.,
     # This only controls temperature for k-gibbs
     anneal_temperature=False,
