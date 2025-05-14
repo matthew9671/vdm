@@ -708,7 +708,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     params_combination = itertools.chain(
       small_psteps_gibbs_experiments,
-      large_psteps_gibbs_experiments
+      large_psteps_gibbs_experiments,
       remdm_experiments,
       # no_corrector_experiments,
       # maskgit_experiments,
