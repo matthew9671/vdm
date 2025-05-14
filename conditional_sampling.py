@@ -313,8 +313,8 @@ def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024, temperature=
     x_logits = logits[jnp.arange(D), x].T
     logits = logits.at[jnp.arange(D), x].set(-jnp.inf)
     # Confidence is logits of x - logits of the best other option
-    scores = x_logits - jnp.max(logits, axis=-1)
-    # scores = x0_logits[jnp.arange(D), x].T
+    # scores = x_logits - jnp.max(logits, axis=-1)
+    scores = x_logits
     
     # Add temperature annealing
     # This is minus since conventionally we add noise and take max
