@@ -588,7 +588,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_differnt_seed_5_13.csv"
+    file_name = "results_separate_corrector_05_11.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
@@ -644,10 +644,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     num_csteps = [0,]
     entry_times = [-1]
     cstep_sizes = [-1]
-    num_psteps = [32, 64, 128, 256]
+    num_psteps = [16, 32, 64, 128, 256]
     ks = [-1]
     top_k_temperatures = [-1]
-    maskgit_temperatures = [16., 20., 40.]
+    maskgit_temperatures = [.5, 1., 2., 4., 8., 10., 12.]
 
     maskgit_experiments = itertools.product(
       methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
@@ -709,10 +709,10 @@ class Experiment_MaskDiff_Conditional(Experiment):
     params_combination = itertools.chain(
       # small_psteps_gibbs_experiments,
       # large_psteps_gibbs_experiments
-      # remdm_experiments,
+      remdm_experiments,
       no_corrector_experiments,
       maskgit_experiments,
-      # forward_backward_experiments
+      forward_backward_experiments
       )
 
     cfg = self.config.sampler
