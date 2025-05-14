@@ -83,22 +83,22 @@ def get_config():
   config.sampler = d(
 
     # Use a separate model for the corrector
-    use_corrector_model=False,
+    use_corrector_model=True,
 
     seed=42,
-    num_steps=128, # Cut the number of steps in half due to using correctors
+    num_steps=32, # Cut the number of steps in half due to using correctors
     max_samples=50_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
     update_type="gibbs", 
     tag="",
     corrector="gibbs", corrector_step_size=0.,
     corrector_entry_time=0.9,
-    num_corrector_steps=0,
+    num_corrector_steps=1,
 
     # If set to true, only update masked tokens at the last argmax step
     restricted=True,
-    k = 16,
-    top_k_temperature=1.,
+    k = 1,
+    top_k_temperature=2.,
     maskgit_temperature=8.,
     # This only controls temperature for k-gibbs
     anneal_temperature=False,
