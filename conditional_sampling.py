@@ -310,10 +310,10 @@ def mask_conditonal_gibbs_update(key, x, x0_logits, k=1, mask=1024, temperature=
 
     # Margin trick: we use the difference between p(x) and max_{y\neq x} p(y) as confidence
     # this way we prioritize updating the dimensions that can be most improved
-    x_logits = x0_logits[jnp.arange(D), x].T
-    x0_logits = x0_logits.at[jnp.arange(D), x].set(-jnp.inf)
+    x_logits = logits[jnp.arange(D), x].T
+    logits = logits.at[jnp.arange(D), x].set(-jnp.inf)
     # Confidence is logits of x - logits of the best other option
-    scores = x_logits - jnp.max(x0_logits, axis=-1)
+    scores = x_logits - jnp.max(logits, axis=-1)
     # scores = x0_logits[jnp.arange(D), x].T
     
     # Add temperature annealing
