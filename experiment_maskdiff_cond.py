@@ -425,7 +425,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     self._sample_and_compute_fid(fid, params, 
       total_samples=self.config.sampler.max_samples,
       samples_per_label=self.config.sampler.max_samples // num_labels, 
-      save_imgs=False, 
+      save_imgs=self.config.sample.save_imgs_and_acts, 
       sample_logdir=sample_logdir, 
       verbose=True,
       c_params=c_params)
