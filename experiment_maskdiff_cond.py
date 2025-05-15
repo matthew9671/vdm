@@ -624,38 +624,38 @@ class Experiment_MaskDiff_Conditional(Experiment):
     num_csteps = [1,]
     entry_times = [1.]
     cstep_sizes = [-1]
-    num_psteps = [4, 8, 16] # Save 64 and 128 for later
-    ks = [32, 16, 8, 4,]
-    top_k_temperatures = [.1, 1., 2., 5., 10.]
+    num_psteps = [8,] # Save 64 and 128 for later
+    ks = [32, 16, 8, 4, 2, 1, 0]
+    top_k_temperatures = [1.]
     maskgit_temperatures = [-1]
 
-    no_corrector_experiments = itertools.product(
-      ["gibbs"], # Uses md4 sampling
-      ["gibbs"], # So that we would call backward_process_gibbs
-      [0], # no corrector
-      [-1], 
-      [-1], 
-      [8, 16, 32, 64, 128, 256], 
-      [-1], [-1], [-1])
+    # no_corrector_experiments = itertools.product(
+    #   ["gibbs"], # Uses md4 sampling
+    #   ["gibbs"], # So that we would call backward_process_gibbs
+    #   [0], # no corrector
+    #   [-1], 
+    #   [-1], 
+    #   [8, 16, 32, 64, 128, 256], 
+    #   [-1], [-1], [-1])
 
     small_psteps_gibbs_experiments = itertools.product(
       methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
       ks, top_k_temperatures, maskgit_temperatures)
 
-    # Maskgit experiments
-    methods = ["maskgit"]
-    correctors = [None]
-    num_csteps = [0,]
-    entry_times = [-1]
-    cstep_sizes = [-1]
-    num_psteps = [16, 32, 64, 128, 256]
-    ks = [-1]
-    top_k_temperatures = [-1]
-    maskgit_temperatures = [.5, 1., 2., 4., 8., 10., 12.]
+    # # Maskgit experiments
+    # methods = ["maskgit"]
+    # correctors = [None]
+    # num_csteps = [0,]
+    # entry_times = [-1]
+    # cstep_sizes = [-1]
+    # num_psteps = [16, 32, 64, 128, 256]
+    # ks = [-1]
+    # top_k_temperatures = [-1]
+    # maskgit_temperatures = [.5, 1., 2., 4., 8., 10., 12.]
 
-    maskgit_experiments = itertools.product(
-      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
-      ks, top_k_temperatures, maskgit_temperatures)
+    # maskgit_experiments = itertools.product(
+    #   methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+    #   ks, top_k_temperatures, maskgit_temperatures)
 
     # Forward-backward experiments
     methods = ["euler"]
@@ -712,8 +712,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     params_combination = itertools.chain(
       small_psteps_gibbs_experiments,
-      large_psteps_gibbs_experiments,
-      remdm_experiments,
+      # large_psteps_gibbs_experiments,
+      # remdm_experiments,
       # no_corrector_experiments,
       # maskgit_experiments,
       # forward_backward_experiments
