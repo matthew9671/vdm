@@ -79,7 +79,7 @@ def get_config():
 
   config.sampler = d(
 
-    save_imgs_and_acts = False,
+    save_imgs_and_acts = True,
 
     use_corrector_model=False,
 
