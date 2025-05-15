@@ -453,6 +453,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     all_acts = []
     all_images = []
     mask_curves = []
+    batch_images = []
 
     while image_id < total_samples:
       rng, curr_rng = jax.random.split(rng)
@@ -467,7 +468,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       samples = np.clip(samples, 0, 1)      
       uint8_images = (samples * 255).astype(np.uint8)
 
-      all_images.append(uint8_images)
+      # all_images.append(uint8_images)
+      batch_images.append(uint8_images)
 
       if (save_imgs and jax.process_index() == 0 
         and image_id % (128 * 10) == 0 
@@ -482,7 +484,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
         file_name = utils.get_file_name(self.config)
         if not os.path.exists(sample_logdir + f'/{file_name}_images'):
           os.makedirs(sample_logdir+f'/{file_name}_images')
-        np.save(sample_logdir + f'/{file_name}_images/{image_id}', uint8_images, allow_pickle=True)
+        np.save(sample_logdir + f'/{file_name}_images/{image_id}', 
+          np.concatenate(batch_images), allow_pickle=True)
+        batch_images = []
 
       image_id += samples.shape[0]
       all_acts.append(fid.compute_acts(uint8_images))
