@@ -91,10 +91,10 @@ def get_config():
     num_steps=16, # Cut the number of steps in half due to using correctors
     max_samples=50_000, # Stick with 10k samples for comparison
     # "tau_leaping", "gillespies", "euler", "gibbs", "test_convergence",
-    update_type="remdm", 
+    update_type="euler", 
     tag="",
-    corrector="forward_backward", corrector_step_size=0.,
-    corrector_entry_time=1.,
+    corrector="forward_backward", corrector_step_size=1.0,
+    corrector_entry_time=.9,
     num_corrector_steps=0,
 
     # If set to true, only update masked tokens at the last argmax step
