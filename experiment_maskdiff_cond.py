@@ -592,7 +592,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_separate_corrector_05_14_50k.csv"
+    file_name = "results_k_sweep_05_15_50k.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
