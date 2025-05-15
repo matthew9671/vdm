@@ -94,7 +94,7 @@ def get_config():
     update_type="euler", 
     tag="",
     corrector="forward_backward", corrector_step_size=1.0,
-    corrector_entry_time=.9,
+    corrector_entry_time=1.,
     num_corrector_steps=0,
 
     # If set to true, only update masked tokens at the last argmax step
