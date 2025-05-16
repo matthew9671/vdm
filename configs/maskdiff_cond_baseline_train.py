@@ -82,10 +82,10 @@ def get_config():
 
   config.sampler = d(
 
-    save_imgs_and_acts = True,
+    save_imgs_and_acts=False,
 
     # Use a separate model for the corrector
-    use_corrector_model=False,
+    use_corrector_model=True,
 
     seed=42,
     num_steps=16, # Cut the number of steps in half due to using correctors

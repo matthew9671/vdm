@@ -494,7 +494,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
       if verbose:
         logging.info(f"Number of samples: {image_id}/{total_samples}")
 
-    if jax.process_index() == 0 and not debug:
+    # if jax.process_index() == 0 and not debug:
+    if not debug:
 
       file_name = utils.get_file_name(self.config)
 
@@ -592,7 +593,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     reference = '/home/yixiuz/fid/VIRTUAL_imagenet256_labeled.npz'
     fid = fidjax.FID(weights, reference)
 
-    file_name = "results_k_sweep_05_15_50k.csv"
+    # file_name = "results_k_sweep_05_15_50k.csv"
+    file_name = "results_separate_corrector_05_14_50k.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
@@ -618,17 +620,6 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #     ].itertuples(index=False, name=None)
     # )
 
-    # Gibbs
-    methods = ["gibbs"]
-    correctors = ["gibbs"]
-    num_csteps = [1,]
-    entry_times = [1.]
-    cstep_sizes = [-1]
-    num_psteps = [8,] # Save 64 and 128 for later
-    ks = [32, 16, 8, 4, 2, 1, 0]
-    top_k_temperatures = [1.]
-    maskgit_temperatures = [-1]
-
     # no_corrector_experiments = itertools.product(
     #   ["gibbs"], # Uses md4 sampling
     #   ["gibbs"], # So that we would call backward_process_gibbs
@@ -638,7 +629,32 @@ class Experiment_MaskDiff_Conditional(Experiment):
     #   [8, 16, 32, 64, 128, 256], 
     #   [-1], [-1], [-1])
 
-    small_psteps_gibbs_experiments = itertools.product(
+    # Gibbs
+    methods = ["gibbs"]
+    correctors = ["gibbs"]
+    num_csteps = [1,]
+    entry_times = [1.]
+    cstep_sizes = [-1]
+    num_psteps = [8,] 
+    ks = [64, 2, 1]
+    top_k_temperatures = [1.]
+    maskgit_temperatures = [-1]
+
+    psteps_8_gibbs_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
+  
+    methods = ["gibbs"]
+    correctors = ["gibbs"]
+    num_csteps = [1,]
+    entry_times = [1.]
+    cstep_sizes = [-1]
+    num_psteps = [16,]
+    ks = [64, 2, 1]
+    top_k_temperatures = [2.]
+    maskgit_temperatures = [-1]
+
+    psteps_16_gibbs_experiments = itertools.product(
       methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
       ks, top_k_temperatures, maskgit_temperatures)
 
@@ -699,20 +715,36 @@ class Experiment_MaskDiff_Conditional(Experiment):
     num_csteps = [1,]
     entry_times = [1.,]
     cstep_sizes = [-1] 
-    num_psteps = [32, 64, 128]
-    ks = [16, 8, 4, 2, 1]
-    top_k_temperatures = [2., 5., 10., 100., 1000.]
+    num_psteps = [32]
+    ks = [32， 64]
+    top_k_temperatures = [5.]
     maskgit_temperatures = [-1]
 
-    large_psteps_gibbs_experiments = itertools.product(
+    psteps_32_gibbs_experiments = itertools.product(
+      methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
+      ks, top_k_temperatures, maskgit_temperatures)
+
+    methods = ["gibbs"]
+    correctors = ["gibbs"]
+    num_csteps = [1,]
+    entry_times = [1.,]
+    cstep_sizes = [-1] 
+    num_psteps = [64]
+    ks = [32， 64]
+    top_k_temperatures = [10.]
+    maskgit_temperatures = [-1]
+
+    psteps_64_gibbs_experiments = itertools.product(
       methods, correctors, num_csteps, entry_times, cstep_sizes, num_psteps, 
       ks, top_k_temperatures, maskgit_temperatures)
 
     # params_combination = maskgit_experiments
 
     params_combination = itertools.chain(
-      small_psteps_gibbs_experiments,
-      # large_psteps_gibbs_experiments,
+      psteps_8_gibbs_experiments,
+      psteps_16_gibbs_experiments,
+      psteps_32_gibbs_experiments,
+      psteps_64_gibbs_experiments
       # remdm_experiments,
       # no_corrector_experiments,
       # maskgit_experiments,
