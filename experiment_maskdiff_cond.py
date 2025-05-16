@@ -716,7 +716,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     entry_times = [1.,]
     cstep_sizes = [-1] 
     num_psteps = [32]
-    ks = [32， 64]
+    ks = [32, 64]
     top_k_temperatures = [5.]
     maskgit_temperatures = [-1]
 
@@ -730,7 +730,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     entry_times = [1.,]
     cstep_sizes = [-1] 
     num_psteps = [64]
-    ks = [32， 64]
+    ks = [32, 64]
     top_k_temperatures = [10.]
     maskgit_temperatures = [-1]
 
