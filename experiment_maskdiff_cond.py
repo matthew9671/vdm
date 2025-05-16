@@ -594,7 +594,8 @@ class Experiment_MaskDiff_Conditional(Experiment):
     fid = fidjax.FID(weights, reference)
 
     # file_name = "results_k_sweep_05_15_50k.csv"
-    file_name = "results_separate_corrector_05_14_50k.csv"
+    # file_name = "results_separate_corrector_05_14_50k.csv"
+    file_name = "results_additional_05_14_50k.csv"
     csv_file = os.path.join(logdir, file_name)
 
     # if jax.process_index() == 0:
@@ -636,7 +637,7 @@ class Experiment_MaskDiff_Conditional(Experiment):
     entry_times = [1.]
     cstep_sizes = [-1]
     num_psteps = [8,] 
-    ks = [64, 2, 1]
+    ks = [2, 1]
     top_k_temperatures = [1.]
     maskgit_temperatures = [-1]
 
@@ -742,9 +743,9 @@ class Experiment_MaskDiff_Conditional(Experiment):
 
     params_combination = itertools.chain(
       psteps_8_gibbs_experiments,
-      psteps_16_gibbs_experiments,
-      psteps_32_gibbs_experiments,
-      psteps_64_gibbs_experiments
+      # psteps_16_gibbs_experiments,
+      # psteps_32_gibbs_experiments,
+      # psteps_64_gibbs_experiments
       # remdm_experiments,
       # no_corrector_experiments,
       # maskgit_experiments,
